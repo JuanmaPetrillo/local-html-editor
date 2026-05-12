@@ -1,3 +1,5 @@
+import { importHtmlFileScan } from './importer.mjs';
+
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
 /**
@@ -49,7 +51,8 @@ export function renderShellState(project) {
       hasProject: false,
       statusLabel: 'No file selected.',
       detailsLabel: 'Choose an .html, .htm, or .zip file to start a local project model.',
-      unsupportedLabel: ''
+      unsupportedLabel: '',
+      scanSummaryLabel: 'Scan summary: waiting for .html/.htm selection.'
     };
   }
 
@@ -58,13 +61,28 @@ export function renderShellState(project) {
       ? `Unsupported extension: .${project.extension || '(none)'} (metadata captured only).`
       : '';
 
+  const scanSummaryLabel =
+    project.sourceKind === 'html'
+      ? 'Scan summary: pending local HTML intake scan.'
+      : 'Scan summary: only .html/.htm files are scanned in this milestone.';
+
   return {
     safePreviewPlaceholder: true,
     hasProject: true,
     statusLabel: `Selected file: ${project.name}`,
     detailsLabel: `Size: ${project.size} bytes | Type: ${project.type} | Extension: .${project.extension || '(none)'} | Source kind: ${project.sourceKind} | Selected at: ${project.selectedAt}`,
-    unsupportedLabel
+    unsupportedLabel,
+    scanSummaryLabel
   };
+}
+
+/** @param {Awaited<ReturnType<typeof importHtmlFileScan>>} scanResult */
+export function formatScanSummary(scanResult) {
+  if (!scanResult.ok) {
+    return 'Scan summary: skipped (only .html/.htm local intake is supported).';
+  }
+
+  return `Scan summary: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}.`;
 }
 
 const hasDom = typeof document !== 'undefined';
@@ -72,15 +90,17 @@ const fileInput = hasDom ? document.querySelector('#file-input') : null;
 const fileStatus = hasDom ? document.querySelector('#file-status') : null;
 const fileDetails = hasDom ? document.querySelector('#file-details') : null;
 const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
+const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 
 if (
   hasDom &&
   fileInput instanceof HTMLInputElement &&
   fileStatus instanceof HTMLElement &&
   fileDetails instanceof HTMLElement &&
-  fileWarning instanceof HTMLElement
+  fileWarning instanceof HTMLElement &&
+  fileScan instanceof HTMLElement
 ) {
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
     const project = selected
       ? createProjectFileModel({
@@ -93,5 +113,11 @@ if (
     fileStatus.textContent = shellState.statusLabel;
     fileDetails.textContent = shellState.detailsLabel;
     fileWarning.textContent = shellState.unsupportedLabel;
+    fileScan.textContent = shellState.scanSummaryLabel;
+
+    if (selected && project && project.sourceKind === 'html') {
+      const scanResult = await importHtmlFileScan(selected);
+      fileScan.textContent = formatScanSummary(scanResult);
+    }
   });
 }
