@@ -21,8 +21,10 @@ import {
   importZipFilePreflight,
   scanHtmlReferences,
   mapWarningLabelsToWarnings,
-  scanHtmlRiskMarkers
+  scanHtmlRiskMarkers,
+  createSafeHtmlPreviewDocument
 } from '../apps/desktop/src/importer.mjs';
+import { buildSafePreviewDocument } from '../apps/desktop/src/preview-sandbox.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -233,6 +235,28 @@ assert.equal(nonHtmlStatus.ok, false);
 assert.equal(nonHtmlStatus.severity, 'error');
 assert.equal(nonHtmlReport.overallSeverity, 'error');
 assert.equal('rawHtmlText' in nonHtmlManifest, false);
+
+const safePreviewDoc = buildSafePreviewDocument(
+  '<meta http-equiv="refresh" content="0;url=https://example.test"><script>alert(1)</script><button onclick="x()">B</button><img src="javascript:alert(1)"><a href="https://example.test">x</a><iframe src="x"></iframe>'
+);
+assert.equal(safePreviewDoc.includes("Content-Security-Policy"), true);
+assert.equal(safePreviewDoc.includes("default-src 'none'"), true);
+assert.equal(safePreviewDoc.includes('<script'), false);
+assert.equal(safePreviewDoc.includes('onclick='), false);
+assert.equal(safePreviewDoc.includes('javascript:'), false);
+assert.equal(safePreviewDoc.includes('https://example.test'), false);
+assert.equal(safePreviewDoc.includes('<iframe'), false);
+assert.equal(safePreviewDoc.toLowerCase().includes('http-equiv="refresh"'), false);
+assert.equal(safePreviewDoc.includes('allow-scripts'), false);
+assert.equal(safePreviewDoc.includes('allow-same-origin'), false);
+
+const htmlPreviewDoc = await createSafeHtmlPreviewDocument({
+  name: 'preview.html',
+  text: async () => '<h1>Hello</h1>'
+});
+assert.equal(typeof htmlPreviewDoc, 'string');
+assert.equal(htmlPreviewDoc.includes('<h1>Hello</h1>'), true);
+assert.equal(await createSafeHtmlPreviewDocument({ name: 'preview.zip', text: async () => '<h1>Bad</h1>' }), null);
 
 assert.equal(getHighestSeverityForWarningLabels(['local-assets-detected']), 'info');
 assert.equal(getHighestSeverityForWarningLabels(['data-uris-detected']), 'info');

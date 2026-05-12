@@ -10,9 +10,7 @@ if (shellCode.includes('innerHTML')) throw new Error('imported content may be re
 if (shellCode.includes('outerHTML')) throw new Error('imported content may be rendered via outerHTML');
 if (shellCode.includes('insertAdjacentHTML')) throw new Error('imported content may be rendered via insertAdjacentHTML');
 if (shellCode.includes('document.write')) throw new Error('imported content may be rendered via document.write');
-if (shellCode.includes('DOMParser')) throw new Error('imported content parsing is not allowed in milestone 2D');
-if (shellCode.includes('iframe')) throw new Error('iframe preview must remain unimplemented in this milestone');
-if (shellCode.includes('webview')) throw new Error('webview preview must remain unimplemented in this milestone');
+if (shellCode.includes('DOMParser')) throw new Error('imported content parsing is not allowed in milestone 3A');
 if (shellCode.includes('fetch(')) throw new Error('remote fetch must not be introduced');
 if (shellCode.includes('XMLHttpRequest')) throw new Error('xhr must not be introduced in shell');
 if (shellCode.includes('WebSocket')) throw new Error('websocket must not be introduced in shell');
@@ -24,5 +22,9 @@ if (!importerCode.includes('.text()')) throw new Error('importer must read html 
 if (!importerCode.includes('.arrayBuffer()')) throw new Error('importer must perform zip binary preflight reads locally');
 if (importerCode.includes('innerHTML')) throw new Error('importer must not render imported content');
 if (importerCode.includes('DOMParser')) throw new Error('importer must not parse/render imported DOM in milestone 2A');
+if (!html.includes('id="safe-preview-frame"')) throw new Error('safe preview iframe missing');
+if (!html.includes('sandbox=""')) throw new Error('safe preview iframe sandbox must be empty');
+if (html.includes('allow-scripts')) throw new Error('safe preview iframe must not allow scripts');
+if (html.includes('allow-same-origin')) throw new Error('safe preview iframe must not allow same-origin');
 
 console.log('security checks passed');

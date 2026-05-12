@@ -1,4 +1,5 @@
 /** @typedef {'html' | 'htm'} HtmlExtension */
+import { buildSafePreviewDocument } from './preview-sandbox.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -147,6 +148,16 @@ export async function importHtmlFileScan(file) {
     scan,
     referenceScan
   };
+}
+
+/** @param {{name: string, text: () => Promise<string>}} file */
+export async function createSafeHtmlPreviewDocument(file) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) {
+    return null;
+  }
+  const htmlText = await file.text();
+  return buildSafePreviewDocument(htmlText);
 }
 
 /**

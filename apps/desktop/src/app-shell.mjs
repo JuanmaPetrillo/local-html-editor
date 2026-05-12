@@ -7,7 +7,8 @@ import {
   formatImportManifestText,
   importHtmlFileScan,
   importZipFilePreflight,
-  createImportReportFromStatus
+  createImportReportFromStatus,
+  createSafeHtmlPreviewDocument
 } from './importer.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
@@ -96,6 +97,7 @@ const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
+const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
 
 if (
   hasDom &&
@@ -105,7 +107,8 @@ if (
   fileWarning instanceof HTMLElement &&
   fileScan instanceof HTMLElement &&
   importReport instanceof HTMLElement &&
-  importManifest instanceof HTMLElement
+  importManifest instanceof HTMLElement &&
+  safePreviewFrame instanceof HTMLIFrameElement
 ) {
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -123,6 +126,8 @@ if (
     fileScan.textContent = shellState.scanSummaryLabel;
     importReport.textContent = '';
     importManifest.textContent = '';
+    safePreviewFrame.srcdoc =
+      '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
@@ -131,6 +136,7 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      safePreviewFrame.srcdoc = (await createSafeHtmlPreviewDocument(selected)) || safePreviewFrame.srcdoc;
     }
 
     if (selected && project && project.sourceKind === 'zip') {
