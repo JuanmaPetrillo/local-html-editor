@@ -1,5 +1,3 @@
-# apps/desktop
+# Desktop app (Milestone 1 shell)
 
-Desktop shell application placeholder for Milestone 1.
-
-No editor functionality is implemented in Milestone 0.
+Minimal local shell with placeholder UI and safe preview notice.
