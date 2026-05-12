@@ -94,6 +94,29 @@ assert.equal(
   'Scan summary: zip-preflight ok=true, file=slides.zip, size=2048 bytes, type=application/zip, extension=.zip, source=zip, signature=valid-pk0304, warnings=none.'
 );
 
+
+const emptyZipResult = await importZipFilePreflight({
+  name: 'empty.zip',
+  size: 22,
+  type: 'application/zip',
+  slice: () => ({
+    arrayBuffer: async () => new Uint8Array([0x50, 0x4b, 0x05, 0x06]).buffer
+  })
+});
+assert.equal(emptyZipResult.ok, true);
+assert.equal(emptyZipResult.signatureStatus, 'valid-pk0506');
+
+const spanningZipResult = await importZipFilePreflight({
+  name: 'span.zip',
+  size: 22,
+  type: 'application/zip',
+  slice: () => ({
+    arrayBuffer: async () => new Uint8Array([0x50, 0x4b, 0x07, 0x08]).buffer
+  })
+});
+assert.equal(spanningZipResult.ok, true);
+assert.equal(spanningZipResult.signatureStatus, 'valid-pk0708');
+
 const invalidZipResult = await importZipFilePreflight({
   name: 'bad.zip',
   size: 5,
@@ -106,8 +129,10 @@ assert.equal(invalidZipResult.ok, false);
 assert.equal(invalidZipResult.warningLabels[0], 'invalid-zip-signature');
 assert.equal(invalidZipResult.signatureStatus, 'invalid-or-unsupported');
 
-assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), true);
-assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), false);
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), 'valid-pk0304');
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), 'valid-pk0506');
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x07, 0x08])), 'valid-pk0708');
+assert.equal(hasZipSignature(new Uint8Array([0x12, 0x34, 0x56, 0x78])), null);
 
 let nonHtmlReadCount = 0;
 const nonHtmlResult = await importHtmlFileScan({

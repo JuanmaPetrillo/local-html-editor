@@ -81,10 +81,18 @@ export async function importHtmlFileScan(file) {
 /** @param {Uint8Array} bytes */
 export function hasZipSignature(bytes) {
   if (bytes.length < 4) {
-    return false;
+    return null;
   }
 
-  return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+    return null;
+  }
+
+  if (bytes[2] === 0x03 && bytes[3] === 0x04) return 'valid-pk0304';
+  if (bytes[2] === 0x05 && bytes[3] === 0x06) return 'valid-pk0506';
+  if (bytes[2] === 0x07 && bytes[3] === 0x08) return 'valid-pk0708';
+
+  return null;
 }
 
 /**
@@ -108,7 +116,8 @@ export async function importZipFilePreflight(file) {
   }
 
   const headerBuffer = await file.slice(0, 4).arrayBuffer();
-  const signatureOk = hasZipSignature(new Uint8Array(headerBuffer));
+  const signatureStatus = hasZipSignature(new Uint8Array(headerBuffer)) || 'invalid-or-unsupported';
+  const signatureOk = signatureStatus !== 'invalid-or-unsupported';
 
   return {
     ok: signatureOk,
@@ -118,7 +127,7 @@ export async function importZipFilePreflight(file) {
     type: file.type || 'unknown type',
     extension,
     sourceKind: 'zip',
-    signatureStatus: signatureOk ? 'valid-pk0304' : 'invalid-or-unsupported',
+    signatureStatus,
     warningLabels: signatureOk ? [] : ['invalid-zip-signature']
   };
 }
