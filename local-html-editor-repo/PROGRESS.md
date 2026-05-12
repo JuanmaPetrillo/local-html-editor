@@ -43,3 +43,15 @@ Next recommended task:
 
 - Created initial Markdown-only repository scaffold.
 - Defined product goal, architecture, implementation rules, validation rules, and Codex task prompts.
+
+### 2026-05-12
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 0 - Repository foundation
+Summary: Bootstrapped repository structure with app/package placeholders, root npm workspace config, CI workflow placeholder, and synthetic fixture guidance. No editor/import/export features implemented.
+Files changed: package.json, package-lock.json, .gitignore, .github/workflows/ci.yml, apps/desktop/README.md, packages/*/README.md, tests/*/README.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All commands completed successfully using Milestone 0 placeholder scripts.
+Known limitations: Tooling and implementation are placeholders only; no functional app/editor, no real tests yet.
+Next recommended task: Start Milestone 1 (`codex/01_FOUNDATION_SHELL.md`) to scaffold Tauri + React + TypeScript + Vite shell with local file open/save workflow.
