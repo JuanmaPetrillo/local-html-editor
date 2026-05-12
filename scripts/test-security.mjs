@@ -35,6 +35,8 @@ if (importerCode.includes('innerHTML')) throw new Error('importer must not rende
 if (importerCode.includes('DOMParser')) throw new Error('importer must not parse/render imported DOM in milestone 2A');
 if (editableModelCode.includes('DOMParser')) throw new Error('editable model must not use DOMParser');
 if (exporterCode.includes('DOMParser')) throw new Error('exporter must not use DOMParser');
+if (exporterCode.includes('.text()')) throw new Error('exporter must not read selected files directly');
+if (exporterCode.includes('.arrayBuffer()')) throw new Error('exporter must not read selected file bytes directly');
 if (exporterCode.includes('fetch(')) throw new Error('exporter must not use fetch');
 if (exporterCode.includes('XMLHttpRequest')) throw new Error('exporter must not use XMLHttpRequest');
 if (exporterCode.includes('WebSocket')) throw new Error('exporter must not use WebSocket');

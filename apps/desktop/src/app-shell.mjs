@@ -10,7 +10,8 @@ import {
   createImportReportFromStatus,
   createSafeHtmlPreviewResult,
   createEditableInventoryForHtmlFile,
-  createCollectionPatchedSafePreviewResult
+  createCollectionPatchedSafePreviewResult,
+  createEditedHtmlExport
 } from './importer.mjs';
 import {
   createUnavailablePreviewStatus,
@@ -30,7 +31,7 @@ import {
   formatWorkingPreviewStateText,
   resetWorkingPreviewState
 } from './editable-model.mjs';
-import { createEditedHtmlExport, formatExportStatusText } from './exporter.mjs';
+import { formatExportStatusText } from './exporter.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 

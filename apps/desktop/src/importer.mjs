@@ -1,6 +1,7 @@
 /** @typedef {'html' | 'htm'} HtmlExtension */
 import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sandbox.mjs';
 import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
+import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from './exporter.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -229,6 +230,19 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
     },
     previewResult
   };
+}
+
+/** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
+export async function createEditedHtmlExport(file, patchCollection) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) {
+    const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
+      ? patchCollection.orderedCandidateIds.length
+      : 0;
+    return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
+  }
+  const htmlText = await file.text();
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection);
 }
 
 /**

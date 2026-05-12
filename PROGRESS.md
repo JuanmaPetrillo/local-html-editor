@@ -360,3 +360,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Export is HTML/HTM only and in-memory only; no autosave/persistence, no ZIP export/extraction/listing, no image replacement, no visual editing, no iframe internals access, no network calls.
 Next recommended task: Proceed only with the next explicitly approved narrow milestone slice.
+
+
+### 2026-05-12 (pr b follow-up: centralize export file reads in importer)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: PR B - follow-up hardening
+Summary: Fixed PR B export architecture so selected-file text reads are centralized in importer. Exporter is now pure (`createEditedHtmlExportFromHtmlText`) and does not call file reading APIs.
+Files changed: apps/desktop/src/exporter.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: unchanged from PR B scope.
+Next recommended task: proceed only with explicitly approved next slice.

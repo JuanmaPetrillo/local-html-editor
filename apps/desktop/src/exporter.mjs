@@ -1,6 +1,5 @@
 import { applyPatchCollectionToWorkingHtml } from './editable-model.mjs';
 import { createEditableTextInventory } from './editable-model.mjs';
-import { detectHtmlExtension } from './importer.mjs';
 
 /** @param {string} fileName */
 export function createSuggestedEditedHtmlFileName(fileName) {
@@ -11,28 +10,23 @@ export function createSuggestedEditedHtmlFileName(fileName) {
   return `${safeBase}-edited.html`;
 }
 
-/** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection) {
-  const extension = detectHtmlExtension(file.name);
+/** @param {string} htmlText @param {string} fileName @param {any} patchCollection */
+export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection) {
   const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
     ? patchCollection.orderedCandidateIds.length
     : 0;
-  if (!extension) {
-    return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
-  }
   if (patchCount === 0) {
-    return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['no-patches'], message: 'Export blocked: apply at least one in-memory patch first.' };
+    return { fileName, suggestedFileName: createSuggestedEditedHtmlFileName(fileName), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['no-patches'], message: 'Export blocked: apply at least one in-memory patch first.' };
   }
-  const htmlText = await file.text();
   const inventory = createEditableTextInventory(htmlText);
   const applyState = applyPatchCollectionToWorkingHtml(htmlText, patchCollection, inventory);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview') {
-    return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'failed', warnings: ['patch-application-failed'], message: 'Export blocked: one or more patches failed to apply.' };
+    return { fileName, suggestedFileName: createSuggestedEditedHtmlFileName(fileName), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'failed', warnings: ['patch-application-failed'], message: 'Export blocked: one or more patches failed to apply.' };
   }
   const blob = new Blob([applyState.workingHtml], { type: 'text/html' });
   return {
-    fileName: file.name,
-    suggestedFileName: createSuggestedEditedHtmlFileName(file.name),
+    fileName,
+    suggestedFileName: createSuggestedEditedHtmlFileName(fileName),
     mimeType: 'text/html',
     patchCount,
     exported: true,
