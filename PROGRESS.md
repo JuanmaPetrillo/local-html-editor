@@ -55,3 +55,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: All commands completed successfully using Milestone 0 placeholder scripts.
 Known limitations: Tooling and implementation are placeholders only; no functional app/editor, no real tests yet.
 Next recommended task: Start Milestone 1 (`codex/01_FOUNDATION_SHELL.md`) to scaffold Tauri + React + TypeScript + Vite shell with local file open/save workflow.
+
+### 2026-05-12 (root normalization)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 0 - Repository foundation
+Summary: Normalized repository layout by moving all files/folders from nested `local-html-editor-repo/` to repository root.
+Validation run: Reran Milestone 0 validation commands from repository root.
+Result: Validation commands completed successfully from root using placeholder scripts.
+Known limitations: Milestone 0 placeholders remain; Milestone 1 was not started.
+Next recommended task: Begin `codex/01_FOUNDATION_SHELL.md` in a separate PR.
