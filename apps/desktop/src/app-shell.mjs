@@ -30,6 +30,7 @@ import {
   formatWorkingPreviewStateText,
   resetWorkingPreviewState
 } from './editable-model.mjs';
+import { createEditedHtmlExport, formatExportStatusText } from './exporter.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -142,6 +143,8 @@ const patchApplyStatus = hasDom ? document.querySelector('#patch-apply-status') 
 const patchCollectionStatus = hasDom ? document.querySelector('#patch-collection-status') : null;
 const workingPreviewStatus = hasDom ? document.querySelector('#working-preview-status') : null;
 const resetWorkingPreview = hasDom ? document.querySelector('#reset-working-preview') : null;
+const exportEditedHtml = hasDom ? document.querySelector('#export-edited-html') : null;
+const exportStatus = hasDom ? document.querySelector('#export-status') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -169,6 +172,8 @@ if (
   patchCollectionStatus instanceof HTMLElement &&
   workingPreviewStatus instanceof HTMLElement &&
   resetWorkingPreview instanceof HTMLButtonElement &&
+  exportEditedHtml instanceof HTMLButtonElement &&
+  exportStatus instanceof HTMLElement &&
   previewFitWidth instanceof HTMLButtonElement &&
   previewCompactHeight instanceof HTMLButtonElement &&
   previewTallHeight instanceof HTMLButtonElement &&
@@ -200,6 +205,13 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
+  const updateExportUi = () => {
+    const patchCount = patchCollection.orderedCandidateIds.length;
+    exportEditedHtml.disabled = !currentHtmlFile || patchCount === 0;
+    exportStatus.textContent = patchCount === 0
+      ? 'Export status: blocked (no in-memory patches).'
+      : `Export status: ready. ${patchCount} patch(es) in memory.`;
+  };
 
   const resetDraftUi = () => {
     editableCandidateSelect.replaceChildren();
@@ -212,6 +224,7 @@ if (
     patchApplyStatus.textContent = 'Patch apply status: unavailable.';
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
+    updateExportUi();
     draftState = null;
   };
 
@@ -246,6 +259,7 @@ if (
     const nextCollection = addOrUpdatePatchInCollection(patchCollection, currentPatchPlan);
     patchCollection = nextCollection.collection;
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+    updateExportUi();
     const patched = await createCollectionPatchedSafePreviewResult(currentHtmlFile, patchCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
@@ -264,6 +278,7 @@ if (
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+    updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
     const previewResult = await createSafeHtmlPreviewResult(currentHtmlFile);
@@ -295,6 +310,7 @@ if (
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
     resetDraftUi();
+    updateExportUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
@@ -362,5 +378,21 @@ if (
         createUnavailablePreviewStatus('unknown', project.name)
       );
     }
+  });
+
+  exportEditedHtml.addEventListener('click', async () => {
+    if (!currentHtmlFile) return;
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection);
+    exportStatus.textContent = formatExportStatusText(exportResult);
+    if (!exportResult.exported || !exportResult.blob) return;
+    const objectUrl = URL.createObjectURL(exportResult.blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = exportResult.suggestedFileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    exportStatus.textContent = formatExportStatusText({ ...exportResult, exportStatus: 'exported' });
   });
 }
