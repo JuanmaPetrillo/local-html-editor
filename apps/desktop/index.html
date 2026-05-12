@@ -6,7 +6,25 @@
     <title>Local HTML Editor</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <main>
+      <h1>Local HTML Editor</h1>
+      <p>Safe local mode: imported content is not executed in this shell.</p>
+
+      <section>
+        <button type="button">Open HTML/ZIP</button>
+        <button type="button" disabled>Save</button>
+        <button type="button" disabled>Export</button>
+      </section>
+
+      <section>
+        <h2>Recent Projects</h2>
+        <p>No recent projects yet.</p>
+      </section>
+
+      <section>
+        <h2>Safe Preview</h2>
+        <p>Scripts are disabled in safe preview mode.</p>
+      </section>
+    </main>
   </body>
 </html>
