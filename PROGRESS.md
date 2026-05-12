@@ -33,18 +33,6 @@ No rendering, export, or visual editing is implemented yet.
 
 Proceed only with explicit approval for the next narrow Milestone 2 slice after manifest model, keeping scan-only/no-rendering constraints.
 
-### 2026-05-12 (milestone 2f local import manifest model)
-
-Date: 2026-05-12
-Branch/PR: current branch / pending PR
-Milestone: Milestone 2F - local import manifest model
-Summary: Added `createImportManifestFromStatus(...)` and `formatImportManifestText(...)` in importer to produce a UI-safe manifest from existing metadata/status/report summaries without including raw imported content. Updated shell to render plain-text manifest via `textContent` in a new `#import-manifest` region for HTML, ZIP, and unsupported-file selections while preserving existing scan/report behavior and keeping Save/Export disabled.
-Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
-Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Passed.
-Known limitations: No project-folder creation, no file writes, no export, no HTML rendering/injection, no preview iframe/webview, no ZIP extraction/entry listing, no dependency additions, no network calls.
-Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
-
 ## Log template
 
 ```text
@@ -233,3 +221,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Text-pattern scan only; no URL validation/fetching, no path rewriting, no rendering/preview/export/editing, no ZIP extraction or ZIP entry listing.
 Next recommended task: Continue Milestone 2 only with explicit approval for next narrow slice.
+
+### 2026-05-12 (milestone 2f local import manifest model)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2F - local import manifest model
+Summary: Added `createImportManifestFromStatus(...)` and `formatImportManifestText(...)` in importer to produce a UI-safe manifest from existing metadata/status/report summaries without including raw imported content. Updated shell to render plain-text manifest via `textContent` in a new `#import-manifest` region for HTML, ZIP, and unsupported-file selections while preserving existing scan/report behavior and keeping Save/Export disabled.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No project-folder creation, no file writes, no export, no HTML rendering/injection, no preview iframe/webview, no ZIP extraction/entry listing, no dependency additions, no network calls.
+Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
