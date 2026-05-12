@@ -13,6 +13,7 @@ import {
   detectZipExtension,
   formatImportReportText,
   formatImportStatusSummary,
+  getHighestSeverityForWarningLabels,
   hasZipSignature,
   importHtmlFileScan,
   importZipFilePreflight,
@@ -72,9 +73,33 @@ assert.equal(safeHtmlReport.warnings.length, 0);
 
 const localImageRefs = scanHtmlReferences('<img src="images/photo.png">');
 assert.equal(localImageRefs.byType['local-relative'], 1);
+const localImageStatus = createImportStatusFromHtmlScan({
+  ok: true,
+  reason: null,
+  fileName: 'local-image.html',
+  extension: 'html',
+  size: 10,
+  type: 'text/html',
+  scan: scanHtmlRiskMarkers('<main></main>'),
+  referenceScan: localImageRefs
+});
+assert.equal(localImageStatus.severity, 'info');
+assert.equal(createImportReportFromStatus(localImageStatus).overallSeverity, 'info');
 
 const localStylesheetRefs = scanHtmlReferences('<link rel="stylesheet" href="styles/main.css">');
 assert.equal(localStylesheetRefs.byType['local-relative'], 1);
+const localStylesheetStatus = createImportStatusFromHtmlScan({
+  ok: true,
+  reason: null,
+  fileName: 'local-style.html',
+  extension: 'html',
+  size: 10,
+  type: 'text/html',
+  scan: scanHtmlRiskMarkers('<main></main>'),
+  referenceScan: localStylesheetRefs
+});
+assert.equal(localStylesheetStatus.severity, 'info');
+assert.equal(createImportReportFromStatus(localStylesheetStatus).overallSeverity, 'info');
 
 const localScriptRefs = scanHtmlReferences('<script src="scripts/app.js"></script>');
 assert.equal(localScriptRefs.byType['local-relative'], 1);
@@ -90,6 +115,30 @@ assert.equal(protocolRelativeRefs.byType.remote, 1);
 
 const dataUriRefs = scanHtmlReferences('<img src="data:image/png;base64,abcd">');
 assert.equal(dataUriRefs.byType['data-uri'], 1);
+const dataUriStatus = createImportStatusFromHtmlScan({
+  ok: true,
+  reason: null,
+  fileName: 'data-uri.html',
+  extension: 'html',
+  size: 10,
+  type: 'text/html',
+  scan: scanHtmlRiskMarkers('<main></main>'),
+  referenceScan: dataUriRefs
+});
+assert.equal(dataUriStatus.severity, 'info');
+assert.equal(createImportReportFromStatus(dataUriStatus).overallSeverity, 'info');
+
+const remoteReferenceStatus = createImportStatusFromHtmlScan({
+  ok: true,
+  reason: null,
+  fileName: 'remote.html',
+  extension: 'html',
+  size: 10,
+  type: 'text/html',
+  scan: scanHtmlRiskMarkers('<main></main>'),
+  referenceScan: remoteHttpRefs
+});
+assert.equal(remoteReferenceStatus.severity, 'warning');
 
 const riskyHtmlScanResult = await importHtmlFileScan({
   name: 'risk.htm',
@@ -164,7 +213,13 @@ assert.equal(nonHtmlReadCount, 0);
 const nonHtmlStatus = createImportStatusFromHtmlScan(nonHtmlResult);
 const nonHtmlReport = createImportReportFromStatus(nonHtmlStatus);
 assert.equal(nonHtmlStatus.ok, false);
+assert.equal(nonHtmlStatus.severity, 'error');
 assert.equal(nonHtmlReport.overallSeverity, 'error');
+
+assert.equal(getHighestSeverityForWarningLabels(['local-assets-detected']), 'info');
+assert.equal(getHighestSeverityForWarningLabels(['data-uris-detected']), 'info');
+assert.equal(getHighestSeverityForWarningLabels(['remote-references-detected']), 'warning');
+assert.equal(getHighestSeverityForWarningLabels(['unsupported-extension']), 'error');
 
 let nonZipReadCount = 0;
 const nonZipResult = await importZipFilePreflight({

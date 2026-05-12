@@ -209,6 +209,7 @@ export function createImportStatusFromHtmlScan(scanResult) {
   if (!scanResult.ok) {
     warningLabels.push('unsupported-extension');
   }
+  const computedSeverity = getHighestSeverityForWarningLabels(warningLabels);
 
   return {
     sourceKind: scanResult.ok ? 'html' : 'unknown',
@@ -217,7 +218,7 @@ export function createImportStatusFromHtmlScan(scanResult) {
     type: scanResult.type,
     extension: scanResult.extension,
     ok: scanResult.ok,
-    severity: scanResult.ok ? (warningLabels.length ? 'warning' : 'info') : 'error',
+    severity: scanResult.ok ? computedSeverity : 'error',
     statusLabel: scanResult.ok ? 'HTML intake scan complete.' : 'HTML intake scan skipped.',
     summaryLabel: scanResult.ok
       ? `HTML scan: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}, refs-total=${scanResult.referenceScan.totalCount}, refs-local=${scanResult.referenceScan.byType['local-relative']}, refs-remote=${scanResult.referenceScan.byType.remote}, refs-data=${scanResult.referenceScan.byType['data-uri']}, refs-anchor=${scanResult.referenceScan.byType.anchor}, refs-unknown=${scanResult.referenceScan.byType.unknown}.`
@@ -328,6 +329,20 @@ export function createImportWarning(code) {
 /** @param {string[]} warningLabels */
 export function mapWarningLabelsToWarnings(warningLabels) {
   return warningLabels.map((label) => createImportWarning(label)).filter(Boolean);
+}
+
+/** @param {string[]} warningLabels */
+export function getHighestSeverityForWarningLabels(warningLabels) {
+  const priority = { info: 1, warning: 2, error: 3 };
+  let highest = 'info';
+
+  for (const warning of mapWarningLabelsToWarnings(warningLabels)) {
+    if (priority[warning.severity] > priority[highest]) {
+      highest = warning.severity;
+    }
+  }
+
+  return highest;
 }
 
 /** @param {{fileName:string, sourceKind:string, severity:string, warningLabels:string[]}} status */
