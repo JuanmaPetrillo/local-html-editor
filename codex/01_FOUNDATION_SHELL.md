@@ -1,5 +1,11 @@
 # Codex Task 01: Foundation Shell
 
+## Status
+
+**COMPLETE**
+
+Do not re-run this task unless a human explicitly requests a re-bootstrap/replay for recovery.
+
 ## Goal
 
 Create the first runnable local desktop app shell.

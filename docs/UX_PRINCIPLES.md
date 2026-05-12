@@ -7,7 +7,7 @@ The editor should feel closer to PowerPoint, Canva, or a lightweight presentatio
 ## Primary user flow
 
 1. Open HTML or ZIP.
-2. See the presentation immediately.
+2. See the presentation immediately (target UX for a future preview milestone, not current behavior).
 3. Click an element.
 4. Edit text or replace image.
 5. Drag/resize if needed.
@@ -103,3 +103,8 @@ Every drag/resize operation should also be possible through:
 - resize controls
 
 Images should expose alt-text editing.
+
+
+## Current milestone guardrail
+
+Rendering/preview must wait for a dedicated sandboxed preview milestone. Do not implement rendering during scan-only import milestones.

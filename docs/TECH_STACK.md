@@ -1,6 +1,17 @@
 # Technology Stack
 
-## Default choice
+## Current implementation (Milestones 0-2A)
+
+Current codebase state is a static browser-first prototype:
+
+- static HTML shell (`apps/desktop/index.html`)
+- vanilla JavaScript modules (`apps/desktop/src/*.mjs`)
+- Node validation/build scripts (`scripts/*.mjs`)
+
+This is the active implementation today.
+The production target stack below is deferred and not yet installed in current app code.
+
+## Target production stack
 
 Use Tauri 2 + React + TypeScript + Vite.
 

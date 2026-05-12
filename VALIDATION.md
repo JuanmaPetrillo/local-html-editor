@@ -2,7 +2,26 @@
 
 This file defines the validation contract for the project.
 
-Exact commands may evolve once the code scaffold exists, but every task must preserve the validation categories below.
+## Current active gate
+
+Run from repository root:
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e
+npm run test:security
+npm run build
+```
+
+These scripts are active local scripts and are the required gate today.
+GitHub Actions may be unavailable at times (for example, quota); in that case local validation remains the gate.
+
+## Validation roadmap (future milestones)
+
+The categories below remain required targets for later milestones and should not be treated as fully implemented today.
 
 ## Core command set
 

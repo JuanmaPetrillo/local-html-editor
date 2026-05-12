@@ -1,43 +1,39 @@
 # Codex Task 02: Import/Export Pipeline
 
-## Goal
+## Status
 
-Implement the initial local import/export pipeline for HTML and ZIP files.
+**Milestone 2A: COMPLETE**
 
-## Read first
+**Milestone 2B: DEFERRED (requires separate explicit approval before any implementation).**
 
-- `docs/IMPORT_EXPORT_SPEC.md`
-- `docs/EDITABLE_CONTRACT.md`
-- `docs/SECURITY_MODEL.md`
-- `VALIDATION.md`
+## What 2A implemented
 
-## Scope
+- Local `.html` / `.htm` intake scanning is implemented in `apps/desktop/src/importer.mjs`.
+- In Milestone 2A, `file.text()` is read only inside `apps/desktop/src/importer.mjs`.
+- 2A only reports a scan summary rendered as `textContent` in the app shell.
+- 2A does **not** render imported HTML.
+- 2A does **not** inject HTML into the DOM.
+- 2A does **not** execute scripts.
+- 2A does **not** use iframe/webview preview.
+- 2A does **not** export.
+- 2A does **not** provide visual editing.
+- 2A does **not** parse ZIP files.
 
-Allowed:
+## 2B gating and prohibitions
 
-- parse HTML
-- import ZIP
-- identify entry HTML file
-- copy/localize assets into project structure
-- detect remote references
-- generate manifest
-- export HTML + assets
-- export ZIP
-- add roundtrip tests
+Milestone 2B must be approved in a separate task/PR before implementation starts.
 
-Not allowed:
+Until that approval exists, 2B work must explicitly prohibit:
 
-- no visual editing UI unless needed for smoke testing
-- no executing imported JS during import
-- no remote fetching of assets in MVP
-- no destructive rewrite without preserving original source
-
-## Done when
-
-- synthetic HTML fixture imports
-- synthetic ZIP fixture imports
-- remote reference fixture reports warnings
-- export opens locally
-- original source remains preserved
-- tests pass
-- `PROGRESS.md` is updated
+- `innerHTML`
+- `outerHTML`
+- `insertAdjacentHTML`
+- `document.write`
+- DOM injection of imported content into trusted shell context
+- `DOMParser` usage for trusted-shell rendering of imported content
+- iframe/webview preview
+- script execution
+- remote fetching
+- export
+- visual editing
+- any Tauri/React/Vite conversion work

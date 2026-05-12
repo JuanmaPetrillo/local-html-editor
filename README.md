@@ -32,6 +32,34 @@ This repository is intentionally documentation-first. Codex works better when th
 
 After creating the repo in GitHub, start Codex with the prompts in `codex/`.
 
+## Current implementation state
+
+Active development is currently a **browser-first static prototype**.
+
+- Milestone 0 is complete.
+- Milestone 1 is complete (static shell).
+- Milestone 2A is complete (local `.html/.htm` scan-only intake).
+
+Current app files:
+
+- `apps/desktop/index.html`
+- `apps/desktop/src/app-shell.mjs`
+- `apps/desktop/src/importer.mjs`
+
+Current capabilities:
+
+- local file selection from app shell
+- metadata-only project model
+- local `.html/.htm` scan summary via `textContent`
+
+Current non-capabilities:
+
+- no ZIP parsing
+- no preview rendering iframe/webview
+- no export
+- no visual editing
+- no Tauri/React/Vite/TypeScript app code installed yet
+
 ## Repo map
 
 ```text
@@ -82,16 +110,6 @@ After creating the repo in GitHub, start Codex with the prompts in `codex/`.
       feature_request.md
       milestone_task.md
       security_review.md
-```
-
-## Immediate next step
-
-Create a private GitHub repository, upload these files, and run the first Codex task:
-
-```text
-Read AGENTS.md, MASTER_PLAN.md, IMPLEMENTATION_RULES.md, VALIDATION.md, and docs/ARCHITECTURE.md.
-Then execute codex/00_BOOTSTRAP_REPO.md exactly.
-Keep the PR narrow. Do not implement editor features yet.
 ```
 
 ## Non-goals for the MVP

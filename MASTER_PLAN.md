@@ -4,6 +4,14 @@
 
 Build a fully local desktop app that lets non-technical users safely edit Copilot-generated HTML presentations with simple visual controls while keeping sensitive information on the user's machine.
 
+## Current implementation status
+
+- Milestone 0 complete.
+- Milestone 1 complete as static browser-first prototype.
+- Milestone 2A complete as local `.html`/`.htm` scan-only intake.
+- Tauri/React/Vite/TypeScript implementation deferred by Decision 007.
+- Filesystem project folders, ZIP parsing, preview iframe, export, and visual editing are deferred.
+
 ## Target user
 
 A business user who can use PowerPoint or Canva-like tools but does not know HTML/CSS/JS.
