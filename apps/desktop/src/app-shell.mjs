@@ -93,6 +93,18 @@ export function renderShellState(project) {
   };
 }
 
+/**
+ * @param {'default' | 'compact' | 'tall'} heightMode
+ * @param {boolean} fitWidth
+ */
+export function createPreviewLayoutState(heightMode, fitWidth) {
+  return {
+    compact: heightMode === 'compact',
+    tall: heightMode === 'tall',
+    fit: fitWidth
+  };
+}
+
 const hasDom = typeof document !== 'undefined';
 const fileInput = hasDom ? document.querySelector('#file-input') : null;
 const fileStatus = hasDom ? document.querySelector('#file-status') : null;
@@ -102,7 +114,12 @@ const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
+const safePreviewFrameWrap = hasDom ? document.querySelector('#safe-preview-frame-wrap') : null;
 const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
+const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
+const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
+const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
+const previewResetLayout = hasDom ? document.querySelector('#preview-reset-layout') : null;
 
 if (
   hasDom &&
@@ -114,8 +131,33 @@ if (
   importReport instanceof HTMLElement &&
   importManifest instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
-  safePreviewStatus instanceof HTMLElement
+  safePreviewFrameWrap instanceof HTMLElement &&
+  safePreviewStatus instanceof HTMLElement &&
+  previewFitWidth instanceof HTMLButtonElement &&
+  previewCompactHeight instanceof HTMLButtonElement &&
+  previewTallHeight instanceof HTMLButtonElement &&
+  previewResetLayout instanceof HTMLButtonElement
 ) {
+  /** @param {{compact: boolean, tall: boolean, fit: boolean}} layout */
+  const applyPreviewLayoutState = (layout) => {
+    safePreviewFrameWrap.classList.toggle('preview-frame--compact', layout.compact);
+    safePreviewFrameWrap.classList.toggle('preview-frame--tall', layout.tall);
+    safePreviewFrameWrap.classList.toggle('preview-frame--fit', layout.fit);
+  };
+  applyPreviewLayoutState(createPreviewLayoutState('default', true));
+  previewFitWidth.addEventListener('click', () => {
+    applyPreviewLayoutState(createPreviewLayoutState('default', true));
+  });
+  previewCompactHeight.addEventListener('click', () => {
+    applyPreviewLayoutState(createPreviewLayoutState('compact', true));
+  });
+  previewTallHeight.addEventListener('click', () => {
+    applyPreviewLayoutState(createPreviewLayoutState('tall', true));
+  });
+  previewResetLayout.addEventListener('click', () => {
+    applyPreviewLayoutState(createPreviewLayoutState('default', true));
+  });
+
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
     const project = selected
