@@ -163,3 +163,71 @@ export function formatDraftEditText(state) {
     `validation: ${draftEdit.validationStatus}`
   ].join('\n');
 }
+
+/** @param {string} candidateId */
+function createPatchIdFromCandidateId(candidateId) {
+  const suffix = String(candidateId || '').replace(/^text-/, '') || 'unknown';
+  return `patch-text-${suffix}`;
+}
+
+/** @param {any} patchPlan */
+export function validatePatchPlan(patchPlan) {
+  if (!patchPlan) {
+    return { validationStatus: 'warning-missing-candidate', applyStatus: 'blocked', warnings: ['warning-missing-candidate'] };
+  }
+  if (!patchPlan.candidateId) {
+    return { validationStatus: 'warning-missing-candidate', applyStatus: 'blocked', warnings: ['warning-missing-candidate'] };
+  }
+  if (String(patchPlan.replacementText || '').trim().length === 0) {
+    return { validationStatus: 'warning-empty', applyStatus: 'blocked', warnings: ['warning-empty'] };
+  }
+  if (Number(patchPlan.replacementLength || 0) > 500) {
+    return { validationStatus: 'warning-long', applyStatus: 'blocked', warnings: ['warning-long'] };
+  }
+  return { validationStatus: 'valid', applyStatus: 'planned', warnings: [] };
+}
+
+/** @param {{candidateId: string, originalTextPreview: string, replacementText: string, replacementLength: number, validationStatus: string} | null} draftEdit */
+export function createTextPatchPlan(draftEdit) {
+  if (!draftEdit) return null;
+  const basePlan = {
+    patchId: createPatchIdFromCandidateId(draftEdit.candidateId),
+    candidateId: draftEdit.candidateId || '',
+    operation: 'replace-text',
+    originalTextPreview: String(draftEdit.originalTextPreview || ''),
+    replacementText: String(draftEdit.replacementText || ''),
+    replacementLength: Number(draftEdit.replacementLength || 0),
+    validationStatus: 'valid',
+    applyStatus: 'planned',
+    warnings: [],
+    createdAt: new Date().toISOString()
+  };
+  const validated = validatePatchPlan(basePlan);
+  return {
+    ...basePlan,
+    validationStatus: validated.validationStatus,
+    applyStatus: validated.applyStatus,
+    warnings: validated.warnings
+  };
+}
+
+/** @param {{draftEdit: any} | null} draftState */
+export function createPatchPlanState(draftState) {
+  const patchPlan = draftState ? createTextPatchPlan(draftState.draftEdit) : null;
+  return { patchPlan };
+}
+
+/** @param {{patchId: string, candidateId: string, operation: string, replacementLength: number, validationStatus: string, applyStatus: string, warnings: string[]} | null} patchPlan */
+export function formatPatchPlanText(patchPlan) {
+  if (!patchPlan) return 'Patch plan: unavailable.';
+  return [
+    'Patch plan',
+    `patch: ${patchPlan.patchId}`,
+    `candidate: ${patchPlan.candidateId}`,
+    `operation: ${patchPlan.operation}`,
+    `replacement length: ${patchPlan.replacementLength}`,
+    `validation: ${patchPlan.validationStatus}`,
+    `apply status: ${patchPlan.applyStatus}`,
+    `warnings: ${patchPlan.warnings.length > 0 ? patchPlan.warnings.join(', ') : '(none)'}`
+  ].join('\n');
+}

@@ -16,7 +16,7 @@
       section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5ebf1; }
       #file-status { margin-top: 0.75rem; font-weight: 600; }
       #file-details, #file-warning { margin-top: 0.5rem; }
-      #import-report, #import-manifest, #editable-inventory, #editable-draft-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
+      #import-report, #import-manifest, #editable-inventory, #editable-draft-status, #editable-patch-plan { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
       #file-warning { color: #9a3412; }
       .preview-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .preview-frame { margin-top: 0.75rem; border: 1px solid #dbe2ea; border-radius: 10px; padding: 0.5rem; background: #f8fafc; }
@@ -53,6 +53,7 @@
         <label for="editable-draft-text">Draft replacement text</label>
         <textarea id="editable-draft-text" rows="4" disabled></textarea>
         <pre id="editable-draft-status" aria-live="polite">Draft edit: unavailable.</pre>
+        <pre id="editable-patch-plan" aria-live="polite">Patch plan: unavailable.</pre>
       </section>
       <section>
         <h2>Recent Projects</h2>

@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 4B - trusted-shell draft edit buffer for editable text candidates (complete).
+Current milestone: Milestone 4C - structured patch plan model from trusted-shell draft buffer (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, and 4B are complete for the current browser-first implementation. Milestone 4B adds an in-memory trusted-shell draft edit buffer without mutating imported HTML.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, and 4C are complete for the current browser-first implementation. Milestone 4C adds an in-memory structured patch plan model derived from draft edits without mutating imported HTML.
 
 Current app files:
 
@@ -309,4 +309,17 @@ Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/app-shell.m
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
 Known limitations: Draft edits remain in-memory only; no HTML mutation, no preview mutation, no save/export, no iframe internals access, no ZIP extraction/listing, no dependency additions, no network calls.
+Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.
+
+
+### 2026-05-12 (milestone 4c structured patch plan model)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 4C - structured patch plan model from trusted-shell draft buffer
+Summary: Added pure editable-model patch planning functions that convert valid/invalid in-memory draft edits into a structured read-only patch plan with deterministic patch IDs, validation status, apply status, warnings, and timestamps. Added a trusted-shell text-only patch-plan status region and wired updates on candidate selection/draft text changes. Preserved scan/report/manifest/preview flows, kept Save/Export disabled, and did not mutate imported HTML or preview output.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Patch plans are descriptive in-memory objects only; no HTML mutation/application pipeline, no preview updates from draft edits, no save/export of patch data.
 Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.

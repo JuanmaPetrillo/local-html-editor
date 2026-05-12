@@ -18,6 +18,8 @@ import {
 import {
   createDraftEdit,
   createDraftEditState,
+  createPatchPlanState,
+  formatPatchPlanText,
   formatDraftEditText,
   formatEditableInventoryText,
   selectEditableCandidate
@@ -128,6 +130,7 @@ const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status'
 const editableCandidateSelect = hasDom ? document.querySelector('#editable-candidate-select') : null;
 const editableDraftText = hasDom ? document.querySelector('#editable-draft-text') : null;
 const editableDraftStatus = hasDom ? document.querySelector('#editable-draft-status') : null;
+const editablePatchPlan = hasDom ? document.querySelector('#editable-patch-plan') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -149,6 +152,7 @@ if (
   editableCandidateSelect instanceof HTMLSelectElement &&
   editableDraftText instanceof HTMLTextAreaElement &&
   editableDraftStatus instanceof HTMLElement &&
+  editablePatchPlan instanceof HTMLElement &&
   previewFitWidth instanceof HTMLButtonElement &&
   previewCompactHeight instanceof HTMLButtonElement &&
   previewTallHeight instanceof HTMLButtonElement &&
@@ -182,6 +186,7 @@ if (
     editableDraftText.value = '';
     editableDraftText.disabled = true;
     editableDraftStatus.textContent = 'Draft edit: unavailable.';
+    editablePatchPlan.textContent = 'Patch plan: unavailable.';
     draftState = null;
   };
 
@@ -189,6 +194,7 @@ if (
     const candidate = selectEditableCandidate(inventory, editableCandidateSelect.value);
     draftState = { selectedCandidateId: editableCandidateSelect.value, draftEdit: createDraftEdit(candidate, editableDraftText.value) };
     editableDraftStatus.textContent = formatDraftEditText(draftState);
+    editablePatchPlan.textContent = formatPatchPlanText(createPatchPlanState(draftState).patchPlan);
   };
 
   resetDraftUi();
