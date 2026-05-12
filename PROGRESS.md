@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 3A - first safe static preview for selected HTML/HTM files (complete).
+Current milestone: Milestone 3B - safe preview status and sanitizer summary UX for static HTML preview (complete).
 
 ## Latest summary
 
@@ -20,7 +20,7 @@ Current app files:
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 
-No rendering, export, or visual editing is implemented yet.
+Static safe preview rendering is implemented for HTML/HTM with sanitizer status messaging. Export and visual editing are not implemented yet.
 
 ## Open risks
 
@@ -242,6 +242,19 @@ Branch/PR: current branch / pending PR
 Milestone: Milestone 3A - first safe static preview for selected HTML/HTM files
 Summary: Added a dedicated preview sanitizer module and a sandboxed iframe-based static preview flow for HTML/HTM selections. Preview content is built as srcdoc with strict CSP, script stripping, inline handler stripping, dangerous URL neutralization, embedded content removal, and meta refresh removal. ZIP/unsupported files keep preview unavailable. Existing scan/report/manifest behavior remains.
 Files changed: apps/desktop/src/preview-sandbox.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Static preview only for HTML/HTM; no interactive preview, no script execution, no remote fetch, no ZIP extraction/listing, no save/export/editing.
+Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.
+
+
+### 2026-05-12 (milestone 3b safe preview status ux)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 3B - safe preview status model and sanitizer summary UX
+Summary: Added a user-facing safe preview status model and text summary for static HTML preview, including sanitized/unavailable states and counts for scripts removed, inline handlers removed, dangerous URLs neutralized, remote references neutralized, embedded content removed, and meta refresh removed. Preserved iframe srcdoc-only rendering with empty sandbox and no app-shell HTML injection.
+Files changed: apps/desktop/src/preview-sandbox.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
 Known limitations: Static preview only for HTML/HTM; no interactive preview, no script execution, no remote fetch, no ZIP extraction/listing, no save/export/editing.

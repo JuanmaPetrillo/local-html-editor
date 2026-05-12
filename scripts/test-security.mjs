@@ -26,5 +26,9 @@ if (!html.includes('id="safe-preview-frame"')) throw new Error('safe preview ifr
 if (!html.includes('sandbox=""')) throw new Error('safe preview iframe sandbox must be empty');
 if (html.includes('allow-scripts')) throw new Error('safe preview iframe must not allow scripts');
 if (html.includes('allow-same-origin')) throw new Error('safe preview iframe must not allow same-origin');
+if (html.includes('allow-top-navigation')) throw new Error('safe preview iframe must not allow top navigation');
+if (html.includes('allow-downloads')) throw new Error('safe preview iframe must not allow downloads');
+if (html.includes('allow-popups')) throw new Error('safe preview iframe must not allow popups');
+if (html.includes('allow-forms')) throw new Error('safe preview iframe must not allow forms');
 
 console.log('security checks passed');

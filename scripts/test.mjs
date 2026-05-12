@@ -24,7 +24,12 @@ import {
   scanHtmlRiskMarkers,
   createSafeHtmlPreviewDocument
 } from '../apps/desktop/src/importer.mjs';
-import { buildSafePreviewDocument } from '../apps/desktop/src/preview-sandbox.mjs';
+import {
+  buildSafePreviewDocument,
+  buildSafePreviewResult,
+  createUnavailablePreviewStatus,
+  formatPreviewStatusText
+} from '../apps/desktop/src/preview-sandbox.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -304,3 +309,33 @@ assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x07, 0x08])), 'valid-p
 assert.equal(hasZipSignature(new Uint8Array([0x12, 0x34, 0x56, 0x78])), null);
 
 console.log('unit tests passed');
+
+
+const previewReady = buildSafePreviewResult('<h1>Hello</h1>');
+assert.equal(previewReady.previewStatus.status, 'ready');
+
+const previewWithScript = buildSafePreviewResult('<script>bad()</script><h1>Hi</h1>');
+assert.equal(previewWithScript.previewStatus.scriptsRemoved > 0, true);
+
+const previewWithInline = buildSafePreviewResult('<button onclick="bad()">x</button>');
+assert.equal(previewWithInline.previewStatus.inlineHandlersRemoved > 0, true);
+
+const previewWithDanger = buildSafePreviewResult('<a href="javascript:alert(1)">x</a>');
+assert.equal(previewWithDanger.previewStatus.dangerousUrlsNeutralized > 0, true);
+
+const previewWithRemote = buildSafePreviewResult('<img src="https://example.test/x.png">');
+assert.equal(previewWithRemote.previewStatus.remoteReferencesNeutralized > 0, true);
+
+const previewWithEmbed = buildSafePreviewResult('<iframe src="x"></iframe><object></object><embed>');
+assert.equal(previewWithEmbed.previewStatus.embeddedContentRemoved > 0, true);
+
+const previewWithMeta = buildSafePreviewResult('<meta http-equiv="refresh" content="0">');
+assert.equal(previewWithMeta.previewStatus.metaRefreshRemoved > 0, true);
+
+const statusText = formatPreviewStatusText(previewWithScript.previewStatus);
+assert.equal(statusText.includes('<script>'), false);
+assert.equal(statusText.includes('bad()'), false);
+assert.equal(statusText.includes('PK\x03\x04'), false);
+
+const zipPreviewStatus = createUnavailablePreviewStatus('zip', 'slides.zip');
+assert.equal(zipPreviewStatus.status, 'unavailable');
