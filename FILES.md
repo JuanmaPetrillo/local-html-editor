@@ -1,22 +1,46 @@
-# Files in this scaffold
+# Files in this repository (current)
 
-- `.github/ISSUE_TEMPLATE/bug_report.md`
-- `.github/ISSUE_TEMPLATE/feature_request.md`
-- `.github/ISSUE_TEMPLATE/milestone_task.md`
-- `.github/ISSUE_TEMPLATE/security_review.md`
-- `.github/pull_request_template.md`
+## App and runtime files
+
+- `apps/desktop/index.html`
+- `apps/desktop/src/app-shell.mjs`
+- `apps/desktop/src/importer.mjs`
+
+## Validation/build scripts
+
+- `scripts/lint.mjs`
+- `scripts/typecheck.mjs`
+- `scripts/test.mjs`
+- `scripts/test-e2e.mjs`
+- `scripts/test-security.mjs`
+- `scripts/build.mjs`
+
+## Root project/config docs
+
+- `package.json`
+- `package-lock.json`
+- `.gitignore`
 - `AGENTS.md`
-- `CHANGELOG.md`
-- `CONTRIBUTING.md`
-- `DECISIONS.md`
-- `IMPLEMENTATION_RULES.md`
-- `LICENSE.md`
-- `MASTER_PLAN.md`
-- `PROGRESS.md`
 - `README.md`
-- `REPO_SETUP.md`
-- `SECURITY.md`
+- `MASTER_PLAN.md`
+- `IMPLEMENTATION_RULES.md`
 - `VALIDATION.md`
+- `PROGRESS.md`
+- `DECISIONS.md`
+- `FILES.md`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
+- `CHANGELOG.md`
+- `LICENSE.md`
+
+## GitHub files
+
+- `.github/workflows/ci.yml`
+- `.github/pull_request_template.md`
+- `.github/ISSUE_TEMPLATE/*` (planned; not yet created in current tree)
+
+## Milestone prompts
+
 - `codex/00_BOOTSTRAP_REPO.md`
 - `codex/01_FOUNDATION_SHELL.md`
 - `codex/02_IMPORT_EXPORT_PIPELINE.md`
@@ -26,6 +50,9 @@
 - `codex/06_AUDIT_AND_HARDENING.md`
 - `codex/CODEX_CLOUD_TASK_TEMPLATE.md`
 - `codex/CODEX_GOAL_TEMPLATE.md`
+
+## Docs
+
 - `docs/ARCHITECTURE.md`
 - `docs/COPILOT_HTML_CONTRACT.md`
 - `docs/DATA_PRIVACY.md`

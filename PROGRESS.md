@@ -4,13 +4,23 @@ This file is the durable handoff between Codex tasks.
 
 ## Current status
 
-Project phase: documentation scaffold.
+Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 0 - Repository foundation.
+Current milestone: Milestone 2A - local read-only HTML intake scanning (complete).
 
 ## Latest summary
 
-Initial Markdown planning scaffold created. No application code exists yet.
+Milestones 0, 1, and 2A are complete for the current browser-first implementation. Current focus is documentation cleanup before the next code milestone.
+
+Current app files:
+
+- `apps/desktop/index.html`
+- `apps/desktop/src/app-shell.mjs`
+- `apps/desktop/src/importer.mjs`
+
+Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
+
+No rendering, export, or visual editing is implemented yet.
 
 ## Open risks
 
@@ -21,7 +31,7 @@ Initial Markdown planning scaffold created. No application code exists yet.
 
 ## Next recommended task
 
-Run `codex/00_BOOTSTRAP_REPO.md` to create the initial code scaffold, package structure, scripts, CI placeholders, and synthetic fixture folder.
+Complete docs sync/cleanup, then proceed only with an explicitly approved Milestone 2B scope.
 
 ## Log template
 

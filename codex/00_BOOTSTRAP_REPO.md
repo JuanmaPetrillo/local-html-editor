@@ -1,5 +1,9 @@
 # Codex Task 00: Bootstrap Repository
 
+## Status
+
+**COMPLETE**
+
 ## Goal
 
 Create the initial code repository scaffold without implementing editor features yet.

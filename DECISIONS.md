@@ -51,3 +51,14 @@ Status: Accepted
 Decision: Release artifacts must be installable/runnable by a normal Windows user.
 
 Reason: The target environment is a managed corporate PC where users may not have administrator rights.
+
+
+## Decision 007: Browser-first static prototype through Milestone 2A
+
+Status: Accepted
+
+Decision: Use a static browser-first prototype for Milestones 0-2A. Defer Tauri/React/Vite/TypeScript app code until explicitly approved.
+
+Reason: This reduces complexity and better fits no-admin managed corporate PC constraints while validating the security model early.
+
+Impact: No agent should install or start Tauri/React/Vite implementation unless explicit approval is given in-task.

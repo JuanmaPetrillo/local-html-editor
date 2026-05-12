@@ -1,5 +1,9 @@
 # Codex Task 01: Foundation Shell
 
+## Status
+
+**COMPLETE**
+
 ## Goal
 
 Create the first runnable local desktop app shell.
