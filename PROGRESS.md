@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 3C - safe preview layout usability controls for static HTML preview (complete).
+Current milestone: Milestone 4A - read-only editable text candidate inventory (complete).
 
 ## Latest summary
 
@@ -20,7 +20,7 @@ Current app files:
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 
-Static safe preview rendering is implemented for HTML/HTM with sanitizer status messaging. Export and visual editing are not implemented yet.
+Static safe preview rendering is implemented for HTML/HTM with sanitizer status messaging and a read-only editable text candidate inventory. Export and visual editing are not implemented yet.
 
 ## Open risks
 
@@ -284,3 +284,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Static safe preview remains non-interactive HTML/HTM only; no editing, save/export, ZIP extraction/listing, new dependencies, or runtime network calls.
 Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.
+
+
+### 2026-05-12 (milestone 4a editable text candidate inventory)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 4A - read-only editable text candidate inventory
+Summary: Started Milestone 4A by adding conservative read-only editable text candidate discovery for HTML/HTM selections, with deterministic candidate IDs, capped preview text, simple entity decoding, excluded unsafe tag regions, and text-only inventory rendering in the trusted shell. ZIP and unsupported selections now report inventory unavailable. No editing or HTML mutation paths were added.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Discovery is advisory and text-only for HTML/HTM; no editing, no content mutation, no save/export, no iframe internals access, no ZIP extraction/listing, no dependencies added.
+Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.

@@ -1,5 +1,6 @@
 /** @typedef {'html' | 'htm'} HtmlExtension */
 import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sandbox.mjs';
+import { createEditableTextInventory } from './editable-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -150,6 +151,17 @@ export async function importHtmlFileScan(file) {
   };
 }
 
+
+/** @param {{name: string, text: () => Promise<string>}} file */
+export async function createEditableInventoryForHtmlFile(file) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) {
+    return null;
+  }
+
+  const htmlText = await file.text();
+  return createEditableTextInventory(htmlText);
+}
 /** @param {{name: string, text: () => Promise<string>}} file */
 export async function createSafeHtmlPreviewDocument(file) {
   const extension = detectHtmlExtension(file.name);

@@ -12,6 +12,7 @@ if (!html.includes('id="file-details"')) throw new Error('shell ui missing selec
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
 if (!html.includes('id="import-report"')) throw new Error('shell ui missing import report region');
 if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing import manifest region');
+if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('shell ui missing safe preview iframe region');
 if (!html.includes('id="safe-preview-status"')) throw new Error('shell ui missing safe preview status region');
 if (!html.includes('id="preview-fit-width"')) throw new Error('shell ui missing preview fit width control');
