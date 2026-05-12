@@ -198,7 +198,17 @@ export async function createPatchedSafePreviewResult(file, patchPlan) {
   }
   const previewResult = buildSafePreviewResult(applyResult.workingHtml);
   previewResult.previewStatus.fileName = file.name;
-  return { applyResult: { ...applyResult, workingHtml: undefined }, previewResult };
+  return {
+    applyResult: {
+      patchId: applyResult.patchId,
+      candidateId: applyResult.candidateId,
+      applied: applyResult.applied,
+      applyStatus: applyResult.applyStatus,
+      message: applyResult.message,
+      warnings: applyResult.warnings
+    },
+    previewResult
+  };
 }
 
 /**

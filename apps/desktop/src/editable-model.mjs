@@ -37,7 +37,7 @@ function classifyCandidate(tagName, rawInner) {
 
 /** @param {string} htmlText */
 export function extractEditableTextCandidates(htmlText) {
-  const sanitized = String(htmlText || '').replace(EXCLUDED_BLOCKS_PATTERN, ' ');
+  const sanitized = String(htmlText || '').replace(EXCLUDED_BLOCKS_PATTERN, (match) => ' '.repeat(match.length));
   const stack = [];
   const candidates = [];
   let match = TAG_PATTERN.exec(sanitized);

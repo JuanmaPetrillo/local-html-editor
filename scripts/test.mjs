@@ -515,6 +515,26 @@ const missingSpanApply = applyPlannedTextPatchToWorkingHtml('<h1>Hello</h1>', pl
 assert.equal(missingSpanApply.applied, false);
 assert.equal(missingSpanApply.applyStatus, 'failed');
 
+const scriptOffsetHtml = '<script>console.log("x")</script><h1>Target</h1><p>Target</p>';
+const scriptOffsetInventory = createEditableTextInventory(scriptOffsetHtml);
+assert.equal(scriptOffsetInventory.candidates.some((candidate) => candidate.tagName === 'script'), false);
+const scriptTarget = scriptOffsetInventory.candidates.find((candidate) => candidate.tagName === 'h1');
+const scriptOffsetPatch = createTextPatchPlan(createDraftEdit(scriptTarget, 'Updated target'));
+const scriptOffsetApply = applyPlannedTextPatchToWorkingHtml(scriptOffsetHtml, scriptOffsetPatch, scriptOffsetInventory);
+assert.equal(scriptOffsetApply.applied, true);
+assert.equal(scriptOffsetApply.workingHtml.includes('<h1>Updated target</h1>'), true);
+assert.equal(scriptOffsetApply.workingHtml.includes('<p>Target</p>'), true);
+assert.equal(scriptOffsetApply.workingHtml.includes('<script>console.log("x")</script>'), true);
+
+const styleOffsetHtml = '<style>.a{color:red}</style><template><p>skip</p></template><h2>Keep me</h2><p>Keep me</p>';
+const styleOffsetInventory = createEditableTextInventory(styleOffsetHtml);
+const styleTarget = styleOffsetInventory.candidates.find((candidate) => candidate.tagName === 'h2');
+const styleOffsetPatch = createTextPatchPlan(createDraftEdit(styleTarget, 'Replaced heading'));
+const styleOffsetApply = applyPlannedTextPatchToWorkingHtml(styleOffsetHtml, styleOffsetPatch, styleOffsetInventory);
+assert.equal(styleOffsetApply.applied, true);
+assert.equal(styleOffsetApply.workingHtml.includes('<h2>Replaced heading</h2>'), true);
+assert.equal(styleOffsetApply.workingHtml.includes('<p>Keep me</p>'), true);
+
 const patchedPreview = await createPatchedSafePreviewResult(
   { name: 'preview.html', text: async () => '<h1>Hello</h1><script>bad()</script>' },
   createTextPatchPlan(createDraftEdit(createEditableTextInventory('<h1>Hello</h1>').candidates[0], 'Updated'))
@@ -526,3 +546,4 @@ assert.equal('rawHtmlText' in patchedPreview.applyResult, false);
 assert.equal('htmlText' in patchedPreview.applyResult, false);
 assert.equal('rawBytes' in patchedPreview.applyResult, false);
 assert.equal('binary' in patchedPreview.applyResult, false);
+assert.equal('workingHtml' in patchedPreview.applyResult, false);
