@@ -579,15 +579,35 @@ c = addOrUpdatePatchInCollection(c, p1).collection;
 c = addOrUpdatePatchInCollection(c, p2).collection;
 const multiApply = applyPatchCollectionToWorkingHtml(multiHtml, c, multiInventory);
 assert.equal(multiApply.appliedAny, true);
-assert.equal(multiApply.workingHtml.includes('Title A'), true);
-assert.equal(multiApply.workingHtml.includes('Body B'), true);
-assert.equal(multiApply.workingHtml.includes('<span>Hello</span>'), true);
+assert.equal(multiApply.workingHtml, '<h1>Title A</h1><p>Body B</p><span>Hello</span>');
 assert.equal('rawHtmlText' in multiApply, false);
 assert.equal('htmlText' in multiApply, false);
 assert.equal('workingHtml' in multiApply.applyResults[0], false);
 
+const reverseCollection = createPatchCollectionState();
+const reverseFirst = addOrUpdatePatchInCollection(reverseCollection, p2).collection;
+const reverseSecond = addOrUpdatePatchInCollection(reverseFirst, p1).collection;
+const reverseApply = applyPatchCollectionToWorkingHtml(multiHtml, reverseSecond, multiInventory);
+assert.equal(reverseApply.workingHtml, '<h1>Title A</h1><p>Body B</p><span>Hello</span>');
+
+const prefixedHtml = '<script>console.log(1)</script><style>.x{color:red}</style><template><p>ignored</p></template><h2>Hello</h2><p>World</p><span>Hello</span>';
+const prefixedInventory = createEditableTextInventory(prefixedHtml);
+const prefixedHeading = prefixedInventory.candidates.find((candidate) => candidate.tagName === 'h2');
+const prefixedBody = prefixedInventory.candidates.find((candidate) => candidate.tagName === 'p' && candidate.textPreview === 'World');
+const prefixedP1 = createTextPatchPlan(createDraftEdit(prefixedHeading, 'Heading widened text'));
+const prefixedP2 = createTextPatchPlan(createDraftEdit(prefixedBody, 'Body'));
+let prefixedCollection = createPatchCollectionState();
+prefixedCollection = addOrUpdatePatchInCollection(prefixedCollection, prefixedP1).collection;
+prefixedCollection = addOrUpdatePatchInCollection(prefixedCollection, prefixedP2).collection;
+const prefixedApply = applyPatchCollectionToWorkingHtml(prefixedHtml, prefixedCollection, prefixedInventory);
+assert.equal(
+  prefixedApply.workingHtml,
+  '<script>console.log(1)</script><style>.x{color:red}</style><template><p>ignored</p></template><h2>Heading widened text</h2><p>Body</p><span>Hello</span>'
+);
+
 const collectionPreview = await createCollectionPatchedSafePreviewResult({ name: 'preview.html', text: async () => multiHtml }, c);
 assert.equal(collectionPreview.previewResult.previewDocument.includes("default-src 'none'"), true);
+assert.equal('workingHtml' in collectionPreview.applyState, false);
 const resetState = resetWorkingPreviewState();
 assert.equal(resetState.applyStatus, 'reset-to-original');
 assert.equal(formatPatchCollectionText(createPatchCollectionState()).includes('none applied'), true);

@@ -327,12 +327,23 @@ export function applyPatchCollectionToWorkingHtml(htmlText, collection, inventor
     return { ...base, workingHtml: source };
   }
   let workingHtml = source;
-  const orderedCandidates = inventory && Array.isArray(inventory.candidates)
-    ? [...inventory.candidates].sort((a, b) => a.sourceStart - b.sourceStart).map((c) => c.candidateId)
-    : [];
+  const candidateById = new Map(
+    inventory && Array.isArray(inventory.candidates)
+      ? inventory.candidates.map((candidate) => [candidate.candidateId, candidate])
+      : []
+  );
   const orderedToApply = collection.orderedCandidateIds
     .filter((candidateId) => collection.patchesByCandidateId[candidateId])
-    .sort((a, b) => orderedCandidates.indexOf(a) - orderedCandidates.indexOf(b));
+    .sort((a, b) => {
+      const candidateA = candidateById.get(a);
+      const candidateB = candidateById.get(b);
+      const startA = candidateA && Number.isInteger(candidateA.sourceStart) ? candidateA.sourceStart : -1;
+      const startB = candidateB && Number.isInteger(candidateB.sourceStart) ? candidateB.sourceStart : -1;
+      if (startA !== startB) return startB - startA;
+      const endA = candidateA && Number.isInteger(candidateA.sourceEnd) ? candidateA.sourceEnd : -1;
+      const endB = candidateB && Number.isInteger(candidateB.sourceEnd) ? candidateB.sourceEnd : -1;
+      return endB - endA;
+    });
   const applyResults = [];
   for (const candidateId of orderedToApply) {
     const result = applyPlannedTextPatchToWorkingHtml(workingHtml, collection.patchesByCandidateId[candidateId], inventory);
