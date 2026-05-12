@@ -1,6 +1,6 @@
 /** @typedef {'html' | 'htm'} HtmlExtension */
 import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sandbox.mjs';
-import { applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
+import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -206,6 +206,26 @@ export async function createPatchedSafePreviewResult(file, patchPlan) {
       applyStatus: applyResult.applyStatus,
       message: applyResult.message,
       warnings: applyResult.warnings
+    },
+    previewResult
+  };
+}
+
+/** @param {{name: string, text: () => Promise<string>}} file @param {any} collection */
+export async function createCollectionPatchedSafePreviewResult(file, collection) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) return null;
+  const htmlText = await file.text();
+  const inventory = createEditableTextInventory(htmlText);
+  const applyState = applyPatchCollectionToWorkingHtml(htmlText, collection, inventory);
+  const previewResult = buildSafePreviewResult(applyState.workingHtml);
+  previewResult.previewStatus.fileName = file.name;
+  return {
+    applyState: {
+      appliedAny: applyState.appliedAny,
+      applyStatus: applyState.applyStatus,
+      applyResults: applyState.applyResults,
+      collectionCount: applyState.collectionCount
     },
     previewResult
   };

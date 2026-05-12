@@ -10,7 +10,7 @@ import {
   createImportReportFromStatus,
   createSafeHtmlPreviewResult,
   createEditableInventoryForHtmlFile,
-  createPatchedSafePreviewResult
+  createCollectionPatchedSafePreviewResult
 } from './importer.mjs';
 import {
   createUnavailablePreviewStatus,
@@ -23,7 +23,12 @@ import {
   formatPatchPlanText,
   formatDraftEditText,
   formatEditableInventoryText,
-  selectEditableCandidate
+  selectEditableCandidate,
+  addOrUpdatePatchInCollection,
+  createPatchCollectionState,
+  formatPatchCollectionText,
+  formatWorkingPreviewStateText,
+  resetWorkingPreviewState
 } from './editable-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
@@ -134,6 +139,9 @@ const editableDraftStatus = hasDom ? document.querySelector('#editable-draft-sta
 const editablePatchPlan = hasDom ? document.querySelector('#editable-patch-plan') : null;
 const applyPatchPreview = hasDom ? document.querySelector('#apply-patch-preview') : null;
 const patchApplyStatus = hasDom ? document.querySelector('#patch-apply-status') : null;
+const patchCollectionStatus = hasDom ? document.querySelector('#patch-collection-status') : null;
+const workingPreviewStatus = hasDom ? document.querySelector('#working-preview-status') : null;
+const resetWorkingPreview = hasDom ? document.querySelector('#reset-working-preview') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -158,6 +166,9 @@ if (
   editablePatchPlan instanceof HTMLElement &&
   applyPatchPreview instanceof HTMLButtonElement &&
   patchApplyStatus instanceof HTMLElement &&
+  patchCollectionStatus instanceof HTMLElement &&
+  workingPreviewStatus instanceof HTMLElement &&
+  resetWorkingPreview instanceof HTMLButtonElement &&
   previewFitWidth instanceof HTMLButtonElement &&
   previewCompactHeight instanceof HTMLButtonElement &&
   previewTallHeight instanceof HTMLButtonElement &&
@@ -188,6 +199,7 @@ if (
   let currentHtmlFile = null;
   /** @type {any} */
   let currentPatchPlan = null;
+  let patchCollection = createPatchCollectionState();
 
   const resetDraftUi = () => {
     editableCandidateSelect.replaceChildren();
@@ -198,6 +210,8 @@ if (
     editablePatchPlan.textContent = 'Patch plan: unavailable.';
     applyPatchPreview.disabled = true;
     patchApplyStatus.textContent = 'Patch apply status: unavailable.';
+    patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+    workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     draftState = null;
   };
 
@@ -229,23 +243,33 @@ if (
       patchApplyStatus.textContent = 'Patch apply status: blocked (no planned patch available).';
       return;
     }
-    const patched = await createPatchedSafePreviewResult(currentHtmlFile, currentPatchPlan);
+    const nextCollection = addOrUpdatePatchInCollection(patchCollection, currentPatchPlan);
+    patchCollection = nextCollection.collection;
+    patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+    const patched = await createCollectionPatchedSafePreviewResult(currentHtmlFile, patchCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
       return;
     }
-    const result = patched.applyResult;
-    patchApplyStatus.textContent = [
-      `patchId: ${result.patchId || '(none)'}`,
-      `candidateId: ${result.candidateId || '(none)'}`,
-      `applied: ${result.applied ? 'true' : 'false'}`,
-      `applyStatus: ${result.applyStatus}`,
-      `message: ${result.message}`,
-      `warnings: ${result.warnings.length > 0 ? result.warnings.join(', ') : '(none)'}`
-    ].join('\n');
+    patchApplyStatus.textContent = `Patch apply status: ${patched.applyState.applyStatus}.`;
+    workingPreviewStatus.textContent = formatWorkingPreviewStateText(patched.applyState);
     if (patched.previewResult) {
       safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
       safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+    }
+  });
+
+
+  resetWorkingPreview.addEventListener('click', async () => {
+    if (!currentHtmlFile) return;
+    patchCollection = createPatchCollectionState();
+    patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+    workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
+    patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
+    const previewResult = await createSafeHtmlPreviewResult(currentHtmlFile);
+    if (previewResult) {
+      safePreviewFrame.srcdoc = previewResult.previewDocument;
+      safePreviewStatus.textContent = formatPreviewStatusText(previewResult.previewStatus);
     }
   });
 
@@ -269,6 +293,7 @@ if (
     currentInventory = null;
     currentHtmlFile = null;
     currentPatchPlan = null;
+    patchCollection = createPatchCollectionState();
     resetDraftUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
