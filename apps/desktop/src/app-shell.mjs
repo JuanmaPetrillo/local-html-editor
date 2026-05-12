@@ -9,7 +9,8 @@ import {
   importZipFilePreflight,
   createImportReportFromStatus,
   createSafeHtmlPreviewResult,
-  createEditableInventoryForHtmlFile
+  createEditableInventoryForHtmlFile,
+  createPatchedSafePreviewResult
 } from './importer.mjs';
 import {
   createUnavailablePreviewStatus,
@@ -131,6 +132,8 @@ const editableCandidateSelect = hasDom ? document.querySelector('#editable-candi
 const editableDraftText = hasDom ? document.querySelector('#editable-draft-text') : null;
 const editableDraftStatus = hasDom ? document.querySelector('#editable-draft-status') : null;
 const editablePatchPlan = hasDom ? document.querySelector('#editable-patch-plan') : null;
+const applyPatchPreview = hasDom ? document.querySelector('#apply-patch-preview') : null;
+const patchApplyStatus = hasDom ? document.querySelector('#patch-apply-status') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -153,6 +156,8 @@ if (
   editableDraftText instanceof HTMLTextAreaElement &&
   editableDraftStatus instanceof HTMLElement &&
   editablePatchPlan instanceof HTMLElement &&
+  applyPatchPreview instanceof HTMLButtonElement &&
+  patchApplyStatus instanceof HTMLElement &&
   previewFitWidth instanceof HTMLButtonElement &&
   previewCompactHeight instanceof HTMLButtonElement &&
   previewTallHeight instanceof HTMLButtonElement &&
@@ -179,6 +184,10 @@ if (
   });
   /** @type {{selectedCandidateId: string, draftEdit: any} | null} */
   let draftState = null;
+  /** @type {File | null} */
+  let currentHtmlFile = null;
+  /** @type {any} */
+  let currentPatchPlan = null;
 
   const resetDraftUi = () => {
     editableCandidateSelect.replaceChildren();
@@ -187,6 +196,8 @@ if (
     editableDraftText.disabled = true;
     editableDraftStatus.textContent = 'Draft edit: unavailable.';
     editablePatchPlan.textContent = 'Patch plan: unavailable.';
+    applyPatchPreview.disabled = true;
+    patchApplyStatus.textContent = 'Patch apply status: unavailable.';
     draftState = null;
   };
 
@@ -194,7 +205,9 @@ if (
     const candidate = selectEditableCandidate(inventory, editableCandidateSelect.value);
     draftState = { selectedCandidateId: editableCandidateSelect.value, draftEdit: createDraftEdit(candidate, editableDraftText.value) };
     editableDraftStatus.textContent = formatDraftEditText(draftState);
-    editablePatchPlan.textContent = formatPatchPlanText(createPatchPlanState(draftState).patchPlan);
+    currentPatchPlan = createPatchPlanState(draftState).patchPlan;
+    editablePatchPlan.textContent = formatPatchPlanText(currentPatchPlan);
+    applyPatchPreview.disabled = !currentPatchPlan || currentPatchPlan.applyStatus !== 'planned';
   };
 
   resetDraftUi();
@@ -210,6 +223,31 @@ if (
   /** @type {any} */
   let currentInventory = null;
 
+
+  applyPatchPreview.addEventListener('click', async () => {
+    if (!currentHtmlFile || !currentPatchPlan || currentPatchPlan.applyStatus !== 'planned') {
+      patchApplyStatus.textContent = 'Patch apply status: blocked (no planned patch available).';
+      return;
+    }
+    const patched = await createPatchedSafePreviewResult(currentHtmlFile, currentPatchPlan);
+    if (!patched) {
+      patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
+      return;
+    }
+    const result = patched.applyResult;
+    patchApplyStatus.textContent = [
+      `patchId: ${result.patchId || '(none)'}`,
+      `candidateId: ${result.candidateId || '(none)'}`,
+      `applied: ${result.applied ? 'true' : 'false'}`,
+      `applyStatus: ${result.applyStatus}`,
+      `message: ${result.message}`,
+      `warnings: ${result.warnings.length > 0 ? result.warnings.join(', ') : '(none)'}`
+    ].join('\n');
+    if (patched.previewResult) {
+      safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+      safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+    }
+  });
 
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -229,12 +267,15 @@ if (
     importManifest.textContent = '';
     editableInventory.textContent = 'Editable text candidates: unavailable.';
     currentInventory = null;
+    currentHtmlFile = null;
+    currentPatchPlan = null;
     resetDraftUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
+      currentHtmlFile = selected;
       const status = createImportStatusFromHtmlScan(scanResult);
       const report = createImportReportFromStatus(status);
       fileScan.textContent = formatImportStatusSummary(status);

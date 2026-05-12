@@ -18,6 +18,11 @@ if (shellCode.includes('WebSocket')) throw new Error('websocket must not be intr
 if (shellCode.includes('contentDocument')) throw new Error('iframe.contentDocument access must not be introduced in shell');
 if (shellCode.includes('contentWindow')) throw new Error('iframe.contentWindow access must not be introduced in shell');
 if (shellCode.includes('postMessage')) throw new Error('postMessage must not be introduced in shell');
+if (shellCode.includes('fetch(')) throw new Error('fetch must not be introduced in trusted shell');
+if (shellCode.includes('XMLHttpRequest')) throw new Error('XMLHttpRequest must not be introduced in trusted shell');
+if (shellCode.includes('WebSocket')) throw new Error('WebSocket must not be introduced in trusted shell');
+if (shellCode.includes('contentWindow')) throw new Error('iframe.contentWindow access must not be introduced in shell');
+if (shellCode.includes('postMessage')) throw new Error('postMessage must not be introduced in shell');
 const importerCode = readFileSync('apps/desktop/src/importer.mjs', 'utf8');
 const editableModelCode = readFileSync('apps/desktop/src/editable-model.mjs', 'utf8');
 

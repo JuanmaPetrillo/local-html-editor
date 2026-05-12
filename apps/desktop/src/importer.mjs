@@ -1,6 +1,6 @@
 /** @typedef {'html' | 'htm'} HtmlExtension */
 import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sandbox.mjs';
-import { createEditableTextInventory } from './editable-model.mjs';
+import { applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -182,6 +182,23 @@ export async function createSafeHtmlPreviewResult(file) {
   const result = buildSafePreviewResult(htmlText);
   result.previewStatus.fileName = file.name;
   return result;
+}
+
+/** @param {{name: string, text: () => Promise<string>}} file @param {any} patchPlan */
+export async function createPatchedSafePreviewResult(file, patchPlan) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) {
+    return null;
+  }
+  const htmlText = await file.text();
+  const inventory = createEditableTextInventory(htmlText);
+  const applyResult = applyPlannedTextPatchToWorkingHtml(htmlText, patchPlan, inventory);
+  if (!applyResult.applied || !applyResult.workingHtml) {
+    return { applyResult, previewResult: null };
+  }
+  const previewResult = buildSafePreviewResult(applyResult.workingHtml);
+  previewResult.previewStatus.fileName = file.name;
+  return { applyResult: { ...applyResult, workingHtml: undefined }, previewResult };
 }
 
 /**
