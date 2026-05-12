@@ -1,4 +1,10 @@
-import { importHtmlFileScan, importZipFilePreflight } from './importer.mjs';
+import {
+  createImportStatusFromHtmlScan,
+  createImportStatusFromZipPreflight,
+  formatImportStatusSummary,
+  importHtmlFileScan,
+  importZipFilePreflight
+} from './importer.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -78,19 +84,6 @@ export function renderShellState(project) {
   };
 }
 
-/** @param {Awaited<ReturnType<typeof importHtmlFileScan>>} scanResult */
-export function formatScanSummary(scanResult) {
-  if (scanResult.sourceKind === 'zip') {
-    return `Scan summary: zip-preflight ok=${scanResult.ok}, file=${scanResult.fileName}, size=${scanResult.fileSize} bytes, type=${scanResult.type}, extension=.${scanResult.extension || '(none)'}, source=${scanResult.sourceKind}, signature=${scanResult.signatureStatus}, warnings=${scanResult.warningLabels.length ? scanResult.warningLabels.join('|') : 'none'}.`;
-  }
-
-  if (!scanResult.ok) {
-    return 'Scan summary: skipped (only .html/.htm/.zip local intake is supported).';
-  }
-
-  return `Scan summary: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}.`;
-}
-
 const hasDom = typeof document !== 'undefined';
 const fileInput = hasDom ? document.querySelector('#file-input') : null;
 const fileStatus = hasDom ? document.querySelector('#file-status') : null;
@@ -123,12 +116,14 @@ if (
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
-      fileScan.textContent = formatScanSummary(scanResult);
+      const status = createImportStatusFromHtmlScan(scanResult);
+      fileScan.textContent = formatImportStatusSummary(status);
     }
 
     if (selected && project && project.sourceKind === 'zip') {
       const scanResult = await importZipFilePreflight(selected);
-      fileScan.textContent = formatScanSummary(scanResult);
+      const status = createImportStatusFromZipPreflight(scanResult);
+      fileScan.textContent = formatImportStatusSummary(status);
     }
   });
 }

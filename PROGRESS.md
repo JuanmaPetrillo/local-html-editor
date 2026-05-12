@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 2A - local read-only HTML intake scanning (complete).
+Current milestone: Milestone 2C - structured import status model (complete).
 
 ## Latest summary
 
-Milestones 0, 1, and 2A are complete for the current browser-first implementation. Current focus is documentation cleanup before the next code milestone.
+Milestones 0, 1, 2A, and 2B are complete for the current browser-first implementation. Milestone 2C is now complete with a normalized import status model for HTML scan and ZIP preflight outcomes.
 
 Current app files:
 
@@ -184,3 +184,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Preflight-only signature check; no extraction, entry listing, preview, export, or editing.
 Next recommended task: Continue Milestone 2B only when explicitly approved.
+
+
+### 2026-05-12 (milestone 2c structured import status model)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2C - structured import status model
+Summary: Added normalized import status model creation for HTML scan and ZIP preflight results in importer, and updated shell to consume one summary formatter path using textContent-only rendering.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Still scan/preflight-only; no ZIP extraction or entry listing, no rendering/preview/export/editing, no dependency additions, no Tauri/React/Vite conversion.
+Next recommended task: Continue Milestone 2 import pipeline only with explicit approval for next narrow slice.

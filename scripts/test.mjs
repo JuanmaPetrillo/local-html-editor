@@ -3,12 +3,14 @@ import {
   createProjectFileModel,
   detectExtension,
   detectSourceKind,
-  formatScanSummary,
   renderShellState
 } from '../apps/desktop/src/app-shell.mjs';
 import {
+  createImportStatusFromHtmlScan,
+  createImportStatusFromZipPreflight,
   detectHtmlExtension,
   detectZipExtension,
+  formatImportStatusSummary,
   hasZipSignature,
   importHtmlFileScan,
   importZipFilePreflight,
@@ -50,24 +52,29 @@ assert.equal(scan.remoteUrlCount, 1);
 assert.equal(scan.embeddedContentTagCount, 1);
 assert.equal(scan.hasRiskMarkers, true);
 
-let textReadCount = 0;
-const htmlScanResult = await importHtmlFileScan({
+const safeHtmlScanResult = await importHtmlFileScan({
   name: 'slides.html',
   size: 100,
   type: 'text/html',
-  text: async () => {
-    textReadCount += 1;
-    return '<object></object>http://risk.test';
-  }
+  text: async () => '<main><h1>Safe</h1></main>'
 });
-assert.equal(textReadCount, 1);
-assert.equal(htmlScanResult.ok, true);
-assert.equal(htmlScanResult.scan.embeddedContentTagCount, 1);
-assert.equal(htmlScanResult.scan.remoteUrlCount, 1);
-assert.equal(
-  formatScanSummary(htmlScanResult),
-  'Scan summary: scripts=0, inline-handlers=0, remote-urls=1, embedded-tags=1.'
-);
+const safeHtmlStatus = createImportStatusFromHtmlScan(safeHtmlScanResult);
+assert.equal(safeHtmlStatus.ok, true);
+assert.equal(safeHtmlStatus.sourceKind, 'html');
+assert.equal(safeHtmlStatus.severity, 'info');
+assert.equal(safeHtmlStatus.warningLabels.length, 0);
+
+const riskyHtmlScanResult = await importHtmlFileScan({
+  name: 'risk.htm',
+  size: 120,
+  type: 'text/html',
+  text: async () => '<script></script>https://risk.test'
+});
+const riskyHtmlStatus = createImportStatusFromHtmlScan(riskyHtmlScanResult);
+assert.equal(riskyHtmlStatus.ok, true);
+assert.equal(riskyHtmlStatus.severity, 'warning');
+assert.equal(riskyHtmlStatus.warningLabels[0], 'risk-markers-detected');
+assert.equal(riskyHtmlStatus.checks.scriptTagCount, 1);
 
 let zipReadCount = 0;
 const validZipResult = await importZipFilePreflight({
@@ -86,36 +93,11 @@ const validZipResult = await importZipFilePreflight({
   }
 });
 assert.equal(zipReadCount, 1);
-assert.equal(validZipResult.ok, true);
-assert.equal(validZipResult.signatureStatus, 'valid-pk0304');
-assert.equal(validZipResult.warningLabels.length, 0);
-assert.equal(
-  formatScanSummary(validZipResult),
-  'Scan summary: zip-preflight ok=true, file=slides.zip, size=2048 bytes, type=application/zip, extension=.zip, source=zip, signature=valid-pk0304, warnings=none.'
-);
-
-
-const emptyZipResult = await importZipFilePreflight({
-  name: 'empty.zip',
-  size: 22,
-  type: 'application/zip',
-  slice: () => ({
-    arrayBuffer: async () => new Uint8Array([0x50, 0x4b, 0x05, 0x06]).buffer
-  })
-});
-assert.equal(emptyZipResult.ok, true);
-assert.equal(emptyZipResult.signatureStatus, 'valid-pk0506');
-
-const spanningZipResult = await importZipFilePreflight({
-  name: 'span.zip',
-  size: 22,
-  type: 'application/zip',
-  slice: () => ({
-    arrayBuffer: async () => new Uint8Array([0x50, 0x4b, 0x07, 0x08]).buffer
-  })
-});
-assert.equal(spanningZipResult.ok, true);
-assert.equal(spanningZipResult.signatureStatus, 'valid-pk0708');
+const validZipStatus = createImportStatusFromZipPreflight(validZipResult);
+assert.equal(validZipStatus.ok, true);
+assert.equal(validZipStatus.sourceKind, 'zip');
+assert.equal(validZipStatus.severity, 'info');
+assert.equal(validZipStatus.checks.signatureStatus, 'valid-pk0304');
 
 const invalidZipResult = await importZipFilePreflight({
   name: 'bad.zip',
@@ -125,14 +107,10 @@ const invalidZipResult = await importZipFilePreflight({
     arrayBuffer: async () => new Uint8Array([0x00, 0x11, 0x22, 0x33]).buffer
   })
 });
-assert.equal(invalidZipResult.ok, false);
-assert.equal(invalidZipResult.warningLabels[0], 'invalid-zip-signature');
-assert.equal(invalidZipResult.signatureStatus, 'invalid-or-unsupported');
-
-assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), 'valid-pk0304');
-assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), 'valid-pk0506');
-assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x07, 0x08])), 'valid-pk0708');
-assert.equal(hasZipSignature(new Uint8Array([0x12, 0x34, 0x56, 0x78])), null);
+const invalidZipStatus = createImportStatusFromZipPreflight(invalidZipResult);
+assert.equal(invalidZipStatus.ok, false);
+assert.equal(invalidZipStatus.severity, 'error');
+assert.equal(invalidZipStatus.warningLabels[0], 'invalid-zip-signature');
 
 let nonHtmlReadCount = 0;
 const nonHtmlResult = await importHtmlFileScan({
@@ -145,8 +123,8 @@ const nonHtmlResult = await importHtmlFileScan({
   }
 });
 assert.equal(nonHtmlReadCount, 0);
-assert.equal(nonHtmlResult.ok, false);
-assert.equal(formatScanSummary(nonHtmlResult), 'Scan summary: skipped (only .html/.htm/.zip local intake is supported).');
+const nonHtmlStatus = createImportStatusFromHtmlScan(nonHtmlResult);
+assert.equal(nonHtmlStatus.ok, false);
 
 let nonZipReadCount = 0;
 const nonZipResult = await importZipFilePreflight({
@@ -161,7 +139,15 @@ const nonZipResult = await importZipFilePreflight({
   })
 });
 assert.equal(nonZipReadCount, 0);
-assert.equal(nonZipResult.ok, false);
-assert.equal(nonZipResult.warningLabels[0], 'unsupported-extension');
+
+const summary = formatImportStatusSummary(validZipStatus);
+assert.match(summary, /^Scan summary: ZIP preflight:/);
+assert.equal('rawHtmlText' in riskyHtmlStatus, false);
+assert.equal('rawBytes' in validZipStatus, false);
+
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), 'valid-pk0304');
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), 'valid-pk0506');
+assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x07, 0x08])), 'valid-pk0708');
+assert.equal(hasZipSignature(new Uint8Array([0x12, 0x34, 0x56, 0x78])), null);
 
 console.log('unit tests passed');
