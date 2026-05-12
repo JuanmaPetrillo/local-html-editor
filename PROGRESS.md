@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 2F - local import manifest model from metadata/status/report summaries (complete).
+Current milestone: Milestone 3A - first safe static preview for selected HTML/HTM files (complete).
 
 ## Latest summary
 
@@ -233,3 +233,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No project-folder creation, no file writes, no export, no HTML rendering/injection, no preview iframe/webview, no ZIP extraction/entry listing, no dependency additions, no network calls.
 Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
+
+
+### 2026-05-12 (milestone 3a safe static preview)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 3A - first safe static preview for selected HTML/HTM files
+Summary: Added a dedicated preview sanitizer module and a sandboxed iframe-based static preview flow for HTML/HTM selections. Preview content is built as srcdoc with strict CSP, script stripping, inline handler stripping, dangerous URL neutralization, embedded content removal, and meta refresh removal. ZIP/unsupported files keep preview unavailable. Existing scan/report/manifest behavior remains.
+Files changed: apps/desktop/src/preview-sandbox.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Static preview only for HTML/HTM; no interactive preview, no script execution, no remote fetch, no ZIP extraction/listing, no save/export/editing.
+Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.
