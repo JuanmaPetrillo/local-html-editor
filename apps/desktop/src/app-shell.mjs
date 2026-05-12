@@ -1,31 +1,97 @@
-/** @typedef {{name: string, size: number, type: string}} OpenedFile */
+/** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
-/** @param {OpenedFile | null} file */
-export function renderShellState(file) {
+/**
+ * @typedef {object} ProjectFileModel
+ * @property {string} name
+ * @property {number} size
+ * @property {string} type
+ * @property {string} extension
+ * @property {SourceKind} sourceKind
+ * @property {string} selectedAt
+ */
+
+/** @param {string} fileName */
+export function detectExtension(fileName) {
+  const lastDot = fileName.lastIndexOf('.');
+  if (lastDot <= 0 || lastDot === fileName.length - 1) {
+    return '';
+  }
+
+  return fileName.slice(lastDot + 1).toLowerCase();
+}
+
+/** @param {string} extension */
+export function detectSourceKind(extension) {
+  if (extension === 'html' || extension === 'htm') return 'html';
+  if (extension === 'zip') return 'zip';
+  return 'unknown';
+}
+
+/** @param {{name: string, size: number, type: string}} file */
+export function createProjectFileModel(file) {
+  const extension = detectExtension(file.name);
+
+  return {
+    name: file.name,
+    size: file.size,
+    type: file.type || 'unknown type',
+    extension,
+    sourceKind: detectSourceKind(extension),
+    selectedAt: new Date().toISOString()
+  };
+}
+
+/** @param {ProjectFileModel | null} project */
+export function renderShellState(project) {
+  if (!project) {
+    return {
+      safePreviewPlaceholder: true,
+      hasProject: false,
+      statusLabel: 'No file selected.',
+      detailsLabel: 'Choose an .html, .htm, or .zip file to start a local project model.',
+      unsupportedLabel: ''
+    };
+  }
+
+  const unsupportedLabel =
+    project.sourceKind === 'unknown'
+      ? `Unsupported extension: .${project.extension || '(none)'} (metadata captured only).`
+      : '';
+
   return {
     safePreviewPlaceholder: true,
-    selectionLabel: file
-      ? `Selected file: ${file.name} (${file.size} bytes, ${file.type || 'unknown type'})`
-      : 'No file selected.'
+    hasProject: true,
+    statusLabel: `Selected file: ${project.name}`,
+    detailsLabel: `Size: ${project.size} bytes | Type: ${project.type} | Extension: .${project.extension || '(none)'} | Source kind: ${project.sourceKind} | Selected at: ${project.selectedAt}`,
+    unsupportedLabel
   };
 }
 
 const hasDom = typeof document !== 'undefined';
 const fileInput = hasDom ? document.querySelector('#file-input') : null;
-const fileMeta = hasDom ? document.querySelector('#file-meta') : null;
+const fileStatus = hasDom ? document.querySelector('#file-status') : null;
+const fileDetails = hasDom ? document.querySelector('#file-details') : null;
+const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 
-if (hasDom && fileInput instanceof HTMLInputElement && fileMeta instanceof HTMLElement) {
+if (
+  hasDom &&
+  fileInput instanceof HTMLInputElement &&
+  fileStatus instanceof HTMLElement &&
+  fileDetails instanceof HTMLElement &&
+  fileWarning instanceof HTMLElement
+) {
   fileInput.addEventListener('change', () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
-    const shellState = renderShellState(
-      selected
-        ? {
-            name: selected.name,
-            size: selected.size,
-            type: selected.type
-          }
-        : null
-    );
-    fileMeta.textContent = shellState.selectionLabel;
+    const project = selected
+      ? createProjectFileModel({
+          name: selected.name,
+          size: selected.size,
+          type: selected.type
+        })
+      : null;
+    const shellState = renderShellState(project);
+    fileStatus.textContent = shellState.statusLabel;
+    fileDetails.textContent = shellState.detailsLabel;
+    fileWarning.textContent = shellState.unsupportedLabel;
   });
 }

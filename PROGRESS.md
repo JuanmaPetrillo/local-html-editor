@@ -102,3 +102,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: All commands passed locally.
 Known limitations: Still a static prototype; no HTML parsing/rendering/import-export pipeline or editor interactions implemented yet.
 Next recommended task: Continue Milestone 1 with trusted shell workflows only (e.g., non-destructive project model creation after file selection) before Milestone 2.
+
+### 2026-05-12 (milestone 1 project model metadata follow-up)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 1 - Desktop shell and project model
+Summary: Added a non-destructive local project file model created after file selection and surfaced metadata-only selected-file state in shell UI (name, size, type, extension, source kind, selectedAt). Added unsupported extension fallback messaging while keeping Save/Export disabled and Safe Preview as placeholder. No file content read/parsing/rendering/execution added.
+Files changed: apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All local validation commands passed.
+Known limitations: Metadata-only model (single selected file) only; no import/export pipeline, no HTML parsing, no rendering of imported content, no editing features.
+Next recommended task: Continue Milestone 1 trusted file workflow slices only; do not start Milestone 2 until explicitly approved.
