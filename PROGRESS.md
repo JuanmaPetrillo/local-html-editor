@@ -66,3 +66,27 @@ Validation run: Reran Milestone 0 validation commands from repository root.
 Result: Validation commands completed successfully from root using placeholder scripts.
 Known limitations: Milestone 0 placeholders remain; Milestone 1 was not started.
 Next recommended task: Begin `codex/01_FOUNDATION_SHELL.md` in a separate PR.
+
+### 2026-05-12 (milestone 1 foundation shell)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 1 - Desktop shell and project model
+Summary: Created first runnable local app shell with placeholder open/save controls, recent projects placeholder, safe preview placeholder, and minimal local validation scripts/tests. Confirmed no editor/import/export implementation yet.
+Files changed: package.json, package-lock.json, apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/README.md, scripts/lint.mjs, scripts/typecheck.mjs, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All commands passed.
+Known limitations: Uses minimal static shell and Node-based checks due environment package restrictions; Tauri/React/Vite scaffold deferred.
+Next recommended task: Implement actual Tauri + React + TypeScript + Vite scaffold and secure file dialog pathway when dependency policy/access supports installation.
+
+### 2026-05-12 (milestone 1 path consistency fix)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 1 - Desktop shell and project model
+Summary: Fixed shell path mismatch by using `apps/desktop/index.html` as the single canonical shell HTML and updating validation/build scripts to read/copy that same file. Updated shell HTML to include the full placeholder controls and safe-preview scripts-disabled text.
+Files changed: apps/desktop/index.html, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All commands passed from repository root.
+Known limitations: Milestone 1 remains static/minimal; no import/export pipeline, no visual editor, no script execution in preview.
+Next recommended task: Continue Milestone 1 trusted open/save pathway only if requested; do not start Milestone 2 until approved.
