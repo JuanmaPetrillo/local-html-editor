@@ -10,7 +10,7 @@ if (shellCode.includes('innerHTML')) throw new Error('imported content may be re
 if (shellCode.includes('outerHTML')) throw new Error('imported content may be rendered via outerHTML');
 if (shellCode.includes('insertAdjacentHTML')) throw new Error('imported content may be rendered via insertAdjacentHTML');
 if (shellCode.includes('document.write')) throw new Error('imported content may be rendered via document.write');
-if (shellCode.includes('DOMParser')) throw new Error('imported content parsing is not allowed in milestone 2A');
+if (shellCode.includes('DOMParser')) throw new Error('imported content parsing is not allowed in milestone 2D');
 if (shellCode.includes('iframe')) throw new Error('iframe preview must remain unimplemented in this milestone');
 if (shellCode.includes('webview')) throw new Error('webview preview must remain unimplemented in this milestone');
 if (shellCode.includes('fetch(')) throw new Error('remote fetch must not be introduced');

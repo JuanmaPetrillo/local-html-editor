@@ -135,6 +135,14 @@ export function createImportStatusFromHtmlScan(scanResult) {
   const warningLabels = [];
   if (scanResult.ok && scanResult.scan.hasRiskMarkers) {
     warningLabels.push('risk-markers-detected');
+    if (scanResult.scan.scriptTagCount > 0) warningLabels.push('script-tags-detected');
+    if (scanResult.scan.inlineEventHandlerCount > 0) warningLabels.push('inline-handlers-detected');
+    if (scanResult.scan.remoteUrlCount > 0) warningLabels.push('remote-urls-detected');
+    if (scanResult.scan.embeddedContentTagCount > 0) warningLabels.push('embedded-content-detected');
+  }
+
+  if (!scanResult.ok) {
+    warningLabels.push('unsupported-extension');
   }
 
   return {
@@ -176,4 +184,111 @@ export function createImportStatusFromZipPreflight(preflightResult) {
 /** @param {{summaryLabel: string, fileName: string, fileSize: number, type: string, extension: string | null, sourceKind: string, severity: string, warningLabels: string[]}} status */
 export function formatImportStatusSummary(status) {
   return `Scan summary: ${status.summaryLabel} file=${status.fileName}, size=${status.fileSize} bytes, type=${status.type}, extension=.${status.extension || '(none)'}, source=${status.sourceKind}, severity=${status.severity}, warnings=${status.warningLabels.length ? status.warningLabels.join('|') : 'none'}.`;
+}
+
+export function createImportWarning(code) {
+  const taxonomy = {
+    'risk-markers-detected': {
+      severity: 'warning',
+      title: 'Risk markers detected',
+      message: 'Potentially risky content markers were found during local scan.',
+      recommendedAction: 'Review the warnings below before continuing.'
+    },
+    'script-tags-detected': {
+      severity: 'warning',
+      title: 'Scripts detected',
+      message: 'Script tags were detected in this file.',
+      recommendedAction: 'Keep scripts disabled and continue in safe mode.'
+    },
+    'inline-handlers-detected': {
+      severity: 'warning',
+      title: 'Inline handlers detected',
+      message: 'Inline event handlers like onclick were detected.',
+      recommendedAction: 'Inspect interactive elements before trusting behavior.'
+    },
+    'remote-urls-detected': {
+      severity: 'warning',
+      title: 'Remote links detected',
+      message: 'External web URLs were detected in the file.',
+      recommendedAction: 'Replace external links with local assets where possible.'
+    },
+    'embedded-content-detected': {
+      severity: 'warning',
+      title: 'Embedded content detected',
+      message: 'Embedded content tags (iframe/object/embed) were detected.',
+      recommendedAction: 'Treat embedded content as untrusted and keep safe mode on.'
+    },
+    'invalid-zip-signature': {
+      severity: 'error',
+      title: 'ZIP signature could not be validated',
+      message: 'The selected .zip file did not match expected ZIP signatures.',
+      recommendedAction: 'Choose a valid local ZIP file and try again.'
+    },
+    'unsupported-extension': {
+      severity: 'error',
+      title: 'Unsupported file type',
+      message: 'This file extension is not supported in the current import milestone.',
+      recommendedAction: 'Select a .html, .htm, or .zip file.'
+    }
+  };
+
+  const mapped = taxonomy[code];
+  if (!mapped) return null;
+  return { code, ...mapped };
+}
+
+/** @param {string[]} warningLabels */
+export function mapWarningLabelsToWarnings(warningLabels) {
+  return warningLabels.map((label) => createImportWarning(label)).filter(Boolean);
+}
+
+/** @param {{fileName:string, sourceKind:string, severity:string, warningLabels:string[]}} status */
+export function createImportReportFromStatus(status) {
+  const warnings = mapWarningLabelsToWarnings(status.warningLabels);
+  const overallSeverity = status.severity;
+
+  const safeToContinueLabel =
+    overallSeverity === 'error'
+      ? 'Not safe to continue until this file issue is fixed.'
+      : overallSeverity === 'warning'
+        ? 'Safe to continue in local safe mode with caution.'
+        : 'Safe to continue. No obvious issues detected.';
+
+  return {
+    fileName: status.fileName,
+    sourceKind: status.sourceKind,
+    overallSeverity,
+    headline:
+      overallSeverity === 'error'
+        ? 'Import needs attention'
+        : overallSeverity === 'warning'
+          ? 'Import completed with warnings'
+          : 'Import completed',
+    summary: 'This file was inspected locally only.',
+    warnings,
+    safeToContinueLabel
+  };
+}
+
+/** @param {{fileName:string, sourceKind:string, overallSeverity:string, headline:string, summary:string, safeToContinueLabel:string, warnings:Array<{severity:string,title:string,message:string,recommendedAction:string}>}} report */
+export function formatImportReportText(report) {
+  const warningText = report.warnings.length
+    ? report.warnings
+        .map(
+          (warning, index) =>
+            `${index + 1}. [${warning.severity}] ${warning.title}: ${warning.message} Recommended action: ${warning.recommendedAction}`
+        )
+        .join('\n')
+    : 'None.';
+
+  return [
+    `Import report for ${report.fileName}`,
+    `Source: ${report.sourceKind}`,
+    `Severity: ${report.overallSeverity}`,
+    `Headline: ${report.headline}`,
+    `Summary: ${report.summary}`,
+    `Safe to continue: ${report.safeToContinueLabel}`,
+    'Warnings:',
+    warningText
+  ].join('\n');
 }

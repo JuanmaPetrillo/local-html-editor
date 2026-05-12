@@ -10,6 +10,7 @@ if (!html.includes('Export</button>')) throw new Error('shell ui missing export 
 if (!html.includes('id="file-status"')) throw new Error('shell ui missing selected-file status region');
 if (!html.includes('id="file-details"')) throw new Error('shell ui missing selected-file metadata region');
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
+if (!html.includes('id="import-report"')) throw new Error('shell ui missing import report region');
 if (!html.includes('src="./src/app-shell.mjs"')) throw new Error('shell ui not using canonical app-shell path');
 
 console.log('e2e smoke placeholder passed');

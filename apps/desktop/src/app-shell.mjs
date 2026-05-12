@@ -2,8 +2,10 @@ import {
   createImportStatusFromHtmlScan,
   createImportStatusFromZipPreflight,
   formatImportStatusSummary,
+  formatImportReportText,
   importHtmlFileScan,
-  importZipFilePreflight
+  importZipFilePreflight,
+  createImportReportFromStatus
 } from './importer.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
@@ -90,6 +92,7 @@ const fileStatus = hasDom ? document.querySelector('#file-status') : null;
 const fileDetails = hasDom ? document.querySelector('#file-details') : null;
 const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 const fileScan = hasDom ? document.querySelector('#file-scan') : null;
+const importReport = hasDom ? document.querySelector('#import-report') : null;
 
 if (
   hasDom &&
@@ -97,7 +100,8 @@ if (
   fileStatus instanceof HTMLElement &&
   fileDetails instanceof HTMLElement &&
   fileWarning instanceof HTMLElement &&
-  fileScan instanceof HTMLElement
+  fileScan instanceof HTMLElement &&
+  importReport instanceof HTMLElement
 ) {
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -113,17 +117,20 @@ if (
     fileDetails.textContent = shellState.detailsLabel;
     fileWarning.textContent = shellState.unsupportedLabel;
     fileScan.textContent = shellState.scanSummaryLabel;
+    importReport.textContent = '';
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
       const status = createImportStatusFromHtmlScan(scanResult);
       fileScan.textContent = formatImportStatusSummary(status);
+      importReport.textContent = formatImportReportText(createImportReportFromStatus(status));
     }
 
     if (selected && project && project.sourceKind === 'zip') {
       const scanResult = await importZipFilePreflight(selected);
       const status = createImportStatusFromZipPreflight(scanResult);
       fileScan.textContent = formatImportStatusSummary(status);
+      importReport.textContent = formatImportReportText(createImportReportFromStatus(status));
     }
   });
 }
