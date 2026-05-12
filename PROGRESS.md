@@ -125,3 +125,28 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: All local validations passed.
 Known limitations: Metadata-only project model remains; no content read/parse/render/execute. Milestone 2 was not started.
 CI note: Remote GitHub Actions CI not used due Actions quota; local validation used as gate.
+
+### 2026-05-12 (milestone 2A local html intake scan)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2A - local read-only HTML intake scanning
+Summary: Added a dedicated local importer module for `.html/.htm` intake that reads file text only after user selection and performs read-only risk marker scanning (script tags, inline handlers, remote URLs, iframe/object/embed tags). Updated shell to show scan summary with textContent-only status labels while keeping Safe Preview placeholder and Save/Export disabled.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All local validation commands passed.
+Known limitations: No rendering/parsing/execution of imported HTML, no ZIP parsing, no preview iframe, no export/editing features.
+CI note: Remote GitHub Actions CI not available due Actions quota; local validation used as gate.
+Next recommended task: Milestone 2 follow-up for conservative ZIP intake scanning (still non-rendering) when approved.
+
+### 2026-05-12 (milestone 2A build artifact completeness fix)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2A - local read-only HTML intake scanning
+Summary: Fixed build artifact completeness by copying `apps/desktop/src/importer.mjs` to `dist/src/importer.mjs` and adding build-output guards for all expected dist files/module references/non-empty importer output.
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All local validation commands passed.
+Known limitations: Milestone 2A remains scan-only; no rendering/execution/export/editing added.
+CI note: Remote GitHub Actions CI not used due Actions quota; local validation used as gate.
+Next recommended task: Continue Milestone 2A/2 import hardening only when explicitly requested.
