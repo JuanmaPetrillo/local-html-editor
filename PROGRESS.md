@@ -160,3 +160,27 @@ Result: All local validation commands passed.
 Known limitations: Milestone 2A remains scan-only; no rendering/execution/export/editing added.
 CI note: Remote GitHub Actions CI not used due Actions quota; local validation used as gate.
 Next recommended task: Continue Milestone 2A/2 import hardening only when explicitly requested.
+
+### 2026-05-12 (milestone 2b zip preflight intake scanning)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2B - ZIP preflight intake scanning (narrow slice)
+Summary: Added local read-only ZIP preflight scanning in importer with .zip extension detection and PK\x03\x04 header validation using a minimal 4-byte binary read, plus text-only summary rendering in existing shell scan region. Preserved 2A HTML scan behavior and kept shell free of file-content reads.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: ZIP preflight validates only top-level extension + local signature bytes; does not extract ZIP entries, parse internal contents, preview, export, or edit.
+Next recommended task: Expand importer to structured ZIP manifest/entry inspection only after explicit milestone approval.
+
+### 2026-05-12 (milestone 2b zip signature coverage follow-up)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2B - ZIP preflight intake scanning (narrow slice)
+Summary: Narrow fix: ZIP preflight signature recognition now accepts PK\x03\x04, PK\x05\x06, and PK\x07\x08, and reports precise signatureStatus values.
+Files changed: apps/desktop/src/importer.mjs, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Preflight-only signature check; no extraction, entry listing, preview, export, or editing.
+Next recommended task: Continue Milestone 2B only when explicitly approved.

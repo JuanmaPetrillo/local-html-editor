@@ -1,4 +1,4 @@
-import { importHtmlFileScan } from './importer.mjs';
+import { importHtmlFileScan, importZipFilePreflight } from './importer.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -64,7 +64,9 @@ export function renderShellState(project) {
   const scanSummaryLabel =
     project.sourceKind === 'html'
       ? 'Scan summary: pending local HTML intake scan.'
-      : 'Scan summary: only .html/.htm files are scanned in this milestone.';
+      : project.sourceKind === 'zip'
+        ? 'Scan summary: pending local ZIP preflight.'
+        : 'Scan summary: only .html/.htm/.zip files are scanned in this milestone.';
 
   return {
     safePreviewPlaceholder: true,
@@ -78,8 +80,12 @@ export function renderShellState(project) {
 
 /** @param {Awaited<ReturnType<typeof importHtmlFileScan>>} scanResult */
 export function formatScanSummary(scanResult) {
+  if (scanResult.sourceKind === 'zip') {
+    return `Scan summary: zip-preflight ok=${scanResult.ok}, file=${scanResult.fileName}, size=${scanResult.fileSize} bytes, type=${scanResult.type}, extension=.${scanResult.extension || '(none)'}, source=${scanResult.sourceKind}, signature=${scanResult.signatureStatus}, warnings=${scanResult.warningLabels.length ? scanResult.warningLabels.join('|') : 'none'}.`;
+  }
+
   if (!scanResult.ok) {
-    return 'Scan summary: skipped (only .html/.htm local intake is supported).';
+    return 'Scan summary: skipped (only .html/.htm/.zip local intake is supported).';
   }
 
   return `Scan summary: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}.`;
@@ -117,6 +123,11 @@ if (
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
+      fileScan.textContent = formatScanSummary(scanResult);
+    }
+
+    if (selected && project && project.sourceKind === 'zip') {
+      const scanResult = await importZipFilePreflight(selected);
       fileScan.textContent = formatScanSummary(scanResult);
     }
   });
