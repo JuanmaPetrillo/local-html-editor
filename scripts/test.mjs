@@ -6,14 +6,17 @@ import {
   renderShellState
 } from '../apps/desktop/src/app-shell.mjs';
 import {
+  createImportReportFromStatus,
   createImportStatusFromHtmlScan,
   createImportStatusFromZipPreflight,
   detectHtmlExtension,
   detectZipExtension,
+  formatImportReportText,
   formatImportStatusSummary,
   hasZipSignature,
   importHtmlFileScan,
   importZipFilePreflight,
+  mapWarningLabelsToWarnings,
   scanHtmlRiskMarkers
 } from '../apps/desktop/src/importer.mjs';
 
@@ -59,22 +62,28 @@ const safeHtmlScanResult = await importHtmlFileScan({
   text: async () => '<main><h1>Safe</h1></main>'
 });
 const safeHtmlStatus = createImportStatusFromHtmlScan(safeHtmlScanResult);
+const safeHtmlReport = createImportReportFromStatus(safeHtmlStatus);
 assert.equal(safeHtmlStatus.ok, true);
 assert.equal(safeHtmlStatus.sourceKind, 'html');
 assert.equal(safeHtmlStatus.severity, 'info');
-assert.equal(safeHtmlStatus.warningLabels.length, 0);
+assert.equal(safeHtmlReport.overallSeverity, 'info');
+assert.equal(safeHtmlReport.warnings.length, 0);
 
 const riskyHtmlScanResult = await importHtmlFileScan({
   name: 'risk.htm',
   size: 120,
   type: 'text/html',
-  text: async () => '<script></script>https://risk.test'
+  text: async () => '<script></script><button onclick="x()">A</button><iframe></iframe>https://risk.test'
 });
 const riskyHtmlStatus = createImportStatusFromHtmlScan(riskyHtmlScanResult);
+const riskyHtmlReport = createImportReportFromStatus(riskyHtmlStatus);
 assert.equal(riskyHtmlStatus.ok, true);
 assert.equal(riskyHtmlStatus.severity, 'warning');
-assert.equal(riskyHtmlStatus.warningLabels[0], 'risk-markers-detected');
-assert.equal(riskyHtmlStatus.checks.scriptTagCount, 1);
+assert.equal(riskyHtmlStatus.warningLabels.includes('script-tags-detected'), true);
+assert.equal(riskyHtmlStatus.warningLabels.includes('remote-urls-detected'), true);
+assert.equal(riskyHtmlReport.overallSeverity, 'warning');
+assert.equal(riskyHtmlReport.warnings.length > 0, true);
+assert.equal(riskyHtmlReport.warnings.every((w) => !!w.title && !!w.message && !!w.recommendedAction), true);
 
 let zipReadCount = 0;
 const validZipResult = await importZipFilePreflight({
@@ -94,10 +103,12 @@ const validZipResult = await importZipFilePreflight({
 });
 assert.equal(zipReadCount, 1);
 const validZipStatus = createImportStatusFromZipPreflight(validZipResult);
+const validZipReport = createImportReportFromStatus(validZipStatus);
 assert.equal(validZipStatus.ok, true);
 assert.equal(validZipStatus.sourceKind, 'zip');
 assert.equal(validZipStatus.severity, 'info');
 assert.equal(validZipStatus.checks.signatureStatus, 'valid-pk0304');
+assert.equal(validZipReport.overallSeverity, 'info');
 
 const invalidZipResult = await importZipFilePreflight({
   name: 'bad.zip',
@@ -108,9 +119,12 @@ const invalidZipResult = await importZipFilePreflight({
   })
 });
 const invalidZipStatus = createImportStatusFromZipPreflight(invalidZipResult);
+const invalidZipReport = createImportReportFromStatus(invalidZipStatus);
 assert.equal(invalidZipStatus.ok, false);
 assert.equal(invalidZipStatus.severity, 'error');
 assert.equal(invalidZipStatus.warningLabels[0], 'invalid-zip-signature');
+assert.equal(invalidZipReport.overallSeverity, 'error');
+assert.equal(invalidZipReport.warnings[0].recommendedAction.length > 0, true);
 
 let nonHtmlReadCount = 0;
 const nonHtmlResult = await importHtmlFileScan({
@@ -124,7 +138,9 @@ const nonHtmlResult = await importHtmlFileScan({
 });
 assert.equal(nonHtmlReadCount, 0);
 const nonHtmlStatus = createImportStatusFromHtmlScan(nonHtmlResult);
+const nonHtmlReport = createImportReportFromStatus(nonHtmlStatus);
 assert.equal(nonHtmlStatus.ok, false);
+assert.equal(nonHtmlReport.overallSeverity, 'error');
 
 let nonZipReadCount = 0;
 const nonZipResult = await importZipFilePreflight({
@@ -139,11 +155,20 @@ const nonZipResult = await importZipFilePreflight({
   })
 });
 assert.equal(nonZipReadCount, 0);
+assert.equal(nonZipResult.reason, 'unsupported-extension');
+
+const warningObjects = mapWarningLabelsToWarnings(['script-tags-detected', 'remote-urls-detected']);
+assert.equal(warningObjects.length, 2);
+assert.equal(warningObjects.every((w) => !!w.title && !!w.message && !!w.recommendedAction), true);
 
 const summary = formatImportStatusSummary(validZipStatus);
 assert.match(summary, /^Scan summary: ZIP preflight:/);
-assert.equal('rawHtmlText' in riskyHtmlStatus, false);
-assert.equal('rawBytes' in validZipStatus, false);
+const reportText = formatImportReportText(riskyHtmlReport);
+assert.match(reportText, /^Import report for risk.htm/);
+assert.equal('rawHtmlText' in riskyHtmlReport, false);
+assert.equal('rawBytes' in validZipReport, false);
+assert.equal('htmlText' in riskyHtmlReport, false);
+assert.equal('binary' in validZipReport, false);
 
 assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), 'valid-pk0304');
 assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), 'valid-pk0506');

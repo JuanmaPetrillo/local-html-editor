@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 2C - structured import status model (complete).
+Current milestone: Milestone 2D - user-facing import warning taxonomy and import report model (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, and 2B are complete for the current browser-first implementation. Milestone 2C is now complete with a normalized import status model for HTML scan and ZIP preflight outcomes.
+Milestones 0, 1, 2A, 2B, and 2C are complete for the current browser-first implementation. Milestone 2D is now complete with a user-facing warning taxonomy and import report model layered on the normalized status model.
 
 Current app files:
 
@@ -197,3 +197,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Still scan/preflight-only; no ZIP extraction or entry listing, no rendering/preview/export/editing, no dependency additions, no Tauri/React/Vite conversion.
 Next recommended task: Continue Milestone 2 import pipeline only with explicit approval for next narrow slice.
+
+### 2026-05-12 (milestone 2d import warning taxonomy and report model)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2D - user-facing import warning taxonomy and report model
+Summary: Added user-facing warning taxonomy and structured import report model derived from normalized import status for HTML scan and ZIP preflight. Updated shell to render report text with textContent-only output and added a minimal report region in shell HTML.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Still scan/preflight-only; no ZIP extraction/entry listing, no rendering/preview/export/editing, no added dependencies, no network calls, no telemetry, no Tauri/React/Vite conversion.
+Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
