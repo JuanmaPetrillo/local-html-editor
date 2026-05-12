@@ -5,6 +5,7 @@ import {
   detectSourceKind,
   renderShellState
 } from '../apps/desktop/src/app-shell.mjs';
+import { createPreviewLayoutState } from '../apps/desktop/src/app-shell.mjs';
 import {
   createImportReportFromStatus,
   createImportManifestFromStatus,
@@ -52,6 +53,9 @@ assert.equal(empty.scanSummaryLabel, 'Scan summary: waiting for .html/.htm selec
 
 const selected = renderShellState(project);
 assert.equal(selected.unsupportedLabel, '');
+assert.deepEqual(createPreviewLayoutState('default', true), { compact: false, tall: false, fit: true });
+assert.deepEqual(createPreviewLayoutState('compact', true), { compact: true, tall: false, fit: true });
+assert.deepEqual(createPreviewLayoutState('tall', true), { compact: false, tall: true, fit: true });
 
 assert.equal(detectHtmlExtension('deck.html'), 'html');
 assert.equal(detectHtmlExtension('deck.htm'), 'htm');

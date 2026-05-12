@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 3B - safe preview status and sanitizer summary UX for static HTML preview (complete).
+Current milestone: Milestone 3C - safe preview layout usability controls for static HTML preview (complete).
 
 ## Latest summary
 
@@ -270,4 +270,17 @@ Files changed: apps/desktop/src/preview-sandbox.mjs, scripts/test.mjs, scripts/t
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
 Known limitations: Static preview remains HTML/HTM only; no interactive preview, no script execution, no remote fetch/network, no ZIP extraction/listing, no save/export/editing.
+Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.
+
+
+### 2026-05-12 (milestone 3c preview layout usability controls)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 3C - safe preview layout usability controls
+Summary: Improved safe static preview framing for non-technical users by adding trusted-shell-only layout controls (Fit width, Compact height, Tall preview, Reset preview layout), preview frame container classes, and deterministic layout state helpers. Preserved sandboxed iframe srcdoc path, empty sandbox attribute, no iframe internals access, and existing scan/report/manifest/status behavior.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Static safe preview remains non-interactive HTML/HTM only; no editing, save/export, ZIP extraction/listing, new dependencies, or runtime network calls.
 Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.

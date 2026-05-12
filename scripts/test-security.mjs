@@ -15,6 +15,9 @@ if (shellCode.includes('DOMParser')) throw new Error('imported content parsing i
 if (shellCode.includes('fetch(')) throw new Error('remote fetch must not be introduced');
 if (shellCode.includes('XMLHttpRequest')) throw new Error('xhr must not be introduced in shell');
 if (shellCode.includes('WebSocket')) throw new Error('websocket must not be introduced in shell');
+if (shellCode.includes('contentDocument')) throw new Error('iframe.contentDocument access must not be introduced in shell');
+if (shellCode.includes('contentWindow')) throw new Error('iframe.contentWindow access must not be introduced in shell');
+if (shellCode.includes('postMessage')) throw new Error('postMessage must not be introduced in shell');
 const importerCode = readFileSync('apps/desktop/src/importer.mjs', 'utf8');
 
 if (shellCode.includes('.arrayBuffer()')) throw new Error('imported file contents must not be read in shell');

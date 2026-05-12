@@ -18,6 +18,12 @@
       #file-details, #file-warning { margin-top: 0.5rem; }
       #import-report, #import-manifest { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
       #file-warning { color: #9a3412; }
+      .preview-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+      .preview-frame { margin-top: 0.75rem; border: 1px solid #dbe2ea; border-radius: 10px; padding: 0.5rem; background: #f8fafc; }
+      .preview-frame iframe { display: block; width: 100%; min-height: 420px; border: 1px solid #bcc8d6; border-radius: 8px; background: #fff; }
+      .preview-frame.preview-frame--compact iframe { min-height: 280px; }
+      .preview-frame.preview-frame--tall iframe { min-height: 720px; }
+      .preview-frame.preview-frame--fit iframe { max-width: 100%; margin: 0 auto; }
       .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
   </head>
@@ -46,8 +52,16 @@
       <section>
         <h2>Safe Preview</h2>
         <p>Scripts are disabled in safe preview mode.</p>
+        <div class="preview-controls" aria-label="Preview layout controls">
+          <button type="button" id="preview-fit-width">Fit width</button>
+          <button type="button" id="preview-compact-height">Compact height</button>
+          <button type="button" id="preview-tall-height">Tall preview</button>
+          <button type="button" id="preview-reset-layout">Reset preview layout</button>
+        </div>
         <pre id="safe-preview-status" aria-live="polite">Safe static preview: unavailable. Select an HTML file for a sanitized preview.</pre>
-        <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
+        <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
+          <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
+        </div>
       </section>
     </main>
     <script type="module" src="./src/app-shell.mjs"></script>

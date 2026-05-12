@@ -14,6 +14,13 @@ if (!html.includes('id="import-report"')) throw new Error('shell ui missing impo
 if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing import manifest region');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('shell ui missing safe preview iframe region');
 if (!html.includes('id="safe-preview-status"')) throw new Error('shell ui missing safe preview status region');
+if (!html.includes('id="preview-fit-width"')) throw new Error('shell ui missing preview fit width control');
+if (!html.includes('id="preview-compact-height"')) throw new Error('shell ui missing preview compact control');
+if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missing preview tall control');
+if (!html.includes('id="preview-reset-layout"')) throw new Error('shell ui missing preview reset control');
+if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing preview compact class');
+if (!html.includes('preview-frame--fit')) throw new Error('shell ui missing preview fit class');
+if (!html.includes('preview-frame--tall')) throw new Error('shell ui missing preview tall class');
 if (!html.includes('src="./src/app-shell.mjs"')) throw new Error('shell ui not using canonical app-shell path');
 
 console.log('e2e smoke placeholder passed');
