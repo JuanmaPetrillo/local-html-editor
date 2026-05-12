@@ -15,6 +15,17 @@ export function detectHtmlExtension(fileName) {
   return null;
 }
 
+/** @param {string} fileName */
+export function detectZipExtension(fileName) {
+  const dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+    return null;
+  }
+
+  const extension = fileName.slice(dotIndex + 1).toLowerCase();
+  return extension === 'zip' ? extension : null;
+}
+
 /** @param {string} htmlText */
 export function scanHtmlRiskMarkers(htmlText) {
   const scriptTagCount = (htmlText.match(/<\s*script\b/gi) || []).length;
@@ -64,5 +75,50 @@ export async function importHtmlFileScan(file) {
     size: file.size,
     type: file.type || 'unknown type',
     scan
+  };
+}
+
+/** @param {Uint8Array} bytes */
+export function hasZipSignature(bytes) {
+  if (bytes.length < 4) {
+    return false;
+  }
+
+  return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+}
+
+/**
+ * @param {{name: string, size: number, type: string, slice: (start?: number, end?: number) => {arrayBuffer: () => Promise<ArrayBuffer>}}} file
+ */
+export async function importZipFilePreflight(file) {
+  const extension = detectZipExtension(file.name);
+
+  if (!extension) {
+    return {
+      ok: false,
+      reason: 'unsupported-extension',
+      fileName: file.name,
+      fileSize: file.size,
+      type: file.type || 'unknown type',
+      extension: null,
+      sourceKind: 'unknown',
+      signatureStatus: 'skipped',
+      warningLabels: ['unsupported-extension']
+    };
+  }
+
+  const headerBuffer = await file.slice(0, 4).arrayBuffer();
+  const signatureOk = hasZipSignature(new Uint8Array(headerBuffer));
+
+  return {
+    ok: signatureOk,
+    reason: signatureOk ? null : 'invalid-zip-signature',
+    fileName: file.name,
+    fileSize: file.size,
+    type: file.type || 'unknown type',
+    extension,
+    sourceKind: 'zip',
+    signatureStatus: signatureOk ? 'valid-pk0304' : 'invalid-or-unsupported',
+    warningLabels: signatureOk ? [] : ['invalid-zip-signature']
   };
 }
