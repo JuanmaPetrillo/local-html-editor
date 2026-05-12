@@ -19,6 +19,7 @@ if (shellCode.includes('contentDocument')) throw new Error('iframe.contentDocume
 if (shellCode.includes('contentWindow')) throw new Error('iframe.contentWindow access must not be introduced in shell');
 if (shellCode.includes('postMessage')) throw new Error('postMessage must not be introduced in shell');
 const importerCode = readFileSync('apps/desktop/src/importer.mjs', 'utf8');
+const editableModelCode = readFileSync('apps/desktop/src/editable-model.mjs', 'utf8');
 
 if (shellCode.includes('.arrayBuffer()')) throw new Error('imported file contents must not be read in shell');
 if (shellCode.includes('.text()')) throw new Error('file text reads must stay in importer module only');
@@ -26,6 +27,7 @@ if (!importerCode.includes('.text()')) throw new Error('importer must read html 
 if (!importerCode.includes('.arrayBuffer()')) throw new Error('importer must perform zip binary preflight reads locally');
 if (importerCode.includes('innerHTML')) throw new Error('importer must not render imported content');
 if (importerCode.includes('DOMParser')) throw new Error('importer must not parse/render imported DOM in milestone 2A');
+if (editableModelCode.includes('DOMParser')) throw new Error('editable model must not use DOMParser');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('safe preview iframe missing');
 if (!html.includes('sandbox=""')) throw new Error('safe preview iframe sandbox must be empty');
 if (html.includes('allow-scripts')) throw new Error('safe preview iframe must not allow scripts');

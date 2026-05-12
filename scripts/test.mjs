@@ -23,7 +23,8 @@ import {
   scanHtmlReferences,
   mapWarningLabelsToWarnings,
   scanHtmlRiskMarkers,
-  createSafeHtmlPreviewDocument
+  createSafeHtmlPreviewDocument,
+  createEditableInventoryForHtmlFile
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -31,6 +32,7 @@ import {
   createUnavailablePreviewStatus,
   formatPreviewStatusText
 } from '../apps/desktop/src/preview-sandbox.mjs';
+import { createEditableTextInventory, extractEditableTextCandidates, formatEditableInventoryText } from '../apps/desktop/src/editable-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -370,3 +372,41 @@ assert.equal(statusText.includes('PK\x03\x04'), false);
 
 const zipPreviewStatus = createUnavailablePreviewStatus('zip', 'slides.zip');
 assert.equal(zipPreviewStatus.status, 'unavailable');
+
+
+const h1Candidates = extractEditableTextCandidates('<h1>Hello title</h1>');
+assert.equal(h1Candidates[0].tagName, 'h1');
+assert.equal(h1Candidates[0].textPreview, 'Hello title');
+
+const pCandidates = extractEditableTextCandidates('<p>Paragraph body</p>');
+assert.equal(pCandidates[0].tagName, 'p');
+
+const linkButtonCandidates = extractEditableTextCandidates('<button>Go</button><a href="#">Read more</a>');
+assert.equal(linkButtonCandidates.length, 2);
+
+const ignoredCandidates = extractEditableTextCandidates('<script>bad</script><style>.x{}</style><template>tmp</template><p>ok</p>');
+assert.equal(ignoredCandidates.length, 1);
+assert.equal(ignoredCandidates[0].textPreview, 'ok');
+
+const nestedStrip = extractEditableTextCandidates('<p>Hello <strong>World</strong></p>');
+const nestedParagraph = nestedStrip.find((c) => c.tagName === 'p');
+assert.equal(nestedParagraph.textPreview, 'Hello World');
+
+const capped = extractEditableTextCandidates(`<p>${'a'.repeat(120)}</p>`);
+assert.equal(capped[0].textPreview.length <= 81, true);
+assert.equal(capped[0].textPreview.endsWith('…'), true);
+
+const deterministic = extractEditableTextCandidates('<h1>A</h1><p>B</p><p>C</p>');
+assert.deepEqual(deterministic.map((c) => c.candidateId), ['text-001', 'text-002', 'text-003']);
+
+const inventory = createEditableTextInventory('<h1>Deck &amp; Title</h1>');
+assert.equal(inventory.inventoryStatus, 'read-only-discovery');
+assert.equal(inventory.editingEnabled, false);
+assert.equal('rawHtmlText' in inventory, false);
+assert.equal('htmlText' in inventory, false);
+assert.equal('rawBytes' in inventory, false);
+assert.equal('binary' in inventory, false);
+assert.equal(formatEditableInventoryText(inventory).includes('Editing is not enabled yet'), true);
+
+const zipInventory = await createEditableInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>no</h1>' });
+assert.equal(zipInventory, null);
