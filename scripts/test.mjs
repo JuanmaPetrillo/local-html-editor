@@ -7,11 +7,13 @@ import {
 } from '../apps/desktop/src/app-shell.mjs';
 import {
   createImportReportFromStatus,
+  createImportManifestFromStatus,
   createImportStatusFromHtmlScan,
   createImportStatusFromZipPreflight,
   detectHtmlExtension,
   detectZipExtension,
   formatImportReportText,
+  formatImportManifestText,
   formatImportStatusSummary,
   getHighestSeverityForWarningLabels,
   hasZipSignature,
@@ -65,11 +67,17 @@ const safeHtmlScanResult = await importHtmlFileScan({
 });
 const safeHtmlStatus = createImportStatusFromHtmlScan(safeHtmlScanResult);
 const safeHtmlReport = createImportReportFromStatus(safeHtmlStatus);
+const safeHtmlManifest = createImportManifestFromStatus(safeHtmlStatus, safeHtmlReport);
 assert.equal(safeHtmlStatus.ok, true);
 assert.equal(safeHtmlStatus.sourceKind, 'html');
 assert.equal(safeHtmlStatus.severity, 'info');
 assert.equal(safeHtmlReport.overallSeverity, 'info');
 assert.equal(safeHtmlReport.warnings.length, 0);
+assert.equal(safeHtmlManifest.sourceKind, 'html');
+assert.equal(safeHtmlManifest.referenceSummary.totalCount, 0);
+assert.equal(safeHtmlManifest.nextAvailableActions.includes('save-project'), false);
+assert.equal(safeHtmlManifest.nextAvailableActions.includes('export'), false);
+assert.equal(safeHtmlManifest.nextAvailableActions.includes('edit'), false);
 
 const localImageRefs = scanHtmlReferences('<img src="images/photo.png">');
 assert.equal(localImageRefs.byType['local-relative'], 1);
@@ -149,6 +157,7 @@ const riskyHtmlScanResult = await importHtmlFileScan({
 });
 const riskyHtmlStatus = createImportStatusFromHtmlScan(riskyHtmlScanResult);
 const riskyHtmlReport = createImportReportFromStatus(riskyHtmlStatus);
+const riskyHtmlManifest = createImportManifestFromStatus(riskyHtmlStatus, riskyHtmlReport);
 assert.equal(riskyHtmlStatus.ok, true);
 assert.equal(riskyHtmlStatus.severity, 'warning');
 assert.equal(riskyHtmlStatus.warningLabels.includes('script-tags-detected'), true);
@@ -156,6 +165,8 @@ assert.equal(riskyHtmlStatus.warningLabels.includes('remote-urls-detected'), tru
 assert.equal(riskyHtmlStatus.warningLabels.includes('remote-references-detected'), true);
 assert.equal(riskyHtmlReport.overallSeverity, 'warning');
 assert.equal(riskyHtmlReport.warnings.length > 0, true);
+assert.equal(riskyHtmlManifest.importReport.warningCount > 0, true);
+assert.equal(riskyHtmlManifest.importReport.warningCodes.includes('script-tags-detected'), true);
 assert.equal(riskyHtmlReport.warnings.every((w) => !!w.title && !!w.message && !!w.recommendedAction), true);
 
 let zipReadCount = 0;
@@ -177,11 +188,14 @@ const validZipResult = await importZipFilePreflight({
 assert.equal(zipReadCount, 1);
 const validZipStatus = createImportStatusFromZipPreflight(validZipResult);
 const validZipReport = createImportReportFromStatus(validZipStatus);
+const validZipManifest = createImportManifestFromStatus(validZipStatus, validZipReport);
 assert.equal(validZipStatus.ok, true);
 assert.equal(validZipStatus.sourceKind, 'zip');
 assert.equal(validZipStatus.severity, 'info');
 assert.equal(validZipStatus.checks.signatureStatus, 'valid-pk0304');
 assert.equal(validZipReport.overallSeverity, 'info');
+assert.equal(validZipManifest.sourceKind, 'zip');
+assert.equal(validZipManifest.zipPreflightSummary.signatureStatus, 'valid-pk0304');
 
 const invalidZipResult = await importZipFilePreflight({
   name: 'bad.zip',
@@ -193,11 +207,13 @@ const invalidZipResult = await importZipFilePreflight({
 });
 const invalidZipStatus = createImportStatusFromZipPreflight(invalidZipResult);
 const invalidZipReport = createImportReportFromStatus(invalidZipStatus);
+const invalidZipManifest = createImportManifestFromStatus(invalidZipStatus, invalidZipReport);
 assert.equal(invalidZipStatus.ok, false);
 assert.equal(invalidZipStatus.severity, 'error');
 assert.equal(invalidZipStatus.warningLabels[0], 'invalid-zip-signature');
 assert.equal(invalidZipReport.overallSeverity, 'error');
 assert.equal(invalidZipReport.warnings[0].recommendedAction.length > 0, true);
+assert.equal(invalidZipManifest.importStatus, 'blocked');
 
 let nonHtmlReadCount = 0;
 const nonHtmlResult = await importHtmlFileScan({
@@ -212,9 +228,11 @@ const nonHtmlResult = await importHtmlFileScan({
 assert.equal(nonHtmlReadCount, 0);
 const nonHtmlStatus = createImportStatusFromHtmlScan(nonHtmlResult);
 const nonHtmlReport = createImportReportFromStatus(nonHtmlStatus);
+const nonHtmlManifest = createImportManifestFromStatus(nonHtmlStatus, nonHtmlReport);
 assert.equal(nonHtmlStatus.ok, false);
 assert.equal(nonHtmlStatus.severity, 'error');
 assert.equal(nonHtmlReport.overallSeverity, 'error');
+assert.equal('rawHtmlText' in nonHtmlManifest, false);
 
 assert.equal(getHighestSeverityForWarningLabels(['local-assets-detected']), 'info');
 assert.equal(getHighestSeverityForWarningLabels(['data-uris-detected']), 'info');
@@ -248,8 +266,13 @@ assert.equal('rawHtmlText' in riskyHtmlReport, false);
 assert.equal('rawBytes' in validZipReport, false);
 assert.equal('htmlText' in riskyHtmlReport, false);
 assert.equal('binary' in validZipReport, false);
+assert.equal('rawHtmlText' in riskyHtmlManifest, false);
+assert.equal('htmlText' in riskyHtmlManifest, false);
+assert.equal('rawBytes' in validZipManifest, false);
+assert.equal('binary' in validZipManifest, false);
 assert.equal(reportText.includes('<script>'), false);
 assert.equal(reportText.includes('refs-total='), false);
+assert.match(formatImportManifestText(validZipManifest), /^Import manifest v1/);
 
 assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04])), 'valid-pk0304');
 assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x05, 0x06])), 'valid-pk0506');

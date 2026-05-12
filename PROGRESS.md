@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 2E - local HTML asset/reference scanning layered onto HTML text scan (complete).
+Current milestone: Milestone 2F - local import manifest model from metadata/status/report summaries (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, and 2D are complete for the current browser-first implementation. Milestone 2E is now complete with local HTML reference/asset scanning and safe reference summary counts layered on the normalized status/report model.
+Milestones 0, 1, 2A, 2B, 2C, 2D, and 2E are complete for the current browser-first implementation. Milestone 2F is now complete with a local UI-safe import manifest model (metadata + status + report + summary only) for HTML, ZIP, and unsupported file selections.
 
 Current app files:
 
@@ -31,7 +31,19 @@ No rendering, export, or visual editing is implemented yet.
 
 ## Next recommended task
 
-Complete docs sync/cleanup, then proceed only with an explicitly approved Milestone 2B scope.
+Proceed only with explicit approval for the next narrow Milestone 2 slice after manifest model, keeping scan-only/no-rendering constraints.
+
+### 2026-05-12 (milestone 2f local import manifest model)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2F - local import manifest model
+Summary: Added `createImportManifestFromStatus(...)` and `formatImportManifestText(...)` in importer to produce a UI-safe manifest from existing metadata/status/report summaries without including raw imported content. Updated shell to render plain-text manifest via `textContent` in a new `#import-manifest` region for HTML, ZIP, and unsupported-file selections while preserving existing scan/report behavior and keeping Save/Export disabled.
+Files changed: apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No project-folder creation, no file writes, no export, no HTML rendering/injection, no preview iframe/webview, no ZIP extraction/entry listing, no dependency additions, no network calls.
+Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
 
 ## Log template
 
