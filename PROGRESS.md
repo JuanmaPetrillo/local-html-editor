@@ -114,3 +114,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: All local validation commands passed.
 Known limitations: Metadata-only model (single selected file) only; no import/export pipeline, no HTML parsing, no rendering of imported content, no editing features.
 Next recommended task: Continue Milestone 1 trusted file workflow slices only; do not start Milestone 2 until explicitly approved.
+
+### 2026-05-12 (milestone 1 build artifact completeness fix)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 1 - Desktop shell and project model
+Summary: Fixed build artifact completeness by copying both shell files (`dist/index.html` and `dist/src/app-shell.mjs`) and validating build output module reference/local-only runtime dependency checks. Restored file input accept hint (`.html,.htm,.zip`).
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All local validations passed.
+Known limitations: Metadata-only project model remains; no content read/parse/render/execute. Milestone 2 was not started.
+CI note: Remote GitHub Actions CI not used due Actions quota; local validation used as gate.
