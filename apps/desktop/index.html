@@ -30,44 +30,45 @@
   <body>
     <main>
       <h1>Local HTML Editor</h1>
-      <p>Safe local mode: imported content is not executed in this shell.</p>
+      <p>Local-only MVP: make quick text edits safely. Your original file stays unchanged unless you export a new copy.</p>
       <section>
         <div class="toolbar">
-          <label class="open-label" for="file-input">Open HTML/ZIP</label>
+          <label class="open-label" for="file-input">1) Open HTML/ZIP</label>
           <button type="button" disabled>Save</button>
-          <button id="export-edited-html" type="button" disabled>Export edited HTML</button>
+          <button id="export-edited-html" type="button" disabled>6) Export edited HTML copy</button>
         </div>
         <input id="file-input" class="visually-hidden" type="file" accept=".html,.htm,.zip" />
         <p id="file-status" aria-live="polite">No file selected.</p>
-        <p id="file-details">Choose an .html, .htm, or .zip file to start a local project model.</p>
+        <p id="file-details">Choose an .html, .htm, or .zip file. For this MVP, HTML/HTM can be previewed and text-edited in memory; ZIP is preflight only.</p>
         <p id="file-warning"></p>
         <p id="file-scan">Scan summary: waiting for .html/.htm selection.</p>
         <pre id="import-report" aria-live="polite"></pre>
         <pre id="import-manifest" aria-live="polite"></pre>
       </section>
       <section>
-        <h2>Editable text candidates</h2>
-        <pre id="editable-inventory" aria-live="polite">Editable text candidates: waiting for .html/.htm selection.</pre>
-      <label for="editable-candidate-select">Candidate</label>
+        <h2>Text edit workflow</h2>
+        <p>Follow steps 2-5: review the safe preview, choose a text candidate, draft replacement text, and apply it to the in-memory preview.</p>
+        <pre id="editable-inventory" aria-live="polite">3) Editable text candidates: waiting for .html/.htm selection.</pre>
+      <label for="editable-candidate-select">3) Select editable text candidate</label>
         <select id="editable-candidate-select" disabled></select>
-        <label for="editable-draft-text">Draft replacement text</label>
+        <label for="editable-draft-text">4) Type draft replacement text</label>
         <textarea id="editable-draft-text" rows="4" disabled></textarea>
         <pre id="editable-draft-status" aria-live="polite">Draft edit: unavailable.</pre>
         <pre id="editable-patch-plan" aria-live="polite">Patch plan: unavailable.</pre>
-        <button id="apply-patch-preview" type="button" disabled>Apply draft to preview</button>
-        <button id="reset-working-preview" type="button">Reset preview to original</button>
+        <button id="apply-patch-preview" type="button" disabled>5) Apply draft to preview</button>
+        <button id="reset-working-preview" type="button">Reset preview to original (original file unchanged)</button>
         <pre id="patch-apply-status" aria-live="polite">Patch apply status: unavailable.</pre>
-        <pre id="patch-collection-status" aria-live="polite">Patch collection: none applied (in-memory only).</pre>
+        <pre id="patch-collection-status" aria-live="polite">Patch collection: none applied yet (in-memory only; original file unchanged).</pre>
         <pre id="working-preview-status" aria-live="polite">Working preview state: unavailable.</pre>
-        <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches).</pre>
+        <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches). Export downloads a local edited copy.</pre>
       </section>
       <section>
         <h2>Recent Projects</h2>
         <p>No recent projects yet.</p>
       </section>
       <section>
-        <h2>Safe Preview</h2>
-        <p>Scripts are disabled in safe preview mode.</p>
+        <h2>2) Review safe preview</h2>
+        <p>Safe preview is sanitized. Scripts are disabled, and risky remote content is blocked by default.</p>
         <div class="preview-controls" aria-label="Preview layout controls">
           <button type="button" id="preview-fit-width">Fit width</button>
           <button type="button" id="preview-compact-height">Compact height</button>

@@ -36,29 +36,52 @@ After creating the repo in GitHub, start Codex with the prompts in `codex/`.
 
 Active development is currently a **browser-first static prototype**.
 
-- Milestone 0 is complete.
-- Milestone 1 is complete (static shell).
-- Milestone 2A is complete (local `.html/.htm` scan-only intake).
+### MVP readiness (current browser-first implementation)
 
-Current app files:
+#### Current capabilities
 
-- `apps/desktop/index.html`
-- `apps/desktop/src/app-shell.mjs`
-- `apps/desktop/src/importer.mjs`
+- Open local `.html`, `.htm`, and `.zip` files from the shell.
+- Scan selected imports and show local safety/reporting summaries.
+- Show a sanitized safe preview for HTML/HTM in a sandboxed iframe (`sandbox=""`, `referrerpolicy="no-referrer"`).
+- Discover editable text candidates from HTML/HTM.
+- Draft and apply multiple in-memory text replacements to a working preview copy.
+- Reset the working preview back to the original imported content.
+- Export a user-initiated edited HTML copy locally (download), without mutating the original import.
 
-Current capabilities:
+#### Current limitations
 
-- local file selection from app shell
-- metadata-only project model
-- local `.html/.htm` scan summary via `textContent`
+- ZIP is preflight-only (no ZIP extraction/listing/export).
+- No image replacement.
+- No drag/resize or visual element manipulation.
+- No project persistence/autosave/reopen flow.
+- No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
+- No Tauri/React/Vite/TypeScript conversion in this implementation branch.
 
-Current non-capabilities:
+#### How to run locally
 
-- no ZIP parsing
-- no preview rendering iframe/webview
-- no export
-- no visual editing
-- no Tauri/React/Vite/TypeScript app code installed yet
+From repository root:
+
+```bash
+npm ci
+npm run build
+```
+
+Then open `dist/index.html` in a local browser.
+
+#### How to test the MVP flow
+
+1. Open an `.html` or `.htm` file with **Open HTML/ZIP**.
+2. Review file scan/status and safe preview summary.
+3. Choose an editable text candidate.
+4. Enter draft replacement text.
+5. Apply draft to preview (in-memory only).
+6. Export edited HTML copy (local download).
+
+#### Implementation ownership notes
+
+- `apps/desktop/src/importer.mjs` owns selected-file reads (`.text()` / `.arrayBuffer()`) and import status construction.
+- `apps/desktop/src/exporter.mjs` is a pure helper module for edited HTML export serialization logic.
+- Edited HTML export is user-initiated and local-only via browser download behavior.
 
 ## Repo map
 

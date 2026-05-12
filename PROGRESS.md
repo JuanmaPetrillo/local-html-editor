@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: PR B - first local edited HTML export path (complete).
+Current milestone: PR C - MVP usability polish and readiness pass (complete).
 
 ## Latest summary
 
@@ -20,7 +20,7 @@ Current app files:
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 
-Static safe preview rendering is implemented for HTML/HTM. Export and actual visual editing are not implemented yet.
+Static safe preview rendering is implemented for HTML/HTM. User-initiated local edited HTML export is implemented. Visual element editing (image replacement, drag/resize) is not implemented yet.
 
 ## Open risks
 
@@ -31,7 +31,7 @@ Static safe preview rendering is implemented for HTML/HTM. Export and actual vis
 
 ## Next recommended task
 
-Proceed only with explicit approval for the next narrow Milestone 2 slice after manifest model, keeping scan-only/no-rendering constraints.
+Proceed only with explicit approval for the next narrow milestone slice, preserving current security invariants and browser-first architecture.
 
 ## Log template
 
@@ -373,3 +373,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: unchanged from PR B scope.
 Next recommended task: proceed only with explicitly approved next slice.
+
+
+### 2026-05-12 (pr c mvp usability polish and readiness pass)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: PR C - MVP usability polish and readiness pass
+Summary: Improved non-technical MVP usability copy in the trusted shell with explicit step-by-step flow labels (open, safe preview, select candidate, draft text, apply draft, export copy), clearer in-memory/original-unchanged/export-local-only messaging, and sanitized preview wording. Updated README to accurately reflect implemented preview/export behavior and added a concise MVP readiness section (capabilities, limitations, local run, MVP flow test).
+Files changed: apps/desktop/index.html, README.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new editing/export capabilities added; ZIP remains preflight-only; no image replacement; no drag/resize; no persistence; no dependencies added; no network calls; no telemetry; no iframe permission changes.
+Next recommended task: Proceed only with explicit approval for the next narrow milestone slice.
