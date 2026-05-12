@@ -10,7 +10,7 @@ Current milestone: Milestone 4A - read-only editable text candidate inventory (c
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, and 2E are complete for the current browser-first implementation. Milestone 2F is now complete with a local UI-safe import manifest model (metadata + status + report + summary only) for HTML, ZIP, and unsupported file selections.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, and 3C are complete for the current browser-first implementation. Milestone 4A is now complete with a read-only editable text candidate inventory.
 
 Current app files:
 
@@ -20,7 +20,7 @@ Current app files:
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 
-Static safe preview rendering is implemented for HTML/HTM with sanitizer status messaging and a read-only editable text candidate inventory. Export and visual editing are not implemented yet.
+Static safe preview rendering is implemented for HTML/HTM. Export and actual visual editing are not implemented yet.
 
 ## Open risks
 
