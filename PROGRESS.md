@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 2D - user-facing import warning taxonomy and import report model (complete).
+Current milestone: Milestone 2E - local HTML asset/reference scanning layered onto HTML text scan (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, and 2C are complete for the current browser-first implementation. Milestone 2D is now complete with a user-facing warning taxonomy and import report model layered on the normalized status model.
+Milestones 0, 1, 2A, 2B, 2C, and 2D are complete for the current browser-first implementation. Milestone 2E is now complete with local HTML reference/asset scanning and safe reference summary counts layered on the normalized status/report model.
 
 Current app files:
 
@@ -209,3 +209,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Still scan/preflight-only; no ZIP extraction/entry listing, no rendering/preview/export/editing, no added dependencies, no network calls, no telemetry, no Tauri/React/Vite conversion.
 Next recommended task: Continue Milestone 2 only with explicit approval for the next narrow slice.
+
+### 2026-05-12 (milestone 2e html reference and asset scanning)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 2E - local HTML asset/reference scanning on top of HTML text scan
+Summary: Added pure text reference scanning for HTML imports to detect likely asset/reference patterns (src/href/url(...)), classify references (local-relative/remote/data-uri/anchor/unknown), and include safe reference counts in normalized status and user-facing report warnings. Shell report output remains textContent-only and no rendering/execution/fetching was introduced.
+Files changed: apps/desktop/src/importer.mjs, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Text-pattern scan only; no URL validation/fetching, no path rewriting, no rendering/preview/export/editing, no ZIP extraction or ZIP entry listing.
+Next recommended task: Continue Milestone 2 only with explicit approval for next narrow slice.
