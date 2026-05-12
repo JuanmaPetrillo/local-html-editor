@@ -112,3 +112,54 @@ export function formatEditableInventoryText(inventory) {
 
   return lines.join('\n');
 }
+
+
+/** @param {{candidates: Array<{candidateId: string, textPreview: string}>} | null} inventory @param {string} candidateId */
+export function selectEditableCandidate(inventory, candidateId) {
+  if (!inventory || !Array.isArray(inventory.candidates)) return null;
+  return inventory.candidates.find((candidate) => candidate.candidateId === candidateId) || null;
+}
+
+/** @param {{candidateId: string, textPreview: string} | null} candidate @param {string} replacementText */
+export function createDraftEdit(candidate, replacementText) {
+  if (!candidate) return null;
+  const nextReplacement = String(replacementText || '');
+  const trimmedLength = nextReplacement.trim().length;
+  let validationStatus = 'valid';
+  if (trimmedLength === 0) {
+    validationStatus = 'warning-empty';
+  } else if (nextReplacement.length > 500) {
+    validationStatus = 'warning-long';
+  }
+
+  return {
+    candidateId: candidate.candidateId,
+    originalTextPreview: candidate.textPreview,
+    replacementText: nextReplacement,
+    replacementLength: nextReplacement.length,
+    dirty: nextReplacement !== candidate.textPreview,
+    validationStatus
+  };
+}
+
+/** @param {{candidates: Array<{candidateId: string, textPreview: string}>} | null} inventory */
+export function createDraftEditState(inventory) {
+  return {
+    selectedCandidateId: inventory && inventory.candidates.length > 0 ? inventory.candidates[0].candidateId : '',
+    draftEdit: null
+  };
+}
+
+/** @param {{draftEdit: {candidateId: string, originalTextPreview: string, replacementLength: number, dirty: boolean, validationStatus: string} | null} | null} state */
+export function formatDraftEditText(state) {
+  if (!state || !state.draftEdit) return 'Draft edit: unavailable.';
+  const { draftEdit } = state;
+  return [
+    'Draft edit buffer',
+    `candidate: ${draftEdit.candidateId}`,
+    `original preview: "${draftEdit.originalTextPreview}"`,
+    `replacement length: ${draftEdit.replacementLength}`,
+    `dirty: ${draftEdit.dirty ? 'yes' : 'no'}`,
+    `validation: ${draftEdit.validationStatus}`
+  ].join('\n');
+}
