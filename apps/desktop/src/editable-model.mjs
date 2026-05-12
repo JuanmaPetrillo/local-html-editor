@@ -37,7 +37,7 @@ function classifyCandidate(tagName, rawInner) {
 
 /** @param {string} htmlText */
 export function extractEditableTextCandidates(htmlText) {
-  const sanitized = String(htmlText || '').replace(EXCLUDED_BLOCKS_PATTERN, ' ');
+  const sanitized = String(htmlText || '').replace(EXCLUDED_BLOCKS_PATTERN, (match) => ' '.repeat(match.length));
   const stack = [];
   const candidates = [];
   let match = TAG_PATTERN.exec(sanitized);
@@ -63,6 +63,8 @@ export function extractEditableTextCandidates(htmlText) {
               tagName,
               textPreview: previewText(text),
               textLength: text.length,
+              sourceStart: open.start,
+              sourceEnd: match.index,
               confidence: meta.confidence,
               reason: meta.reason,
               status: 'read-only'
@@ -111,6 +113,57 @@ export function formatEditableInventoryText(inventory) {
   }
 
   return lines.join('\n');
+}
+
+/** @param {string} text */
+export function escapeTextForHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** @param {string} htmlText @param {any} patchPlan @param {any} inventory */
+export function applyPlannedTextPatchToWorkingHtml(htmlText, patchPlan, inventory) {
+  const baseResult = {
+    patchId: patchPlan && patchPlan.patchId ? patchPlan.patchId : '',
+    candidateId: patchPlan && patchPlan.candidateId ? patchPlan.candidateId : '',
+    applied: false,
+    applyStatus: 'failed',
+    message: 'Patch failed.',
+    warnings: []
+  };
+
+  if (!patchPlan || patchPlan.applyStatus !== 'planned') {
+    return { ...baseResult, applyStatus: 'blocked', message: 'Patch is not in planned state.', warnings: ['patch-not-planned'] };
+  }
+  const candidate = inventory && Array.isArray(inventory.candidates)
+    ? inventory.candidates.find((item) => item.candidateId === patchPlan.candidateId)
+    : null;
+  if (!candidate) {
+    return { ...baseResult, applyStatus: 'failed', message: 'Candidate not found in current inventory.', warnings: ['candidate-not-found'] };
+  }
+  if (!Number.isInteger(candidate.sourceStart) || !Number.isInteger(candidate.sourceEnd) || candidate.sourceEnd < candidate.sourceStart) {
+    return { ...baseResult, applyStatus: 'failed', message: 'Candidate source span is missing or invalid.', warnings: ['invalid-source-span'] };
+  }
+
+  const source = String(htmlText || '');
+  if (candidate.sourceEnd > source.length) {
+    return { ...baseResult, applyStatus: 'failed', message: 'Candidate source span is out of bounds.', warnings: ['source-span-out-of-bounds'] };
+  }
+
+  const escapedReplacement = escapeTextForHtml(patchPlan.replacementText);
+  const workingHtml = `${source.slice(0, candidate.sourceStart)}${escapedReplacement}${source.slice(candidate.sourceEnd)}`;
+  return {
+    ...baseResult,
+    applied: true,
+    applyStatus: 'applied-to-working-preview',
+    message: 'Patch applied to in-memory working HTML for safe preview refresh.',
+    warnings: [],
+    workingHtml
+  };
 }
 
 

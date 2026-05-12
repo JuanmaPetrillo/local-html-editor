@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 4C - structured patch plan model from trusted-shell draft buffer (complete).
+Current milestone: Milestone 4D - apply one planned text patch to in-memory working preview copy (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, and 4C are complete for the current browser-first implementation. Milestone 4C adds an in-memory structured patch plan model derived from draft edits without mutating imported HTML.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, and 4D are complete for the current browser-first implementation. Milestone 4D adds a conservative one-patch application path that updates only an in-memory working HTML copy and refreshes the existing sandboxed safe preview without mutating the imported source.
 
 Current app files:
 
@@ -323,3 +323,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Patch plans are descriptive in-memory objects only; no HTML mutation/application pipeline, no preview updates from draft edits, no save/export of patch data.
 Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.
+
+### 2026-05-12 (milestone 4d apply planned text patch to working preview copy)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 4D - apply one planned text patch to in-memory working HTML and refresh safe preview
+Summary: Added source-span metadata to editable text candidates and introduced a conservative one-patch apply flow that uses a planned patch only, escapes replacement text, applies replacement to the exact candidate span in an in-memory working HTML copy, and rebuilds sanitized preview srcdoc from that working copy. Added trusted-shell Apply draft to preview button and patch apply status region, while preserving existing scan/report/manifest/inventory/draft/patch-plan behavior and keeping Save/Export disabled.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Applies only one planned text patch at a time; no persistence/save/export/undo-redo/multi-patch management; no ZIP preview/apply path.
+Next recommended task: Proceed only with explicit approval for the next narrow Milestone 4 slice.
