@@ -25,7 +25,8 @@ import {
   scanHtmlRiskMarkers,
   createSafeHtmlPreviewDocument,
   createEditableInventoryForHtmlFile,
-  createPatchedSafePreviewResult
+  createPatchedSafePreviewResult,
+  createCollectionPatchedSafePreviewResult
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -46,7 +47,13 @@ import {
   applyPlannedTextPatchToWorkingHtml,
   escapeTextForHtml,
   selectEditableCandidate,
-  validatePatchPlan
+  validatePatchPlan,
+  createPatchCollectionState,
+  addOrUpdatePatchInCollection,
+  applyPatchCollectionToWorkingHtml,
+  resetWorkingPreviewState,
+  formatPatchCollectionText,
+  formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
@@ -547,3 +554,61 @@ assert.equal('htmlText' in patchedPreview.applyResult, false);
 assert.equal('rawBytes' in patchedPreview.applyResult, false);
 assert.equal('binary' in patchedPreview.applyResult, false);
 assert.equal('workingHtml' in patchedPreview.applyResult, false);
+
+
+const collection0 = createPatchCollectionState();
+assert.deepEqual(collection0, { patchesByCandidateId: {}, orderedCandidateIds: [] });
+const collectionAdd = addOrUpdatePatchInCollection(collection0, plannedPatch);
+assert.equal(collectionAdd.changed, true);
+assert.equal(collectionAdd.collection.orderedCandidateIds.length, 1);
+const updatedPatch = { ...plannedPatch, replacementText: 'Hello updated', replacementLength: 13 };
+const collectionUpdate = addOrUpdatePatchInCollection(collectionAdd.collection, updatedPatch);
+assert.equal(collectionUpdate.collection.orderedCandidateIds.length, 1);
+assert.equal(collectionUpdate.collection.patchesByCandidateId[plannedPatch.candidateId].replacementText, 'Hello updated');
+const blockedCollectionUpdate = addOrUpdatePatchInCollection(collectionUpdate.collection, { ...plannedPatch, replacementText: '   ', replacementLength: 3 });
+assert.equal(blockedCollectionUpdate.changed, false);
+
+const multiHtml = '<h1>Hello</h1><p>World</p><span>Hello</span>';
+const multiInventory = createEditableTextInventory(multiHtml);
+const first = multiInventory.candidates[0];
+const second = multiInventory.candidates.find((c) => c.textPreview === 'World');
+const p1 = createTextPatchPlan({ candidateId: first.candidateId, originalTextPreview: first.textPreview, replacementText: 'Title A', replacementLength: 7, validationStatus: 'valid' });
+const p2 = createTextPatchPlan({ candidateId: second.candidateId, originalTextPreview: second.textPreview, replacementText: 'Body B', replacementLength: 6, validationStatus: 'valid' });
+let c = createPatchCollectionState();
+c = addOrUpdatePatchInCollection(c, p1).collection;
+c = addOrUpdatePatchInCollection(c, p2).collection;
+const multiApply = applyPatchCollectionToWorkingHtml(multiHtml, c, multiInventory);
+assert.equal(multiApply.appliedAny, true);
+assert.equal(multiApply.workingHtml, '<h1>Title A</h1><p>Body B</p><span>Hello</span>');
+assert.equal('rawHtmlText' in multiApply, false);
+assert.equal('htmlText' in multiApply, false);
+assert.equal('workingHtml' in multiApply.applyResults[0], false);
+
+const reverseCollection = createPatchCollectionState();
+const reverseFirst = addOrUpdatePatchInCollection(reverseCollection, p2).collection;
+const reverseSecond = addOrUpdatePatchInCollection(reverseFirst, p1).collection;
+const reverseApply = applyPatchCollectionToWorkingHtml(multiHtml, reverseSecond, multiInventory);
+assert.equal(reverseApply.workingHtml, '<h1>Title A</h1><p>Body B</p><span>Hello</span>');
+
+const prefixedHtml = '<script>console.log(1)</script><style>.x{color:red}</style><template><p>ignored</p></template><h2>Hello</h2><p>World</p><span>Hello</span>';
+const prefixedInventory = createEditableTextInventory(prefixedHtml);
+const prefixedHeading = prefixedInventory.candidates.find((candidate) => candidate.tagName === 'h2');
+const prefixedBody = prefixedInventory.candidates.find((candidate) => candidate.tagName === 'p' && candidate.textPreview === 'World');
+const prefixedP1 = createTextPatchPlan(createDraftEdit(prefixedHeading, 'Heading widened text'));
+const prefixedP2 = createTextPatchPlan(createDraftEdit(prefixedBody, 'Body'));
+let prefixedCollection = createPatchCollectionState();
+prefixedCollection = addOrUpdatePatchInCollection(prefixedCollection, prefixedP1).collection;
+prefixedCollection = addOrUpdatePatchInCollection(prefixedCollection, prefixedP2).collection;
+const prefixedApply = applyPatchCollectionToWorkingHtml(prefixedHtml, prefixedCollection, prefixedInventory);
+assert.equal(
+  prefixedApply.workingHtml,
+  '<script>console.log(1)</script><style>.x{color:red}</style><template><p>ignored</p></template><h2>Heading widened text</h2><p>Body</p><span>Hello</span>'
+);
+
+const collectionPreview = await createCollectionPatchedSafePreviewResult({ name: 'preview.html', text: async () => multiHtml }, c);
+assert.equal(collectionPreview.previewResult.previewDocument.includes("default-src 'none'"), true);
+assert.equal('workingHtml' in collectionPreview.applyState, false);
+const resetState = resetWorkingPreviewState();
+assert.equal(resetState.applyStatus, 'reset-to-original');
+assert.equal(formatPatchCollectionText(createPatchCollectionState()).includes('none applied'), true);
+assert.equal(formatWorkingPreviewStateText(resetState).includes('in-memory only'), true);

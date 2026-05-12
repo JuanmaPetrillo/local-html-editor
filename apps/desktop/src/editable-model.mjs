@@ -284,3 +284,107 @@ export function formatPatchPlanText(patchPlan) {
     `warnings: ${patchPlan.warnings.length > 0 ? patchPlan.warnings.join(', ') : '(none)'}`
   ].join('\n');
 }
+
+export function createPatchCollectionState() {
+  return { patchesByCandidateId: {}, orderedCandidateIds: [] };
+}
+
+/** @param {{patchesByCandidateId: Record<string, any>, orderedCandidateIds: string[]}} collection @param {any} patchPlan */
+export function addOrUpdatePatchInCollection(collection, patchPlan) {
+  const next = collection || createPatchCollectionState();
+  const validated = validatePatchPlan(patchPlan);
+  if (!patchPlan || validated.applyStatus !== 'planned') {
+    return { collection: next, changed: false, status: 'blocked' };
+  }
+  const candidateId = patchPlan.candidateId;
+  const nextOrdered = next.orderedCandidateIds.includes(candidateId)
+    ? next.orderedCandidateIds.slice()
+    : [...next.orderedCandidateIds, candidateId];
+  return {
+    collection: {
+      patchesByCandidateId: { ...next.patchesByCandidateId, [candidateId]: { ...patchPlan } },
+      orderedCandidateIds: nextOrdered
+    },
+    changed: true,
+    status: next.orderedCandidateIds.includes(candidateId) ? 'updated' : 'added'
+  };
+}
+
+export function resetWorkingPreviewState() {
+  return { collection: createPatchCollectionState(), applyResults: [], applyStatus: 'reset-to-original' };
+}
+
+/** @param {string} htmlText @param {{patchesByCandidateId: Record<string, any>, orderedCandidateIds: string[]}} collection @param {any} inventory */
+export function applyPatchCollectionToWorkingHtml(htmlText, collection, inventory) {
+  const source = String(htmlText || '');
+  const base = {
+    appliedAny: false,
+    applyStatus: 'no-patches',
+    applyResults: [],
+    collectionCount: 0
+  };
+  if (!collection || !Array.isArray(collection.orderedCandidateIds) || collection.orderedCandidateIds.length === 0) {
+    return { ...base, workingHtml: source };
+  }
+  let workingHtml = source;
+  const candidateById = new Map(
+    inventory && Array.isArray(inventory.candidates)
+      ? inventory.candidates.map((candidate) => [candidate.candidateId, candidate])
+      : []
+  );
+  const orderedToApply = collection.orderedCandidateIds
+    .filter((candidateId) => collection.patchesByCandidateId[candidateId])
+    .sort((a, b) => {
+      const candidateA = candidateById.get(a);
+      const candidateB = candidateById.get(b);
+      const startA = candidateA && Number.isInteger(candidateA.sourceStart) ? candidateA.sourceStart : -1;
+      const startB = candidateB && Number.isInteger(candidateB.sourceStart) ? candidateB.sourceStart : -1;
+      if (startA !== startB) return startB - startA;
+      const endA = candidateA && Number.isInteger(candidateA.sourceEnd) ? candidateA.sourceEnd : -1;
+      const endB = candidateB && Number.isInteger(candidateB.sourceEnd) ? candidateB.sourceEnd : -1;
+      return endB - endA;
+    });
+  const applyResults = [];
+  for (const candidateId of orderedToApply) {
+    const result = applyPlannedTextPatchToWorkingHtml(workingHtml, collection.patchesByCandidateId[candidateId], inventory);
+    applyResults.push({
+      patchId: result.patchId,
+      candidateId: result.candidateId,
+      applied: result.applied,
+      applyStatus: result.applyStatus,
+      message: result.message,
+      warnings: result.warnings
+    });
+    if (result.applied && result.workingHtml) workingHtml = result.workingHtml;
+  }
+  const appliedCount = applyResults.filter((r) => r.applied).length;
+  return {
+    workingHtml,
+    appliedAny: appliedCount > 0,
+    applyStatus: appliedCount === orderedToApply.length ? 'applied-to-working-preview' : 'partial-or-failed',
+    applyResults,
+    collectionCount: orderedToApply.length
+  };
+}
+
+export function formatPatchCollectionText(collection) {
+  if (!collection || collection.orderedCandidateIds.length === 0) return 'Patch collection: none applied (in-memory only).';
+  const lines = ['Patch collection (in-memory only, unsaved)', `Patches: ${collection.orderedCandidateIds.length}`];
+  for (const candidateId of collection.orderedCandidateIds) {
+    const patch = collection.patchesByCandidateId[candidateId];
+    if (!patch) continue;
+    lines.push(`${patch.patchId} | ${patch.candidateId} | ${patch.applyStatus} | replacement=${patch.replacementLength}`);
+  }
+  return lines.join('\n');
+}
+
+export function formatWorkingPreviewStateText(state) {
+  if (!state) return 'Working preview state: unavailable.';
+  return [
+    'Working preview state',
+    `status: ${state.applyStatus || 'unknown'}`,
+    `applied patches: ${Array.isArray(state.applyResults) ? state.applyResults.filter((r) => r.applied).length : 0}`,
+    `total patches tracked: ${state.collectionCount || 0}`,
+    'persistence: none (in-memory only)'
+  ].join('\n');
+}

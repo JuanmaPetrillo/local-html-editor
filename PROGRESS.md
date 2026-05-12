@@ -335,3 +335,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Applies only one planned text patch at a time; no persistence/save/export/undo-redo/multi-patch management; no ZIP preview/apply path.
 Next recommended task: Proceed only with explicit approval for the next narrow Milestone 4 slice.
+
+### 2026-05-12 (milestone 4e in-memory patch collection and reset preview)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: PR A - in-memory text patch collection + reset working preview to original
+Summary: Added in-memory patch collection state for multiple text patches, apply/update behavior keyed by candidateId, and reset-preview flow that restores safe preview from original imported HTML without persistence/export. Added text status regions for patch collection and working preview state.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: In-memory only; no save/export/persistence; no ZIP extraction/listing; no iframe internals access; no network calls.
+Next recommended task: Implement the next explicitly approved narrow milestone only.
