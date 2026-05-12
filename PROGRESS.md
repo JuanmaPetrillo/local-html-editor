@@ -259,3 +259,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Static preview only for HTML/HTM; no interactive preview, no script execution, no remote fetch, no ZIP extraction/listing, no save/export/editing.
 Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.
+
+### 2026-05-12 (milestone 3b preview url scheme hardening follow-up)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 3B - preview URL scheme hardening
+Summary: Hardened safe preview URL neutralization for `href`/`src` so only local/static-safe references are kept (empty, anchors, local relative paths, `data:image/*` in `src`, and `blob:` in `src`). Neutralized all other schemes/references including `javascript:`, `vbscript:`, `file:`, `ftp:`, `mailto:`, `tel:`, `http:`, `https:`, protocol-relative URLs, and unknown custom schemes. Updated preview status counting and added unit/security regression coverage.
+Files changed: apps/desktop/src/preview-sandbox.mjs, scripts/test.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Static preview remains HTML/HTM only; no interactive preview, no script execution, no remote fetch/network, no ZIP extraction/listing, no save/export/editing.
+Next recommended task: Proceed only with explicit approval for the next Milestone 3 slice.

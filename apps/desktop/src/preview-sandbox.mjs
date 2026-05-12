@@ -13,15 +13,13 @@ export function stripInlineEventHandlers(htmlText) {
 
 /** @param {string} htmlText */
 export function neutralizeDangerousUrls(htmlText) {
-  return htmlText
-    .replace(
-      /\s(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|\s*javascript:[^\s>]+)/gi,
-      ' $1="#"'
-    )
-    .replace(
-      /\s(href|src)\s*=\s*(?:"\s*(https?:)?\/\/[^"]*"|'\s*(https?:)?\/\/[^']*'|\s*(https?:)?\/\/[^\s>]+)/gi,
-      ' $1="#"'
-    );
+  return htmlText.replace(
+    /\s(href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+    (fullMatch, attrName, _rawValueWithQuotes, doubleQuotedValue, singleQuotedValue, unquotedValue) =>
+      shouldAllowPreviewUrl(attrName, doubleQuotedValue ?? singleQuotedValue ?? unquotedValue ?? '')
+        ? fullMatch
+        : ` ${attrName}="#"`
+  );
 }
 
 /** @param {string} htmlText */
@@ -41,6 +39,21 @@ export function stripMetaRefresh(htmlText) {
 
 function countMatches(text, pattern) {
   return (text.match(pattern) || []).length;
+}
+
+function shouldAllowPreviewUrl(attrName, rawValue) {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith('#')) return true;
+  if (trimmed.startsWith('//')) return false;
+  if (trimmed.startsWith('/')) return true;
+  if (trimmed.startsWith('./')) return true;
+  if (trimmed.startsWith('../')) return true;
+  if (!trimmed.includes(':') && !trimmed.startsWith('//')) return true;
+  const normalized = trimmed.toLowerCase();
+  if (attrName.toLowerCase() === 'src' && normalized.startsWith('data:image/')) return true;
+  if (attrName.toLowerCase() === 'src' && normalized.startsWith('blob:')) return true;
+  return false;
 }
 
 export function createPreviewStatus(summary) {
@@ -98,14 +111,10 @@ export function formatPreviewStatusText(status) {
 export function buildSafePreviewResult(htmlText) {
   const scriptsRemoved = countMatches(htmlText, /<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi);
   const inlineHandlersRemoved = countMatches(htmlText, /\son[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi);
-  const dangerousJavascriptUrls = countMatches(
-    htmlText,
-    /\s(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|\s*javascript:[^\s>]+)/gi
-  );
-  const dangerousRemoteUrls = countMatches(
-    htmlText,
-    /\s(href|src)\s*=\s*(?:"\s*(https?:)?\/\/[^\"]*"|'\s*(https?:)?\/\/[^']*'|\s*(https?:)?\/\/[^\s>]+)/gi
-  );
+  const dangerousJavascriptUrls = Array.from(
+    htmlText.matchAll(/\s(href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi)
+  ).filter((match) => !shouldAllowPreviewUrl(match[1], match[3] ?? match[4] ?? match[5] ?? '')).length;
+  const dangerousRemoteUrls = countMatches(htmlText, /\s(href|src)\s*=\s*(?:"\s*(https?:)?\/\/[^\"]*"|'\s*(https?:)?\/\/[^']*'|\s*(https?:)?\/\/[^\s>]+)/gi);
   const embeddedContentRemoved = countMatches(htmlText, /<\s*(iframe|object|embed)\b/gi);
   const metaRefreshRemoved = countMatches(
     htmlText,
@@ -118,7 +127,7 @@ export function buildSafePreviewResult(htmlText) {
     fileName: '',
     scriptsRemoved,
     inlineHandlersRemoved,
-    dangerousUrlsNeutralized: dangerousJavascriptUrls + dangerousRemoteUrls,
+    dangerousUrlsNeutralized: dangerousJavascriptUrls,
     embeddedContentRemoved,
     metaRefreshRemoved,
     remoteReferencesNeutralized: dangerousRemoteUrls
