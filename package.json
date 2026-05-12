@@ -1,0 +1,21 @@
+{
+  "name": "local-html-editor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Fully local HTML presentation editor scaffold",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "echo 'placeholder: lint not configured in Milestone 0'",
+    "typecheck": "echo 'placeholder: typecheck not configured in Milestone 0'",
+    "test": "echo 'placeholder: tests not configured in Milestone 0'",
+    "test:e2e": "echo 'placeholder: e2e tests not configured in Milestone 0'",
+    "test:security": "echo 'placeholder: security tests not configured in Milestone 0'",
+    "build": "echo 'placeholder: build not configured in Milestone 0'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
