@@ -35,11 +35,15 @@ import {
 import {
   createDraftEdit,
   createDraftEditState,
+  createPatchPlanState,
   createEditableTextInventory,
+  createTextPatchPlan,
   extractEditableTextCandidates,
+  formatPatchPlanText,
   formatDraftEditText,
   formatEditableInventoryText,
-  selectEditableCandidate
+  selectEditableCandidate,
+  validatePatchPlan
 } from '../apps/desktop/src/editable-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
@@ -445,3 +449,41 @@ assert.equal('rawHtmlText' in draft, false);
 assert.equal('htmlText' in draft, false);
 assert.equal('rawBytes' in draft, false);
 assert.equal('binary' in draft, false);
+
+const patchPlan = createTextPatchPlan(draft);
+assert.equal(patchPlan?.operation, 'replace-text');
+assert.equal(patchPlan?.patchId, 'patch-text-001');
+assert.equal(patchPlan?.candidateId, 'text-001');
+assert.equal(patchPlan?.applyStatus, 'planned');
+assert.equal(patchPlan?.validationStatus, 'valid');
+
+const patchState = createPatchPlanState({ draftEdit: draft });
+assert.equal(patchState.patchPlan?.patchId, 'patch-text-001');
+assert.equal(formatPatchPlanText(patchState.patchPlan).includes('operation: replace-text'), true);
+assert.equal(formatPatchPlanText(patchState.patchPlan).includes('candidate: text-001'), true);
+assert.equal(formatPatchPlanText(patchState.patchPlan).includes('validation: valid'), true);
+assert.equal(formatPatchPlanText(patchState.patchPlan).includes('apply status: planned'), true);
+
+const emptyPatchPlan = createTextPatchPlan(emptyDraft);
+assert.equal(emptyPatchPlan?.applyStatus, 'blocked');
+assert.equal(emptyPatchPlan?.validationStatus, 'warning-empty');
+
+const longPatchPlan = createTextPatchPlan(longDraft);
+assert.equal(longPatchPlan?.applyStatus, 'blocked');
+assert.equal(longPatchPlan?.validationStatus, 'warning-long');
+
+const missingCandidatePatchPlan = createTextPatchPlan({
+  candidateId: '',
+  originalTextPreview: 'Hello',
+  replacementText: 'World',
+  replacementLength: 5
+});
+assert.equal(missingCandidatePatchPlan?.applyStatus, 'blocked');
+assert.equal(missingCandidatePatchPlan?.validationStatus, 'warning-missing-candidate');
+
+assert.equal('replacementText' in patchPlan, true);
+assert.equal('rawHtmlText' in patchPlan, false);
+assert.equal('htmlText' in patchPlan, false);
+assert.equal('rawBytes' in patchPlan, false);
+assert.equal('binary' in patchPlan, false);
+assert.equal(validatePatchPlan(null).applyStatus, 'blocked');
