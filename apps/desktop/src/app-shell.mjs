@@ -8,8 +8,12 @@ import {
   importHtmlFileScan,
   importZipFilePreflight,
   createImportReportFromStatus,
-  createSafeHtmlPreviewDocument
+  createSafeHtmlPreviewResult
 } from './importer.mjs';
+import {
+  createUnavailablePreviewStatus,
+  formatPreviewStatusText
+} from './preview-sandbox.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -98,6 +102,7 @@ const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
+const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
 
 if (
   hasDom &&
@@ -108,7 +113,8 @@ if (
   fileScan instanceof HTMLElement &&
   importReport instanceof HTMLElement &&
   importManifest instanceof HTMLElement &&
-  safePreviewFrame instanceof HTMLIFrameElement
+  safePreviewFrame instanceof HTMLIFrameElement &&
+  safePreviewStatus instanceof HTMLElement
 ) {
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -136,7 +142,11 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
-      safePreviewFrame.srcdoc = (await createSafeHtmlPreviewDocument(selected)) || safePreviewFrame.srcdoc;
+      const previewResult = await createSafeHtmlPreviewResult(selected);
+      safePreviewFrame.srcdoc = previewResult ? previewResult.previewDocument : safePreviewFrame.srcdoc;
+      safePreviewStatus.textContent = previewResult
+        ? formatPreviewStatusText(previewResult.previewStatus)
+        : 'Safe static preview: unavailable.';
     }
 
     if (selected && project && project.sourceKind === 'zip') {
@@ -146,6 +156,7 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
 
     if (selected && project && project.sourceKind === 'unknown') {
@@ -163,6 +174,9 @@ if (
       const report = createImportReportFromStatus(unsupportedStatus);
       importManifest.textContent = formatImportManifestText(
         createImportManifestFromStatus(unsupportedStatus, report)
+      );
+      safePreviewStatus.textContent = formatPreviewStatusText(
+        createUnavailablePreviewStatus('unknown', project.name)
       );
     }
   });

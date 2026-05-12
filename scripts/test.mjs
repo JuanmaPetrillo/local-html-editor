@@ -24,7 +24,12 @@ import {
   scanHtmlRiskMarkers,
   createSafeHtmlPreviewDocument
 } from '../apps/desktop/src/importer.mjs';
-import { buildSafePreviewDocument } from '../apps/desktop/src/preview-sandbox.mjs';
+import {
+  buildSafePreviewDocument,
+  buildSafePreviewResult,
+  createUnavailablePreviewStatus,
+  formatPreviewStatusText
+} from '../apps/desktop/src/preview-sandbox.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -304,3 +309,60 @@ assert.equal(hasZipSignature(new Uint8Array([0x50, 0x4b, 0x07, 0x08])), 'valid-p
 assert.equal(hasZipSignature(new Uint8Array([0x12, 0x34, 0x56, 0x78])), null);
 
 console.log('unit tests passed');
+
+
+const previewReady = buildSafePreviewResult('<h1>Hello</h1>');
+assert.equal(previewReady.previewStatus.status, 'ready');
+
+const previewWithScript = buildSafePreviewResult('<script>bad()</script><h1>Hi</h1>');
+assert.equal(previewWithScript.previewStatus.scriptsRemoved > 0, true);
+
+const previewWithInline = buildSafePreviewResult('<button onclick="bad()">x</button>');
+assert.equal(previewWithInline.previewStatus.inlineHandlersRemoved > 0, true);
+
+const previewWithDanger = buildSafePreviewResult('<a href="javascript:alert(1)">x</a>');
+assert.equal(previewWithDanger.previewStatus.dangerousUrlsNeutralized > 0, true);
+assert.equal(previewWithDanger.previewDocument.includes('href="javascript:'), false);
+
+const previewWithRemote = buildSafePreviewResult('<img src="https://example.test/x.png">');
+assert.equal(previewWithRemote.previewStatus.remoteReferencesNeutralized > 0, true);
+
+const previewWithSchemes = buildSafePreviewResult(
+  '<a href="mailto:test@example.com">m</a><a href="ftp://example.test/file">f</a><a href="file:///secret">fl</a><a href="tel:+123">t</a><a href="vbscript:msgbox(1)">v</a><a href="custom:value">c</a>'
+);
+assert.equal(previewWithSchemes.previewStatus.dangerousUrlsNeutralized >= 6, true);
+assert.equal(previewWithSchemes.previewDocument.includes('mailto:'), false);
+assert.equal(previewWithSchemes.previewDocument.includes('ftp://'), false);
+assert.equal(previewWithSchemes.previewDocument.includes('file:///'), false);
+assert.equal(previewWithSchemes.previewDocument.includes('tel:+'), false);
+assert.equal(previewWithSchemes.previewDocument.toLowerCase().includes('vbscript:'), false);
+assert.equal(previewWithSchemes.previewDocument.includes('custom:'), false);
+
+const previewWithAllowedLocal = buildSafePreviewResult(
+  '<a href="#slide-1">anchor</a><a href="assets/pic.png">rel</a><img src="./images/pic.png"><img src="/images/root.png">'
+);
+assert.equal(previewWithAllowedLocal.previewDocument.includes('href="#slide-1"'), true);
+assert.equal(previewWithAllowedLocal.previewDocument.includes('href="assets/pic.png"'), true);
+assert.equal(previewWithAllowedLocal.previewDocument.includes('src="./images/pic.png"'), true);
+assert.equal(previewWithAllowedLocal.previewDocument.includes('src="/images/root.png"'), true);
+
+const previewWithDataAndBlob = buildSafePreviewResult(
+  '<img src="data:image/png;base64,aaaa"><img src="blob:abc"><a href="data:text/html,hello">bad</a>'
+);
+assert.equal(previewWithDataAndBlob.previewDocument.includes('src="data:image/png;base64,aaaa"'), true);
+assert.equal(previewWithDataAndBlob.previewDocument.includes('src="blob:abc"'), true);
+assert.equal(previewWithDataAndBlob.previewDocument.includes('href="data:text/html,hello"'), false);
+
+const previewWithEmbed = buildSafePreviewResult('<iframe src="x"></iframe><object></object><embed>');
+assert.equal(previewWithEmbed.previewStatus.embeddedContentRemoved > 0, true);
+
+const previewWithMeta = buildSafePreviewResult('<meta http-equiv="refresh" content="0">');
+assert.equal(previewWithMeta.previewStatus.metaRefreshRemoved > 0, true);
+
+const statusText = formatPreviewStatusText(previewWithScript.previewStatus);
+assert.equal(statusText.includes('<script>'), false);
+assert.equal(statusText.includes('bad()'), false);
+assert.equal(statusText.includes('PK\x03\x04'), false);
+
+const zipPreviewStatus = createUnavailablePreviewStatus('zip', 'slides.zip');
+assert.equal(zipPreviewStatus.status, 'unavailable');

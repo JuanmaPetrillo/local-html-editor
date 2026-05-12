@@ -13,15 +13,13 @@ export function stripInlineEventHandlers(htmlText) {
 
 /** @param {string} htmlText */
 export function neutralizeDangerousUrls(htmlText) {
-  return htmlText
-    .replace(
-      /\s(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|\s*javascript:[^\s>]+)/gi,
-      ' $1="#"'
-    )
-    .replace(
-      /\s(href|src)\s*=\s*(?:"\s*(https?:)?\/\/[^"]*"|'\s*(https?:)?\/\/[^']*'|\s*(https?:)?\/\/[^\s>]+)/gi,
-      ' $1="#"'
-    );
+  return htmlText.replace(
+    /\s(href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+    (fullMatch, attrName, _rawValueWithQuotes, doubleQuotedValue, singleQuotedValue, unquotedValue) =>
+      shouldAllowPreviewUrl(attrName, doubleQuotedValue ?? singleQuotedValue ?? unquotedValue ?? '')
+        ? fullMatch
+        : ` ${attrName}="#"`
+  );
 }
 
 /** @param {string} htmlText */
@@ -37,6 +35,105 @@ export function stripMetaRefresh(htmlText) {
     /<\s*meta\b[^>]*http-equiv\s*=\s*(?:"refresh"|'refresh'|refresh)[^>]*>/gi,
     ''
   );
+}
+
+function countMatches(text, pattern) {
+  return (text.match(pattern) || []).length;
+}
+
+function shouldAllowPreviewUrl(attrName, rawValue) {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith('#')) return true;
+  if (trimmed.startsWith('//')) return false;
+  if (trimmed.startsWith('/')) return true;
+  if (trimmed.startsWith('./')) return true;
+  if (trimmed.startsWith('../')) return true;
+  if (!trimmed.includes(':') && !trimmed.startsWith('//')) return true;
+  const normalized = trimmed.toLowerCase();
+  if (attrName.toLowerCase() === 'src' && normalized.startsWith('data:image/')) return true;
+  if (attrName.toLowerCase() === 'src' && normalized.startsWith('blob:')) return true;
+  return false;
+}
+
+export function createPreviewStatus(summary) {
+  const changed =
+    summary.scriptsRemoved > 0 ||
+    summary.inlineHandlersRemoved > 0 ||
+    summary.dangerousUrlsNeutralized > 0 ||
+    summary.embeddedContentRemoved > 0 ||
+    summary.metaRefreshRemoved > 0 ||
+    summary.remoteReferencesNeutralized > 0;
+
+  return {
+    ...summary,
+    status: changed ? 'sanitized' : 'ready',
+    safeModeLabel: 'Safe static preview',
+    message: changed
+      ? 'This preview is sanitized and may not look identical to the original.'
+      : 'This preview is shown in safe static preview mode.'
+  };
+}
+
+export function createUnavailablePreviewStatus(sourceKind, fileName) {
+  return {
+    status: 'unavailable',
+    sourceKind,
+    fileName,
+    scriptsRemoved: 0,
+    inlineHandlersRemoved: 0,
+    dangerousUrlsNeutralized: 0,
+    embeddedContentRemoved: 0,
+    metaRefreshRemoved: 0,
+    remoteReferencesNeutralized: 0,
+    safeModeLabel: 'Safe static preview',
+    message: sourceKind === 'zip'
+      ? 'Preview unavailable for ZIP in this milestone.'
+      : 'Preview unavailable for this file type in this milestone.'
+  };
+}
+
+export function formatPreviewStatusText(status) {
+  return [
+    `${status.safeModeLabel}: ${status.status}.`,
+    status.message,
+    `Source: ${status.sourceKind} (${status.fileName || 'unknown file'}).`,
+    `Scripts removed: ${status.scriptsRemoved}`,
+    `Inline handlers removed: ${status.inlineHandlersRemoved}`,
+    `Dangerous URLs neutralized: ${status.dangerousUrlsNeutralized}`,
+    `Remote references neutralized: ${status.remoteReferencesNeutralized}`,
+    `Embedded content removed: ${status.embeddedContentRemoved}`,
+    `Meta refresh removed: ${status.metaRefreshRemoved}`
+  ].join('\n');
+}
+
+/** @param {string} htmlText */
+export function buildSafePreviewResult(htmlText) {
+  const scriptsRemoved = countMatches(htmlText, /<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi);
+  const inlineHandlersRemoved = countMatches(htmlText, /\son[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi);
+  const dangerousJavascriptUrls = Array.from(
+    htmlText.matchAll(/\s(href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi)
+  ).filter((match) => !shouldAllowPreviewUrl(match[1], match[3] ?? match[4] ?? match[5] ?? '')).length;
+  const dangerousRemoteUrls = countMatches(htmlText, /\s(href|src)\s*=\s*(?:"\s*(https?:)?\/\/[^\"]*"|'\s*(https?:)?\/\/[^']*'|\s*(https?:)?\/\/[^\s>]+)/gi);
+  const embeddedContentRemoved = countMatches(htmlText, /<\s*(iframe|object|embed)\b/gi);
+  const metaRefreshRemoved = countMatches(
+    htmlText,
+    /<\s*meta\b[^>]*http-equiv\s*=\s*(?:"refresh"|'refresh'|refresh)[^>]*>/gi
+  );
+
+  const previewDocument = buildSafePreviewDocument(htmlText);
+  const previewStatus = createPreviewStatus({
+    sourceKind: 'html',
+    fileName: '',
+    scriptsRemoved,
+    inlineHandlersRemoved,
+    dangerousUrlsNeutralized: dangerousJavascriptUrls,
+    embeddedContentRemoved,
+    metaRefreshRemoved,
+    remoteReferencesNeutralized: dangerousRemoteUrls
+  });
+
+  return { previewDocument, previewStatus };
 }
 
 /** @param {string} htmlText */

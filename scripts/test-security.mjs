@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { buildSafePreviewDocument } from '../apps/desktop/src/preview-sandbox.mjs';
 
 const html = readFileSync('apps/desktop/index.html', 'utf8');
 const shellCode = readFileSync('apps/desktop/src/app-shell.mjs', 'utf8');
@@ -26,5 +27,21 @@ if (!html.includes('id="safe-preview-frame"')) throw new Error('safe preview ifr
 if (!html.includes('sandbox=""')) throw new Error('safe preview iframe sandbox must be empty');
 if (html.includes('allow-scripts')) throw new Error('safe preview iframe must not allow scripts');
 if (html.includes('allow-same-origin')) throw new Error('safe preview iframe must not allow same-origin');
+if (html.includes('allow-top-navigation')) throw new Error('safe preview iframe must not allow top navigation');
+if (html.includes('allow-downloads')) throw new Error('safe preview iframe must not allow downloads');
+if (html.includes('allow-popups')) throw new Error('safe preview iframe must not allow popups');
+if (html.includes('allow-forms')) throw new Error('safe preview iframe must not allow forms');
+
+const hardenedPreviewDoc = buildSafePreviewDocument(
+  '<a href="mailto:test@example.com">x</a><a href="ftp://example.test/file">x</a><a href="file:///tmp/x">x</a><a href="tel:+1">x</a><a href="vbscript:msgbox(1)">x</a><a href="custom:value">x</a><a href="https://example.test">x</a><a href="//example.test">x</a><img src="data:image/png;base64,aa">'
+);
+if (hardenedPreviewDoc.includes('mailto:')) throw new Error('mailto scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('ftp://')) throw new Error('ftp scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('file:///')) throw new Error('file scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('tel:+')) throw new Error('tel scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.toLowerCase().includes('vbscript:')) throw new Error('vbscript scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('custom:')) throw new Error('unknown scheme must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('https://example.test')) throw new Error('https remote references must be neutralized in safe preview');
+if (hardenedPreviewDoc.includes('//example.test')) throw new Error('protocol-relative references must be neutralized in safe preview');
 
 console.log('security checks passed');
