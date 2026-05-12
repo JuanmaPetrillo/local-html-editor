@@ -32,7 +32,15 @@ import {
   createUnavailablePreviewStatus,
   formatPreviewStatusText
 } from '../apps/desktop/src/preview-sandbox.mjs';
-import { createEditableTextInventory, extractEditableTextCandidates, formatEditableInventoryText } from '../apps/desktop/src/editable-model.mjs';
+import {
+  createDraftEdit,
+  createDraftEditState,
+  createEditableTextInventory,
+  extractEditableTextCandidates,
+  formatDraftEditText,
+  formatEditableInventoryText,
+  selectEditableCandidate
+} from '../apps/desktop/src/editable-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -410,3 +418,30 @@ assert.equal(formatEditableInventoryText(inventory).includes('Editing is not ena
 
 const zipInventory = await createEditableInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>no</h1>' });
 assert.equal(zipInventory, null);
+
+
+const candidateInventory = createEditableTextInventory('<h1>Hello</h1><p>World</p>');
+const firstCandidateId = candidateInventory.candidates[0].candidateId;
+const selectedCandidate = selectEditableCandidate(candidateInventory, firstCandidateId);
+assert.equal(selectedCandidate?.candidateId, firstCandidateId);
+assert.equal(selectEditableCandidate(candidateInventory, 'text-999'), null);
+
+const draft = createDraftEdit(selectedCandidate, 'Updated hello');
+assert.equal(draft?.candidateId, firstCandidateId);
+assert.equal(draft?.replacementText, 'Updated hello');
+assert.equal(draft?.validationStatus, 'valid');
+
+const emptyDraft = createDraftEdit(selectedCandidate, '   ');
+assert.equal(emptyDraft?.validationStatus, 'warning-empty');
+
+const longDraft = createDraftEdit(selectedCandidate, 'x'.repeat(501));
+assert.equal(longDraft?.validationStatus, 'warning-long');
+
+const draftState = createDraftEditState(candidateInventory);
+assert.equal(typeof draftState.selectedCandidateId, 'string');
+const formattedDraft = formatDraftEditText({ draftEdit: draft });
+assert.equal(formattedDraft.includes('Draft edit buffer'), true);
+assert.equal('rawHtmlText' in draft, false);
+assert.equal('htmlText' in draft, false);
+assert.equal('rawBytes' in draft, false);
+assert.equal('binary' in draft, false);

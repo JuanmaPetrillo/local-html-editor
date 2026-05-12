@@ -15,7 +15,13 @@ import {
   createUnavailablePreviewStatus,
   formatPreviewStatusText
 } from './preview-sandbox.mjs';
-import { formatEditableInventoryText } from './editable-model.mjs';
+import {
+  createDraftEdit,
+  createDraftEditState,
+  formatDraftEditText,
+  formatEditableInventoryText,
+  selectEditableCandidate
+} from './editable-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -119,6 +125,9 @@ const editableInventory = hasDom ? document.querySelector('#editable-inventory')
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
 const safePreviewFrameWrap = hasDom ? document.querySelector('#safe-preview-frame-wrap') : null;
 const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
+const editableCandidateSelect = hasDom ? document.querySelector('#editable-candidate-select') : null;
+const editableDraftText = hasDom ? document.querySelector('#editable-draft-text') : null;
+const editableDraftStatus = hasDom ? document.querySelector('#editable-draft-status') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -137,6 +146,9 @@ if (
   safePreviewFrame instanceof HTMLIFrameElement &&
   safePreviewFrameWrap instanceof HTMLElement &&
   safePreviewStatus instanceof HTMLElement &&
+  editableCandidateSelect instanceof HTMLSelectElement &&
+  editableDraftText instanceof HTMLTextAreaElement &&
+  editableDraftStatus instanceof HTMLElement &&
   previewFitWidth instanceof HTMLButtonElement &&
   previewCompactHeight instanceof HTMLButtonElement &&
   previewTallHeight instanceof HTMLButtonElement &&
@@ -161,6 +173,37 @@ if (
   previewResetLayout.addEventListener('click', () => {
     applyPreviewLayoutState(createPreviewLayoutState('default', true));
   });
+  /** @type {{selectedCandidateId: string, draftEdit: any} | null} */
+  let draftState = null;
+
+  const resetDraftUi = () => {
+    editableCandidateSelect.replaceChildren();
+    editableCandidateSelect.disabled = true;
+    editableDraftText.value = '';
+    editableDraftText.disabled = true;
+    editableDraftStatus.textContent = 'Draft edit: unavailable.';
+    draftState = null;
+  };
+
+  const renderDraftFromSelection = (inventory) => {
+    const candidate = selectEditableCandidate(inventory, editableCandidateSelect.value);
+    draftState = { selectedCandidateId: editableCandidateSelect.value, draftEdit: createDraftEdit(candidate, editableDraftText.value) };
+    editableDraftStatus.textContent = formatDraftEditText(draftState);
+  };
+
+  resetDraftUi();
+
+  editableCandidateSelect.addEventListener('change', () => {
+    renderDraftFromSelection(currentInventory);
+  });
+
+  editableDraftText.addEventListener('input', () => {
+    renderDraftFromSelection(currentInventory);
+  });
+
+  /** @type {any} */
+  let currentInventory = null;
+
 
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -179,6 +222,8 @@ if (
     importReport.textContent = '';
     importManifest.textContent = '';
     editableInventory.textContent = 'Editable text candidates: unavailable.';
+    currentInventory = null;
+    resetDraftUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
@@ -190,7 +235,22 @@ if (
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
       const inventory = await createEditableInventoryForHtmlFile(selected);
+      currentInventory = inventory;
       editableInventory.textContent = formatEditableInventoryText(inventory);
+      draftState = createDraftEditState(inventory);
+      editableCandidateSelect.replaceChildren();
+      for (const candidate of inventory.candidates) {
+        const option = document.createElement('option');
+        option.value = candidate.candidateId;
+        option.textContent = `${candidate.candidateId} | <${candidate.tagName}> | ${candidate.textPreview}`;
+        editableCandidateSelect.appendChild(option);
+      }
+      editableCandidateSelect.disabled = inventory.candidates.length === 0;
+      editableDraftText.disabled = inventory.candidates.length === 0;
+      if (draftState.selectedCandidateId) {
+        editableCandidateSelect.value = draftState.selectedCandidateId;
+      }
+      renderDraftFromSelection(inventory);
       const previewResult = await createSafeHtmlPreviewResult(selected);
       safePreviewFrame.srcdoc = previewResult ? previewResult.previewDocument : safePreviewFrame.srcdoc;
       safePreviewStatus.textContent = previewResult

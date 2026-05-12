@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 4A - read-only editable text candidate inventory (complete).
+Current milestone: Milestone 4B - trusted-shell draft edit buffer for editable text candidates (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, and 3C are complete for the current browser-first implementation. Milestone 4A is now complete with a read-only editable text candidate inventory.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, and 4B are complete for the current browser-first implementation. Milestone 4B adds an in-memory trusted-shell draft edit buffer without mutating imported HTML.
 
 Current app files:
 
@@ -296,4 +296,17 @@ Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/importer.mj
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
 Known limitations: Discovery is advisory and text-only for HTML/HTM; no editing, no content mutation, no save/export, no iframe internals access, no ZIP extraction/listing, no dependencies added.
+Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.
+
+
+### 2026-05-12 (milestone 4b trusted-shell draft edit buffer)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 4B - trusted-shell draft edit buffer for editable text candidates
+Summary: Started Milestone 4B by adding an in-memory draft edit model and trusted-shell controls for candidate selection and draft replacement text entry. Draft status is rendered as plain text and no imported HTML mutation or preview update path was added.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Draft edits remain in-memory only; no HTML mutation, no preview mutation, no save/export, no iframe internals access, no ZIP extraction/listing, no dependency additions, no network calls.
 Next recommended task: Proceed only with explicit approval for the next Milestone 4 slice.
