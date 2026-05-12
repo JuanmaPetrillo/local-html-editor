@@ -46,6 +46,60 @@ export function scanHtmlRiskMarkers(htmlText) {
   };
 }
 
+/** @param {string} rawReference */
+export function classifyReference(rawReference) {
+  const value = String(rawReference || '').trim();
+  if (!value) return 'unknown';
+  if (value.startsWith('#')) return 'anchor';
+  if (/^data:/i.test(value)) return 'data-uri';
+  if (/^https?:\/\//i.test(value) || /^\/\//.test(value)) return 'remote';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return 'unknown';
+  return 'local-relative';
+}
+
+/** @param {string} htmlText */
+export function scanHtmlReferences(htmlText) {
+  const extracted = [];
+  const attributePattern =
+    /<(img|script|link|video|audio|source)\b[^>]*?\s(src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/gi;
+  let attributeMatch = attributePattern.exec(htmlText);
+  while (attributeMatch) {
+    extracted.push(attributeMatch[3] || attributeMatch[4] || attributeMatch[5] || '');
+    attributeMatch = attributePattern.exec(htmlText);
+  }
+
+  const cssUrlPattern = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'" \t\r\n]+))\s*\)/gi;
+  let cssMatch = cssUrlPattern.exec(htmlText);
+  while (cssMatch) {
+    extracted.push(cssMatch[1] || cssMatch[2] || cssMatch[3] || '');
+    cssMatch = cssUrlPattern.exec(htmlText);
+  }
+
+  const summary = createReferenceSummary(extracted);
+  return {
+    totalCount: extracted.length,
+    byType: summary
+  };
+}
+
+/** @param {string[]} references */
+export function createReferenceSummary(references) {
+  const summary = {
+    'local-relative': 0,
+    remote: 0,
+    'data-uri': 0,
+    anchor: 0,
+    unknown: 0
+  };
+
+  for (const reference of references) {
+    const kind = classifyReference(reference);
+    summary[kind] += 1;
+  }
+
+  return summary;
+}
+
 /** @param {Uint8Array} bytes */
 export function hasZipSignature(bytes) {
   if (bytes.length < 4) {
@@ -81,6 +135,7 @@ export async function importHtmlFileScan(file) {
 
   const htmlText = await file.text();
   const scan = scanHtmlRiskMarkers(htmlText);
+  const referenceScan = scanHtmlReferences(htmlText);
 
   return {
     ok: true,
@@ -89,7 +144,8 @@ export async function importHtmlFileScan(file) {
     extension,
     size: file.size,
     type: file.type || 'unknown type',
-    scan
+    scan,
+    referenceScan
   };
 }
 
@@ -140,6 +196,15 @@ export function createImportStatusFromHtmlScan(scanResult) {
     if (scanResult.scan.remoteUrlCount > 0) warningLabels.push('remote-urls-detected');
     if (scanResult.scan.embeddedContentTagCount > 0) warningLabels.push('embedded-content-detected');
   }
+  if (scanResult.ok && scanResult.referenceScan.byType.remote > 0) {
+    warningLabels.push('remote-references-detected');
+  }
+  if (scanResult.ok && scanResult.referenceScan.byType['local-relative'] > 0) {
+    warningLabels.push('local-assets-detected');
+  }
+  if (scanResult.ok && scanResult.referenceScan.byType['data-uri'] > 0) {
+    warningLabels.push('data-uris-detected');
+  }
 
   if (!scanResult.ok) {
     warningLabels.push('unsupported-extension');
@@ -155,10 +220,15 @@ export function createImportStatusFromHtmlScan(scanResult) {
     severity: scanResult.ok ? (warningLabels.length ? 'warning' : 'info') : 'error',
     statusLabel: scanResult.ok ? 'HTML intake scan complete.' : 'HTML intake scan skipped.',
     summaryLabel: scanResult.ok
-      ? `HTML scan: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}.`
+      ? `HTML scan: scripts=${scanResult.scan.scriptTagCount}, inline-handlers=${scanResult.scan.inlineEventHandlerCount}, remote-urls=${scanResult.scan.remoteUrlCount}, embedded-tags=${scanResult.scan.embeddedContentTagCount}, refs-total=${scanResult.referenceScan.totalCount}, refs-local=${scanResult.referenceScan.byType['local-relative']}, refs-remote=${scanResult.referenceScan.byType.remote}, refs-data=${scanResult.referenceScan.byType['data-uri']}, refs-anchor=${scanResult.referenceScan.byType.anchor}, refs-unknown=${scanResult.referenceScan.byType.unknown}.`
       : 'HTML scan skipped: unsupported extension.',
     warningLabels,
-    checks: scanResult.ok ? scanResult.scan : null
+    checks: scanResult.ok
+      ? {
+          ...scanResult.scan,
+          referenceSummary: scanResult.referenceScan
+        }
+      : null
   };
 }
 
@@ -217,6 +287,24 @@ export function createImportWarning(code) {
       title: 'Embedded content detected',
       message: 'Embedded content tags (iframe/object/embed) were detected.',
       recommendedAction: 'Treat embedded content as untrusted and keep safe mode on.'
+    },
+    'remote-references-detected': {
+      severity: 'warning',
+      title: 'Remote references detected',
+      message: 'References to external web locations were detected.',
+      recommendedAction: 'Replace remote references with local assets for offline privacy.'
+    },
+    'local-assets-detected': {
+      severity: 'info',
+      title: 'Local asset references detected',
+      message: 'Local relative asset references were detected.',
+      recommendedAction: 'Keep referenced local files together with this presentation.'
+    },
+    'data-uris-detected': {
+      severity: 'info',
+      title: 'Data URIs detected',
+      message: 'Inline data URI references were detected.',
+      recommendedAction: 'Review inline assets to confirm they are expected.'
     },
     'invalid-zip-signature': {
       severity: 'error',
