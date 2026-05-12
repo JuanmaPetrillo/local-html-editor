@@ -26,7 +26,8 @@ import {
   createSafeHtmlPreviewDocument,
   createEditableInventoryForHtmlFile,
   createPatchedSafePreviewResult,
-  createCollectionPatchedSafePreviewResult
+  createCollectionPatchedSafePreviewResult,
+  createEditedHtmlExport
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -55,6 +56,7 @@ import {
   formatPatchCollectionText,
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
+import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from '../apps/desktop/src/exporter.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -612,3 +614,36 @@ const resetState = resetWorkingPreviewState();
 assert.equal(resetState.applyStatus, 'reset-to-original');
 assert.equal(formatPatchCollectionText(createPatchCollectionState()).includes('none applied'), true);
 assert.equal(formatWorkingPreviewStateText(resetState).includes('in-memory only'), true);
+assert.equal(createSuggestedEditedHtmlFileName('deck.html'), 'deck-edited.html');
+assert.equal(createSuggestedEditedHtmlFileName('q4 plan<>.html'), 'q4-plan-edited.html');
+
+const exportSinglePure = createEditedHtmlExportFromHtmlText('<h1>Old title</h1>', 'deck.html', {
+  patchesByCandidateId: { 'text-001': { patchId: 'patch-text-001', candidateId: 'text-001', replacementText: 'Hello & <b>', replacementLength: 11, applyStatus: 'planned' } },
+  orderedCandidateIds: ['text-001']
+});
+assert.equal(exportSinglePure.exported, true);
+assert.equal((await exportSinglePure.blob.text()).includes('Hello &amp; &lt;b&gt;'), true);
+
+let exportReadCount = 0;
+const exportSingle = await createEditedHtmlExport({ name: 'deck.html', text: async () => { exportReadCount += 1; return '<h1>Old title</h1>'; } }, {
+  patchesByCandidateId: { 'text-001': { patchId: 'patch-text-001', candidateId: 'text-001', replacementText: 'Hello & <b>', replacementLength: 11, applyStatus: 'planned' } },
+  orderedCandidateIds: ['text-001']
+});
+assert.equal(exportReadCount, 1);
+assert.equal(exportSingle.exported, true);
+assert.equal(exportSingle.mimeType, 'text/html');
+assert.equal('workingHtml' in exportSingle, false);
+assert.equal('rawHtmlText' in exportSingle, false);
+assert.equal('htmlText' in exportSingle, false);
+assert.equal('rawBytes' in exportSingle, false);
+assert.equal('binary' in exportSingle, false);
+
+const exportMulti = await createEditedHtmlExport({ name: 'deck.html', text: async () => '<h1>One</h1><p>Two</p><p>Two</p>' }, c);
+assert.equal(exportMulti.exported, true);
+assert.equal((await exportMulti.blob.text()).includes('<h1>Title A</h1><p>Body B</p><p>Two</p>'), true);
+assert.equal(exportMulti.suggestedFileName, 'deck-edited.html');
+
+const blockedEmpty = await createEditedHtmlExport({ name: 'deck.html', text: async () => '<h1>One</h1>' }, createPatchCollectionState());
+assert.equal(blockedEmpty.exportStatus, 'blocked');
+const blockedFail = await createEditedHtmlExport({ name: 'deck.html', text: async () => '<h1>One</h1>' }, { patchesByCandidateId: { missing: { patchId: 'patch-missing', candidateId: 'missing', replacementText: 'x', replacementLength: 1, applyStatus: 'planned' } }, orderedCandidateIds: ['missing'] });
+assert.equal(blockedFail.exported, false);

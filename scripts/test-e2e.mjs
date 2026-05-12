@@ -6,7 +6,7 @@ if (!html.includes('<input id="file-input"')) throw new Error('shell ui missing 
 if (!html.includes('accept=".html,.htm,.zip"')) throw new Error('shell file picker missing accept hint');
 if (!html.includes('Open HTML/ZIP')) throw new Error('shell ui missing open control');
 if (!html.includes('Save</button>')) throw new Error('shell ui missing save placeholder');
-if (!html.includes('Export</button>')) throw new Error('shell ui missing export placeholder');
+if (!html.includes('id="export-edited-html"')) throw new Error('shell ui missing edited HTML export button');
 if (!html.includes('id="file-status"')) throw new Error('shell ui missing selected-file status region');
 if (!html.includes('id="file-details"')) throw new Error('shell ui missing selected-file metadata region');
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
@@ -20,6 +20,7 @@ if (!html.includes('id="patch-apply-status"')) throw new Error('shell ui missing
 if (!html.includes('id="reset-working-preview"')) throw new Error('shell ui missing reset working preview button');
 if (!html.includes('id="patch-collection-status"')) throw new Error('shell ui missing patch collection status region');
 if (!html.includes('id="working-preview-status"')) throw new Error('shell ui missing working preview status region');
+if (!html.includes('id="export-status"')) throw new Error('shell ui missing export status region');
 if (!html.includes('id="editable-draft-text"')) throw new Error('shell ui missing editable draft textarea');
 if (!html.includes('id="editable-candidate-select"')) throw new Error('shell ui missing editable candidate selector');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('shell ui missing safe preview iframe region');

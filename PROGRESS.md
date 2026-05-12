@@ -6,11 +6,11 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Milestone 4D - apply one planned text patch to in-memory working preview copy (complete).
+Current milestone: PR B - first local edited HTML export path (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, and 4D are complete for the current browser-first implementation. Milestone 4D adds a conservative one-patch application path that updates only an in-memory working HTML copy and refreshes the existing sandboxed safe preview without mutating the imported source.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, 4D, and PR B are complete for the current browser-first implementation. PR B adds the first user-initiated local-only export path for the in-memory edited working HTML copy using the patch collection, without mutating the imported source.
 
 Current app files:
 
@@ -347,3 +347,29 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: In-memory only; no save/export/persistence; no ZIP extraction/listing; no iframe internals access; no network calls.
 Next recommended task: Implement the next explicitly approved narrow milestone only.
+
+
+### 2026-05-12 (pr b first local edited html export path)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: PR B - first local edited HTML export path
+Summary: Added a narrow local-only edited HTML export flow driven by the in-memory patch collection. Export is user-initiated via trusted-shell button, reads HTML through importer/editable-compatible path, applies in-memory patches to a working copy, and downloads via Blob/object URL without persistence or source mutation.
+Files changed: apps/desktop/src/exporter.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Export is HTML/HTM only and in-memory only; no autosave/persistence, no ZIP export/extraction/listing, no image replacement, no visual editing, no iframe internals access, no network calls.
+Next recommended task: Proceed only with the next explicitly approved narrow milestone slice.
+
+
+### 2026-05-12 (pr b follow-up: centralize export file reads in importer)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: PR B - follow-up hardening
+Summary: Fixed PR B export architecture so selected-file text reads are centralized in importer. Exporter is now pure (`createEditedHtmlExportFromHtmlText`) and does not call file reading APIs.
+Files changed: apps/desktop/src/exporter.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: unchanged from PR B scope.
+Next recommended task: proceed only with explicitly approved next slice.

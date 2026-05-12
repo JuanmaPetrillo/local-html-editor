@@ -16,7 +16,7 @@
       section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5ebf1; }
       #file-status { margin-top: 0.75rem; font-weight: 600; }
       #file-details, #file-warning { margin-top: 0.5rem; }
-      #import-report, #import-manifest, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
+      #import-report, #import-manifest, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status, #export-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
       #file-warning { color: #9a3412; }
       .preview-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .preview-frame { margin-top: 0.75rem; border: 1px solid #dbe2ea; border-radius: 10px; padding: 0.5rem; background: #f8fafc; }
@@ -35,7 +35,7 @@
         <div class="toolbar">
           <label class="open-label" for="file-input">Open HTML/ZIP</label>
           <button type="button" disabled>Save</button>
-          <button type="button" disabled>Export</button>
+          <button id="export-edited-html" type="button" disabled>Export edited HTML</button>
         </div>
         <input id="file-input" class="visually-hidden" type="file" accept=".html,.htm,.zip" />
         <p id="file-status" aria-live="polite">No file selected.</p>
@@ -59,6 +59,7 @@
         <pre id="patch-apply-status" aria-live="polite">Patch apply status: unavailable.</pre>
         <pre id="patch-collection-status" aria-live="polite">Patch collection: none applied (in-memory only).</pre>
         <pre id="working-preview-status" aria-live="polite">Working preview state: unavailable.</pre>
+        <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches).</pre>
       </section>
       <section>
         <h2>Recent Projects</h2>
