@@ -90,3 +90,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: All commands passed from repository root.
 Known limitations: Milestone 1 remains static/minimal; no import/export pipeline, no visual editor, no script execution in preview.
 Next recommended task: Continue Milestone 1 trusted open/save pathway only if requested; do not start Milestone 2 until approved.
+
+### 2026-05-12 (milestone 1 shell metadata polish)
+
+Date: 2026-05-12
+Branch/PR: current branch / pending PR
+Milestone: Milestone 1 - Desktop shell and project model
+Summary: Polished the static shell UI with local CSS, added browser file-input-based open behavior, and surfaced selected file metadata (name/size/type) without reading or rendering file content. Strengthened local checks for canonical app-shell path, placeholder controls, and no remote runtime dependencies.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: All commands passed locally.
+Known limitations: Still a static prototype; no HTML parsing/rendering/import-export pipeline or editor interactions implemented yet.
+Next recommended task: Continue Milestone 1 with trusted shell workflows only (e.g., non-destructive project model creation after file selection) before Milestone 2.
