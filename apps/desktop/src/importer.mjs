@@ -257,6 +257,84 @@ export function formatImportStatusSummary(status) {
   return `Scan summary: ${status.summaryLabel} file=${status.fileName}, size=${status.fileSize} bytes, type=${status.type}, extension=.${status.extension || '(none)'}, source=${status.sourceKind}, severity=${status.severity}, warnings=${status.warningLabels.length ? status.warningLabels.join('|') : 'none'}.`;
 }
 
+/**
+ * @param {{
+ *   sourceKind: string,
+ *   fileName: string,
+ *   fileSize: number,
+ *   type: string,
+ *   extension: string | null,
+ *   severity: string,
+ *   warningLabels: string[],
+ *   checks: any
+ * }} status
+ * @param {{overallSeverity: string, warnings: Array<{code: string}>}} report
+ */
+export function createImportManifestFromStatus(status, report) {
+  const importStatus = status.ok ? 'ready-with-scan' : 'blocked';
+  const nextAvailableActions = ['open-another-file'];
+  const capabilities = ['local-scan-report', 'manifest-summary'];
+  const limitations = [
+    'no-save',
+    'no-export',
+    'no-edit',
+    'no-render',
+    'no-preview',
+    'no-zip-extraction',
+    'no-zip-entry-listing'
+  ];
+
+  return {
+    manifestVersion: 1,
+    createdAt: new Date().toISOString(),
+    sourceKind: status.sourceKind,
+    fileName: status.fileName,
+    fileSize: status.fileSize,
+    type: status.type,
+    extension: status.extension,
+    importStatus,
+    importReport: {
+      severity: report.overallSeverity,
+      warningCount: report.warnings.length,
+      warningCodes: report.warnings.map((warning) => warning.code)
+    },
+    referenceSummary: status.sourceKind === 'html' && status.checks?.referenceSummary
+      ? status.checks.referenceSummary
+      : null,
+    zipPreflightSummary:
+      status.sourceKind === 'zip' && status.checks?.signatureStatus
+        ? { signatureStatus: status.checks.signatureStatus }
+        : null,
+    capabilities,
+    nextAvailableActions,
+    limitations
+  };
+}
+
+/** @param {ReturnType<typeof createImportManifestFromStatus>} manifest */
+export function formatImportManifestText(manifest) {
+  const referenceSummary = manifest.referenceSummary
+    ? `local=${manifest.referenceSummary.byType['local-relative']}, remote=${manifest.referenceSummary.byType.remote}, data=${manifest.referenceSummary.byType['data-uri']}, anchor=${manifest.referenceSummary.byType.anchor}, unknown=${manifest.referenceSummary.byType.unknown}, total=${manifest.referenceSummary.totalCount}`
+    : 'none';
+  const zipSummary = manifest.zipPreflightSummary
+    ? `signature=${manifest.zipPreflightSummary.signatureStatus}`
+    : 'none';
+
+  return [
+    `Import manifest v${manifest.manifestVersion}`,
+    `createdAt: ${manifest.createdAt}`,
+    `sourceKind: ${manifest.sourceKind}`,
+    `file: ${manifest.fileName} (${manifest.fileSize} bytes, type=${manifest.type}, extension=.${manifest.extension || '(none)'})`,
+    `importStatus: ${manifest.importStatus}`,
+    `importReport: severity=${manifest.importReport.severity}, warningCount=${manifest.importReport.warningCount}, warningCodes=${manifest.importReport.warningCodes.length ? manifest.importReport.warningCodes.join('|') : 'none'}`,
+    `referenceSummary: ${referenceSummary}`,
+    `zipPreflightSummary: ${zipSummary}`,
+    `capabilities: ${manifest.capabilities.join('|')}`,
+    `nextAvailableActions: ${manifest.nextAvailableActions.join('|')}`,
+    `limitations: ${manifest.limitations.join('|')}`
+  ].join('\n');
+}
+
 export function createImportWarning(code) {
   const taxonomy = {
     'risk-markers-detected': {

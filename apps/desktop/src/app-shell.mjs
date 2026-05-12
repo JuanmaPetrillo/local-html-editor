@@ -1,8 +1,10 @@
 import {
   createImportStatusFromHtmlScan,
   createImportStatusFromZipPreflight,
+  createImportManifestFromStatus,
   formatImportStatusSummary,
   formatImportReportText,
+  formatImportManifestText,
   importHtmlFileScan,
   importZipFilePreflight,
   createImportReportFromStatus
@@ -93,6 +95,7 @@ const fileDetails = hasDom ? document.querySelector('#file-details') : null;
 const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
+const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
 
 if (
   hasDom &&
@@ -101,7 +104,8 @@ if (
   fileDetails instanceof HTMLElement &&
   fileWarning instanceof HTMLElement &&
   fileScan instanceof HTMLElement &&
-  importReport instanceof HTMLElement
+  importReport instanceof HTMLElement &&
+  importManifest instanceof HTMLElement
 ) {
   fileInput.addEventListener('change', async () => {
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
@@ -118,19 +122,42 @@ if (
     fileWarning.textContent = shellState.unsupportedLabel;
     fileScan.textContent = shellState.scanSummaryLabel;
     importReport.textContent = '';
+    importManifest.textContent = '';
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
       const status = createImportStatusFromHtmlScan(scanResult);
+      const report = createImportReportFromStatus(status);
       fileScan.textContent = formatImportStatusSummary(status);
-      importReport.textContent = formatImportReportText(createImportReportFromStatus(status));
+      importReport.textContent = formatImportReportText(report);
+      importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
     }
 
     if (selected && project && project.sourceKind === 'zip') {
       const scanResult = await importZipFilePreflight(selected);
       const status = createImportStatusFromZipPreflight(scanResult);
+      const report = createImportReportFromStatus(status);
       fileScan.textContent = formatImportStatusSummary(status);
-      importReport.textContent = formatImportReportText(createImportReportFromStatus(status));
+      importReport.textContent = formatImportReportText(report);
+      importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+    }
+
+    if (selected && project && project.sourceKind === 'unknown') {
+      const unsupportedStatus = {
+        sourceKind: 'unknown',
+        fileName: project.name,
+        fileSize: project.size,
+        type: project.type,
+        extension: project.extension || null,
+        ok: false,
+        severity: 'error',
+        warningLabels: ['unsupported-extension'],
+        checks: null
+      };
+      const report = createImportReportFromStatus(unsupportedStatus);
+      importManifest.textContent = formatImportManifestText(
+        createImportManifestFromStatus(unsupportedStatus, report)
+      );
     }
   });
 }
