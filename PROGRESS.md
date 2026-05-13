@@ -470,23 +470,12 @@ Next recommended task: Start click-to-edit visible text interactions over discov
 Date: 2026-05-13
 Branch/PR: current branch / pending PR
 Milestone: Bundled visual-editor slice - overlay selection MVP
-Summary: Added conservative geometry metadata extraction and overlay-ready classification in visual-object-model, then added a trusted-shell overlay layer that renders clickable boxes only for overlay-ready objects and syncs overlay clicks/dropdown selection into existing visual object selection status.
+Summary: Added conservative geometry metadata extraction and overlay-ready classification in visual-object-model, added trusted-shell overlay rendering and overlay selection sync with the existing object dropdown/inspector, and fixed overlay positioning CSS in index.html so overlay boxes render as absolute-positioned boxes above the preview stage.
 Files changed: apps/desktop/src/visual-object-model.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending run in this task after updates.
+Result: Passed.
 Known limitations: No editing/drag-resize/image replacement/HTML mutation/export changes; overlay draws only from explicit numeric geometry metadata and does not inspect iframe internals.
 Next recommended task: Proceed only with explicit approval for next narrow visual editing slice.
-
-### 2026-05-13 (phase 3b safe visual object geometry metadata extraction)
-Date: 2026-05-13
-Branch/PR: current branch / pending PR
-Milestone: Phase 3B - safe visual object geometry metadata extraction
-Summary: Added conservative geometry metadata extraction in visual object model from explicit inline px values (`left/top/width/height`) and optional `img` width/height numeric attributes, plus overlay-ready/partial/missing status and geometry summary counts in inventory/selection text output. No rendering/layout computation, no iframe internals access, no HTML mutation, and no export behavior changes were added.
-Files changed: apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, PROGRESS.md
-Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending run in this task after Phase 3B code/test updates.
-Known limitations: Metadata-only; ignores non-px/malformed geometry and does not draw overlays, edit geometry, drag/resize, replace images, or change export/ZIP behavior.
-Next recommended task: Proceed only with explicit approval for the next narrow visual editing slice.
 
 ### 2026-05-13 (phase 3A visual object selection scaffold)
 Date: 2026-05-13

@@ -17,6 +17,8 @@ if (!html.includes('id="visual-object-select"')) throw new Error('shell ui missi
 if (!html.includes('id="visual-object-selection-status"')) throw new Error('shell ui missing visual object selection status region');
 if (!html.includes('id="visual-overlay-layer"')) throw new Error('shell ui missing visual overlay layer');
 if (!html.includes('id="visual-overlay-status"')) throw new Error('shell ui missing visual overlay status region');
+if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
+if (!html.includes('position: absolute')) throw new Error('shell ui missing absolute positioning style for overlay rendering');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');
 if (!html.includes('id="editable-draft-status"')) throw new Error('shell ui missing editable draft status region');
 if (!html.includes('id="editable-patch-plan"')) throw new Error('shell ui missing editable patch plan region');

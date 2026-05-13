@@ -24,6 +24,10 @@
       .preview-frame.preview-frame--compact iframe { min-height: 280px; }
       .preview-frame.preview-frame--tall iframe { min-height: 720px; }
       .preview-frame.preview-frame--fit iframe { max-width: 100%; margin: 0 auto; }
+      #safe-preview-stage { position: relative; }
+      #visual-overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+      .visual-overlay-box { position: absolute; box-sizing: border-box; border: 2px solid #2563eb; background: rgba(37, 99, 235, 0.12); pointer-events: auto; cursor: pointer; }
+      .visual-overlay-box[aria-pressed="true"] { border-color: #b91c1c; background: rgba(185, 28, 28, 0.14); }
       .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
   </head>
