@@ -314,6 +314,7 @@ if (
     fileScan.textContent = shellState.scanSummaryLabel;
     importReport.textContent = '';
     importManifest.textContent = '';
+    visualObjectInventory.textContent = 'Visual object discovery: waiting for .html/.htm selection.';
     editableInventory.textContent = 'Editable text candidates: unavailable.';
     currentInventory = null;
     currentHtmlFile = null;
@@ -337,6 +338,9 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      const visualInventory = await createVisualObjectInventoryForHtmlFile(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
+      visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
       const inventory = await createEditableInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentInventory = inventory;
@@ -372,6 +376,7 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
       editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
@@ -393,6 +398,7 @@ if (
       importManifest.textContent = formatImportManifestText(
         createImportManifestFromStatus(unsupportedStatus, report)
       );
+      visualObjectInventory.textContent = 'Visual object discovery: unavailable for this file type.';
       editableInventory.textContent = 'Editable text candidates: unavailable for this file type.';
       safePreviewStatus.textContent = formatPreviewStatusText(
         createUnavailablePreviewStatus('unknown', project.name)

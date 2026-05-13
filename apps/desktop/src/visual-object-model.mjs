@@ -6,8 +6,10 @@ function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
+const EXCLUDED_BLOCKS_PATTERN = /<\s*(script|style|template|noscript)\b[\s\S]*?<\s*\/\s*\1\s*>/gi;
+
 function stripExcludedBlocks(htmlText) {
-  return htmlText.replace(/<\s*(script|style|template|noscript)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
+  return htmlText.replace(EXCLUDED_BLOCKS_PATTERN, (match) => ' '.repeat(match.length));
 }
 
 function getAttribute(tagSource, attributeName) {
@@ -97,9 +99,15 @@ export function extractVisualObjectsFromHtml(htmlText) {
 }
 
 export function createVisualObjectInventory(htmlText) {
+  const objects = extractVisualObjectsFromHtml(htmlText);
   return {
-    summary: { totalCount: 0, editableCount: 0, partiallyEditableCount: 0, lockedCount: 0 },
-    objects: extractVisualObjectsFromHtml(htmlText)
+    summary: {
+      totalCount: objects.length,
+      editableCount: objects.filter((obj) => obj.editability === 'editable').length,
+      partiallyEditableCount: objects.filter((obj) => obj.editability === 'partially-editable').length,
+      lockedCount: objects.filter((obj) => obj.editability === 'locked').length
+    },
+    objects
   };
 }
 

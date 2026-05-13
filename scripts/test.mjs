@@ -806,3 +806,20 @@ const visualForZip = await createVisualObjectInventoryForHtmlFile({ name: 'slide
 assert.equal(visualForZip, null);
 const visualForUnsupported = await createVisualObjectInventoryForHtmlFile({ name: 'slides.txt', text: async () => '<h1>X</h1>' });
 assert.equal(visualForUnsupported, null);
+
+const visualInventoryForHtmlFile = await createVisualObjectInventoryForHtmlFile({ name: 'demo.html', text: async () => '<h1>Deck</h1>' });
+assert.equal(formatVisualObjectInventoryText(visualInventoryForHtmlFile).includes('object-001'), true);
+
+const offsetHtml = '<script>const x = 1;</script><h1>Title</h1>';
+const offsetObjects = extractVisualObjectsFromHtml(offsetHtml);
+const offsetTitle = offsetObjects.find((o) => o.type === 'text' && o.tagName === 'h1');
+assert.equal(offsetTitle.sourceStart, offsetHtml.indexOf('<h1>'));
+assert.equal(offsetTitle.sourceEnd, offsetHtml.indexOf('<h1>') + 4);
+
+const summaryEditable = createVisualObjectInventory('<h1>Title</h1>');
+assert.equal(summaryEditable.summary.editableCount, 1);
+assert.equal(summaryEditable.summary.totalCount, 1);
+const summaryLocked = createVisualObjectInventory('<iframe></iframe>');
+assert.equal(summaryLocked.summary.lockedCount, 1);
+const summaryMixed = createVisualObjectInventory('<h1>A</h1><canvas></canvas><p>B</p>');
+assert.equal(summaryMixed.summary.totalCount, 3);
