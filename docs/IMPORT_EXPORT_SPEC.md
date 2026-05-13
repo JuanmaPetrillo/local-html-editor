@@ -6,7 +6,7 @@ MVP inputs:
 
 - `.html`
 - `.htm`
-- `.zip` containing one HTML entry point and local assets
+- `.zip` preflight signature check only in current browser-first MVP (no extraction/listing/export yet)
 
 Later inputs:
 
@@ -144,3 +144,12 @@ Optional for small decks. Inline assets only when size and policy allow.
 - Preserve relative links.
 - Preserve unsupported but safe content.
 - Keep remote references blocked or clearly flagged.
+
+
+## Current browser-first MVP notes
+
+- `importer.mjs` owns selected-file reads (`.text()` / `.arrayBuffer()`).
+- `exporter.mjs` is pure helper logic and does not read files.
+- Export is user-initiated local HTML download only.
+- Export output is original HTML plus in-memory text patches (not sanitized preview srcdoc).
+- No persistence/autosave in current slice.

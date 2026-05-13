@@ -8,9 +8,9 @@ Build a fully local desktop app that lets non-technical users safely edit Copilo
 
 - Milestone 0 complete.
 - Milestone 1 complete as static browser-first prototype.
-- Milestone 2A complete as local `.html`/`.htm` scan-only intake.
-- Tauri/React/Vite/TypeScript implementation deferred by Decision 007.
-- Filesystem project folders, ZIP parsing, preview iframe, export, and visual editing are deferred.
+- Browser-first MVP slice is active and includes local HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery, in-memory text patching, reset-to-original, and user-initiated local edited HTML export.
+- ZIP remains preflight-only (no extraction/listing/export).
+- Tauri/React/Vite/TypeScript implementation remains deferred by Decision 007 and follow-up Decision 008.
 
 ## Target user
 

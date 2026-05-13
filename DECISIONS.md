@@ -62,3 +62,14 @@ Decision: Use a static browser-first prototype for Milestones 0-2A. Defer Tauri/
 Reason: This reduces complexity and better fits no-admin managed corporate PC constraints while validating the security model early.
 
 Impact: No agent should install or start Tauri/React/Vite implementation unless explicit approval is given in-task.
+
+
+## Decision 008: Continue browser-first prototype past 2A to current MVP slice
+
+Status: Accepted
+
+Decision: Continue the browser-first static prototype past 2A through current MVP text-edit/preview/export hardening slices, while keeping Tauri/React/Vite/TypeScript deferred.
+
+Reason: This keeps delivery narrow and testable under current constraints while preserving security invariants and local-only behavior.
+
+Impact: Current implementation truth is browser-first MVP modules and local-only flows; roadmap stack remains future direction only.
