@@ -397,3 +397,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No new features added; ZIP remains preflight-only; no image replacement/drag-resize/persistence; no iframe permission changes.
 Next recommended task: Start PR 2 or PR 3 only with explicit approval.
+
+### 2026-05-13 (PR 2 P1 runtime + flow blockers)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: PR 2 - P1 blocker fixes only
+Summary: Fixed async file-selection race in shell using monotonic selection generation checks across HTML/ZIP flows; fixed safe preview full-document wrapping to avoid nested html/head/body while preserving strict CSP/referrer/script stripping; updated import manifest capabilities/limitations to current MVP text-edit/export reality; updated editable inventory wording to reflect in-memory text editing; reordered UI so step 2 safe preview appears before steps 3-5; added export disclosure warning when source had scripts/remote refs blocked in safe preview.
+Files changed: apps/desktop/src/app-shell.mjs, apps/desktop/src/preview-sandbox.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/editable-model.mjs, apps/desktop/src/exporter.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new capabilities added beyond existing HTML text-only in-memory patch/edit/export; ZIP remains preflight-only; no image replacement; no drag/resize; no persistence/autosave; no iframe permission changes; no dependencies/network calls/telemetry; no Tauri/React/Vite conversion.
+Next recommended task: Proceed only with explicitly approved PR 3 docs/test-hardening scope.

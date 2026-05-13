@@ -153,5 +153,14 @@ export function buildSafePreviewDocument(htmlText) {
   const noDangerousUrls = neutralizeDangerousUrls(noHandlers);
   const noEmbedded = neutralizeEmbeddedContent(noDangerousUrls);
   const sanitized = stripMetaRefresh(noEmbedded);
-  return `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}"><meta name="referrer" content="no-referrer"><title>Safe Preview</title></head><body>${sanitized}</body></html>`;
+  const doctypeMatch = sanitized.match(/^\s*<!doctype[^>]*>/i);
+  const doctype = doctypeMatch ? doctypeMatch[0] : '<!doctype html>';
+  const withoutDoctype = doctypeMatch ? sanitized.slice(doctypeMatch[0].length) : sanitized;
+  const htmlMatch = withoutDoctype.match(/<\s*html\b[^>]*>([\s\S]*?)<\s*\/\s*html\s*>/i);
+  const docContent = htmlMatch ? htmlMatch[1] : withoutDoctype;
+  const headMatch = docContent.match(/<\s*head\b[^>]*>([\s\S]*?)<\s*\/\s*head\s*>/i);
+  const bodyMatch = docContent.match(/<\s*body\b[^>]*>([\s\S]*?)<\s*\/\s*body\s*>/i);
+  const headContent = headMatch ? headMatch[1] : '';
+  const bodyContent = bodyMatch ? bodyMatch[1] : docContent.replace(/<\s*head\b[^>]*>[\s\S]*?<\s*\/\s*head\s*>/gi, '');
+  return `${doctype}<html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}"><meta name="referrer" content="no-referrer"><title>Safe Preview</title>${headContent}</head><body>${bodyContent}</body></html>`;
 }

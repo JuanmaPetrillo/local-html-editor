@@ -247,7 +247,7 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection) {
+export async function createEditedHtmlExport(file, patchCollection, safetySummary = null) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) {
     const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
@@ -256,7 +256,7 @@ export async function createEditedHtmlExport(file, patchCollection) {
     return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
   }
   const htmlText = await file.text();
-  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection);
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, safetySummary);
 }
 
 /**
@@ -383,16 +383,41 @@ export function formatImportStatusSummary(status) {
 export function createImportManifestFromStatus(status, report) {
   const importStatus = status.ok ? 'ready-with-scan' : 'blocked';
   const nextAvailableActions = ['open-another-file'];
-  const capabilities = ['local-scan-report', 'manifest-summary'];
-  const limitations = [
-    'no-save',
-    'no-export',
-    'no-edit',
-    'no-render',
-    'no-preview',
-    'no-zip-extraction',
-    'no-zip-entry-listing'
-  ];
+  const capabilities = status.sourceKind === 'html'
+    ? ['local-scan-report', 'manifest-summary', 'safe-static-preview', 'editable-text-candidates', 'in-memory-text-patching', 'local-edited-html-export']
+    : status.sourceKind === 'zip'
+      ? ['zip-preflight', 'manifest-summary']
+      : ['manifest-summary'];
+  const limitations = status.sourceKind === 'html'
+    ? [
+        'no-save',
+        'no-persistence',
+        'no-zip-extraction',
+        'no-zip-entry-listing',
+        'no-zip-export',
+        'no-image-replacement',
+        'no-drag-resize',
+        'no-visual-element-editing'
+      ]
+    : status.sourceKind === 'zip'
+      ? [
+          'no-safe-preview-for-zip',
+          'no-edit-for-zip',
+          'no-export-for-zip',
+          'no-zip-extraction',
+          'no-zip-entry-listing',
+          'no-zip-export',
+          'no-save',
+          'no-persistence'
+        ]
+      : [
+          'unsupported-file-type',
+          'no-preview',
+          'no-edit',
+          'no-export',
+          'no-save',
+          'no-persistence'
+        ];
 
   return {
     manifestVersion: 1,

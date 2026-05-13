@@ -98,7 +98,7 @@ export function formatEditableInventoryText(inventory) {
   const lines = [
     'Editable text candidates',
     'Read-only discovery',
-    'Editing is not enabled yet'
+    'Text editing is available for the candidates below. Changes stay in memory until exported.'
   ];
 
   if (inventory.candidates.length === 0) {
