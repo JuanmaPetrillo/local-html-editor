@@ -383,17 +383,41 @@ export function formatImportStatusSummary(status) {
 export function createImportManifestFromStatus(status, report) {
   const importStatus = status.ok ? 'ready-with-scan' : 'blocked';
   const nextAvailableActions = ['open-another-file'];
-  const capabilities = ['local-scan-report', 'manifest-summary', 'safe-static-preview', 'editable-text-candidates', 'in-memory-text-patching', 'local-edited-html-export'];
-  const limitations = [
-    'no-save',
-    'no-persistence',
-    'no-zip-extraction',
-    'no-zip-entry-listing',
-    'no-zip-export',
-    'no-image-replacement',
-    'no-drag-resize',
-    'no-visual-element-editing'
-  ];
+  const capabilities = status.sourceKind === 'html'
+    ? ['local-scan-report', 'manifest-summary', 'safe-static-preview', 'editable-text-candidates', 'in-memory-text-patching', 'local-edited-html-export']
+    : status.sourceKind === 'zip'
+      ? ['zip-preflight', 'manifest-summary']
+      : ['manifest-summary'];
+  const limitations = status.sourceKind === 'html'
+    ? [
+        'no-save',
+        'no-persistence',
+        'no-zip-extraction',
+        'no-zip-entry-listing',
+        'no-zip-export',
+        'no-image-replacement',
+        'no-drag-resize',
+        'no-visual-element-editing'
+      ]
+    : status.sourceKind === 'zip'
+      ? [
+          'no-safe-preview-for-zip',
+          'no-edit-for-zip',
+          'no-export-for-zip',
+          'no-zip-extraction',
+          'no-zip-entry-listing',
+          'no-zip-export',
+          'no-save',
+          'no-persistence'
+        ]
+      : [
+          'unsupported-file-type',
+          'no-preview',
+          'no-edit',
+          'no-export',
+          'no-save',
+          'no-persistence'
+        ];
 
   return {
     manifestVersion: 1,

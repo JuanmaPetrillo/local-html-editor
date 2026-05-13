@@ -239,6 +239,12 @@ assert.equal(validZipStatus.checks.signatureStatus, 'valid-pk0304');
 assert.equal(validZipReport.overallSeverity, 'info');
 assert.equal(validZipManifest.sourceKind, 'zip');
 assert.equal(validZipManifest.zipPreflightSummary.signatureStatus, 'valid-pk0304');
+assert.equal(validZipManifest.capabilities.includes('zip-preflight'), true);
+assert.equal(validZipManifest.capabilities.includes('safe-static-preview'), false);
+assert.equal(validZipManifest.capabilities.includes('editable-text-candidates'), false);
+assert.equal(validZipManifest.capabilities.includes('in-memory-text-patching'), false);
+assert.equal(validZipManifest.capabilities.includes('local-edited-html-export'), false);
+assert.equal(validZipManifest.limitations.includes('no-export-for-zip'), true);
 
 const invalidZipResult = await importZipFilePreflight({
   name: 'bad.zip',
@@ -276,6 +282,10 @@ assert.equal(nonHtmlStatus.ok, false);
 assert.equal(nonHtmlStatus.severity, 'error');
 assert.equal(nonHtmlReport.overallSeverity, 'error');
 assert.equal('rawHtmlText' in nonHtmlManifest, false);
+assert.equal(nonHtmlManifest.capabilities.includes('safe-static-preview'), false);
+assert.equal(nonHtmlManifest.capabilities.includes('editable-text-candidates'), false);
+assert.equal(nonHtmlManifest.capabilities.includes('local-edited-html-export'), false);
+assert.equal(nonHtmlManifest.limitations.includes('unsupported-file-type'), true);
 
 const safePreviewDoc = buildSafePreviewDocument(
   '<meta http-equiv="refresh" content="0;url=https://example.test"><script>alert(1)</script><button onclick="x()">B</button><img src="javascript:alert(1)"><a href="https://example.test">x</a><iframe src="x"></iframe>'
