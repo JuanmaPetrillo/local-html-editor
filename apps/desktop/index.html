@@ -16,7 +16,7 @@
       section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5ebf1; }
       #file-status { margin-top: 0.75rem; font-weight: 600; }
       #file-details, #file-warning { margin-top: 0.5rem; }
-      #import-report, #import-manifest, #visual-object-inventory, #visual-object-selection-status, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status, #export-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
+      #import-report, #import-manifest, #visual-object-inventory, #visual-object-selection-status, #visual-overlay-status, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status, #export-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
       #file-warning { color: #9a3412; }
       .preview-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .preview-frame { margin-top: 0.75rem; border: 1px solid #dbe2ea; border-radius: 10px; padding: 0.5rem; background: #f8fafc; }
@@ -55,9 +55,13 @@
           <button type="button" id="preview-reset-layout">Reset preview layout</button>
         </div>
         <pre id="safe-preview-status" aria-live="polite">Safe static preview: unavailable. Select an HTML file for a sanitized preview.</pre>
-        <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
-          <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
+        <div id="safe-preview-stage">
+          <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
+            <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
+          </div>
+          <div id="visual-overlay-layer" aria-label="Visual overlay layer"></div>
         </div>
+        <pre id="visual-overlay-status" aria-live="polite">Overlay status: waiting for .html/.htm selection.</pre>
       </section>
       <section>
         <h2>Visual object discovery</h2>

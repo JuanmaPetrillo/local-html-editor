@@ -244,6 +244,41 @@ export function formatVisualObjectInventoryText(inventory) {
   return lines.join('\n');
 }
 
+
+export function createVisualOverlayItems(inventory) {
+  if (!inventory || !Array.isArray(inventory.objects)) return [];
+  return inventory.objects
+    .filter((obj) => obj && obj.geometry && obj.geometry.overlayReady)
+    .map((obj) => ({
+      objectId: obj.objectId,
+      left: obj.geometry.left,
+      top: obj.geometry.top,
+      width: obj.geometry.width,
+      height: obj.geometry.height,
+      style: `left:${obj.geometry.left}px;top:${obj.geometry.top}px;width:${obj.geometry.width}px;height:${obj.geometry.height}px;`,
+      label: `Overlay ${obj.objectId} (${obj.type})`
+    }));
+}
+
+export function createVisualOverlaySelectionState(overlayItems, selectedObjectId) {
+  const items = Array.isArray(overlayItems) ? overlayItems : [];
+  return {
+    items,
+    selectedObjectId: items.some((item) => item.objectId === selectedObjectId) ? selectedObjectId : '',
+    hasItems: items.length > 0
+  };
+}
+
+export function formatOverlayStatusText(selectionState) {
+  if (!selectionState || !selectionState.hasItems) {
+    return 'Overlay status: No overlay-ready objects found. Objects may still be listed below.';
+  }
+  if (!selectionState.selectedObjectId) {
+    return `Overlay status: ${selectionState.items.length} overlay box(es) ready.`;
+  }
+  return `Overlay status: ${selectionState.items.length} overlay box(es) ready. Selected: ${selectionState.selectedObjectId}.`;
+}
+
 export function selectVisualObject(inventory, objectId) {
   if (!inventory || !Array.isArray(inventory.objects) || !objectId) {
     return null;

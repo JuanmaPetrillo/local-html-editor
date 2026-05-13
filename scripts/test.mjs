@@ -63,11 +63,14 @@ import {
   createGeometryStatus,
   createVisualObjectInventory,
   createVisualObjectSelectionState,
+  createVisualOverlayItems,
+  createVisualOverlaySelectionState,
   extractImageAttributeGeometry,
   extractInlineGeometry,
   extractPixelValue,
   extractVisualObjectsFromHtml,
   formatGeometryText,
+  formatOverlayStatusText,
   parseInlineStyle,
   formatVisualObjectInventoryText,
   formatVisualObjectOptionLabel,
@@ -817,6 +820,20 @@ const partialPositionGeometry = extractInlineGeometry('<div style="left: 12px; t
 assert.equal(partialPositionGeometry.overlayReady, false);
 assert.equal(createGeometryStatus(partialPositionGeometry), 'partial');
 assert.equal(formatGeometryText(partialPositionGeometry).includes('partial'), true);
+
+const overlayInventory = createVisualObjectInventory('<img src="a.png" style="left:10px;top:20px;width:30px;height:40px">');
+const overlayItems = createVisualOverlayItems(overlayInventory);
+assert.equal(overlayItems.length, 1);
+assert.equal(overlayItems[0].objectId, 'object-001');
+assert.equal(overlayItems[0].style.includes('left:10px'), true);
+assert.equal(overlayItems[0].style.includes('width:30px'), true);
+const overlaySelection = createVisualOverlaySelectionState(overlayItems, 'object-001');
+assert.equal(overlaySelection.selectedObjectId, 'object-001');
+assert.equal(formatOverlayStatusText(overlaySelection).includes('Selected: object-001'), true);
+const overlayUnknown = createVisualOverlaySelectionState(overlayItems, 'object-999');
+assert.equal(overlayUnknown.selectedObjectId, '');
+assert.equal(formatOverlayStatusText(createVisualOverlaySelectionState([], 'object-001')).includes('No overlay-ready objects found'), true);
+
 
 const visualTextObjects = extractVisualObjectsFromHtml('<h1>Title</h1><p>Body</p>');
 assert.equal(visualTextObjects.filter((o) => o.type === 'text').length, 2);

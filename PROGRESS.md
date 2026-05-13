@@ -466,6 +466,17 @@ Known limitations: Best-effort regex discovery only; no drag/resize/direct visua
 Next recommended task: Start click-to-edit visible text interactions over discovered object inventory while keeping locked content preserved.
 
 
+### 2026-05-13 (phase 3 overlay MVP: geometry + trusted-shell overlay selection)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Bundled visual-editor slice - overlay selection MVP
+Summary: Added conservative geometry metadata extraction and overlay-ready classification in visual-object-model, then added a trusted-shell overlay layer that renders clickable boxes only for overlay-ready objects and syncs overlay clicks/dropdown selection into existing visual object selection status.
+Files changed: apps/desktop/src/visual-object-model.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Pending run in this task after updates.
+Known limitations: No editing/drag-resize/image replacement/HTML mutation/export changes; overlay draws only from explicit numeric geometry metadata and does not inspect iframe internals.
+Next recommended task: Proceed only with explicit approval for next narrow visual editing slice.
+
 ### 2026-05-13 (phase 3b safe visual object geometry metadata extraction)
 Date: 2026-05-13
 Branch/PR: current branch / pending PR
