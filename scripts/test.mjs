@@ -27,7 +27,8 @@ import {
   createEditableInventoryForHtmlFile,
   createPatchedSafePreviewResult,
   createCollectionPatchedSafePreviewResult,
-  createEditedHtmlExport
+  createEditedHtmlExport,
+  createVisualObjectInventoryForHtmlFile
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -58,6 +59,7 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
+import { extractVisualObjectsFromHtml, createVisualObjectInventory, formatVisualObjectInventoryText } from '../apps/desktop/src/visual-object-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -768,3 +770,39 @@ assert.equal(blockedEmpty.exported, false);
 assert.equal(validZipManifest.capabilities.includes('local-edited-html-export'), false);
 assert.equal(nonHtmlManifest.capabilities.includes('editable-text-candidates'), false);
 assert.equal(createDraftEditState({ candidates: [] }).selectedCandidateId, '');
+
+
+const visualTextObjects = extractVisualObjectsFromHtml('<h1>Title</h1><p>Body</p>');
+assert.equal(visualTextObjects.filter((o) => o.type === 'text').length, 2);
+assert.equal(visualTextObjects[0].editability, 'editable');
+
+const visualImageObjects = extractVisualObjectsFromHtml('<img src="images/pic.png">');
+assert.equal(visualImageObjects[0].type, 'image');
+assert.equal(visualImageObjects[0].srcPreview, 'images/pic.png');
+
+const excludedScriptText = extractVisualObjectsFromHtml('<script><p>Ignore me</p></script><style><p>Ignore</p></style><template><p>Ignore</p></template><p>Keep</p>');
+assert.equal(excludedScriptText.some((o) => o.textPreview === 'Ignore me'), false);
+assert.equal(excludedScriptText.some((o) => o.textPreview === 'Keep'), true);
+
+const lockedObjects = extractVisualObjectsFromHtml('<iframe></iframe><object></object><embed></embed><canvas></canvas><svg></svg>');
+assert.equal(lockedObjects.every((o) => o.editability === 'locked'), true);
+
+const nestedContainer = extractVisualObjectsFromHtml('<div><p>Nested</p></div>');
+const containerObject = nestedContainer.find((o) => o.type === 'container');
+assert.equal(containerObject.editability === 'partially-editable' || containerObject.editability === 'locked', true);
+
+const deterministicIds = extractVisualObjectsFromHtml('<h1>A</h1><p>B</p><img src="a.png">');
+assert.deepEqual(deterministicIds.map((o) => o.objectId), ['object-001', 'object-002', 'object-003']);
+
+const visualInventory = createVisualObjectInventory('<h1>Hello</h1>');
+assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'rawHtmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'htmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'rawBytes'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'binary'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'workingHtml'), false);
+assert.equal(formatVisualObjectInventoryText(visualInventory).includes('object-001'), true);
+
+const visualForZip = await createVisualObjectInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>X</h1>' });
+assert.equal(visualForZip, null);
+const visualForUnsupported = await createVisualObjectInventoryForHtmlFile({ name: 'slides.txt', text: async () => '<h1>X</h1>' });
+assert.equal(visualForUnsupported, null);

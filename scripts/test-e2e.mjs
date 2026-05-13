@@ -12,6 +12,7 @@ if (!html.includes('id="file-details"')) throw new Error('shell ui missing selec
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
 if (!html.includes('id="import-report"')) throw new Error('shell ui missing import report region');
 if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing import manifest region');
+if (!html.includes('id="visual-object-inventory"')) throw new Error('shell ui missing visual object inventory region');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');
 if (!html.includes('id="editable-draft-status"')) throw new Error('shell ui missing editable draft status region');
 if (!html.includes('id="editable-patch-plan"')) throw new Error('shell ui missing editable patch plan region');
