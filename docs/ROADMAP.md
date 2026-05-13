@@ -1,63 +1,34 @@
 # Roadmap
 
-## Phase 0: Planning scaffold
+## Current phase
 
-Status: complete after these Markdown files are committed.
+### Phase 1: Prompt training and helper workflow guide (current)
 
-## Phase 1: Foundation
+- Publish practical Copilot prompting guidance for low-risk micro-edits.
+- Document temporary DevTools/Notepad helper workflows for power users.
+- Keep explicit messaging that helper workflows are temporary support paths, not target UX.
 
-- Create app scaffold.
-- Add package structure.
-- Add basic scripts.
-- Add CI.
-- Add synthetic fixtures.
+## Next phase
 
-## Phase 2: Import/export
+### Phase 2: Visual object discovery and editability classification (next)
 
-- HTML import.
-- ZIP import.
-- Asset discovery.
-- Remote URL detection.
-- Export HTML/folder/ZIP.
+- Best-effort arbitrary HTML object discovery.
+- Classify objects as editable, partially editable, or locked/preserved.
+- Explain locked content in plain language.
 
-## Phase 3: Editing MVP
+## Future phases
 
-- Select elements.
-- Edit text.
-- Replace images.
-- Drag/resize.
-- Keyboard nudge.
-- Undo/redo.
-- Inspector.
+### Phase 3: Click-to-edit visible text
+### Phase 4: Move/resize simple visual elements
+### Phase 5: Image replacement
+### Phase 6: ZIP/assets import-export
+### Phase 7: Packaging/non-admin distribution
+### Phase 8: Pilot hardening
 
-## Phase 4: Security preview
+## Strategy guardrails across all phases
 
-- Safe design mode.
-- Isolated interactive preview.
-- CSP/network blocking.
-- Malicious fixtures.
-
-## Phase 5: Packaging
-
-- Windows user-scope package.
-- Packaged smoke tests.
-- Release workflow.
-- Pilot release.
-
-## Phase 6: Pilot hardening
-
-- Better errors.
-- Better UX polish.
-- Accessibility improvements.
-- More real-world fixture coverage.
-- Internal pilot guide.
-
-## Later ideas
-
-- Template library.
-- Approved corporate design tokens.
-- Brand checks.
-- Local screenshot export.
-- Local before/after comparison.
-- Local HTML diff explanation.
-- Optional integration with Git for technical users.
+- Arbitrary HTML support is best-effort; full editability is not guaranteed.
+- Edit-ready Copilot metadata is recommended and supported, not required.
+- Unsupported complex content must be preserved and previewed, not destructively rewritten.
+- Final UX target is a local visual editor for non-technical users, not a code editor.
+- Current browser-first MVP remains a foundation/proof of concept.

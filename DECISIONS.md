@@ -73,3 +73,14 @@ Decision: Continue the browser-first static prototype past 2A through current MV
 Reason: This keeps delivery narrow and testable under current constraints while preserving security invariants and local-only behavior.
 
 Impact: Current implementation truth is browser-first MVP modules and local-only flows; roadmap stack remains future direction only.
+
+
+## Decision 009: Adopt best-effort arbitrary HTML visual editing with optional edit-ready Copilot metadata
+
+Status: Accepted
+
+Decision: The product strategy is best-effort visual editing for arbitrary HTML presentations, with optional/recommended Copilot editability metadata for improved reliability.
+
+Rationale: People will receive arbitrary HTML from Copilot and other teams; requiring a special generation format is not realistic.
+
+Impact: The app must classify editability (editable, partially editable, locked/preserved) and preserve/lock unsupported complex content instead of destructively rewriting it.
