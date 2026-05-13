@@ -52,6 +52,7 @@ import {
   createPatchCollectionState,
   addOrUpdatePatchInCollection,
   applyPatchCollectionToWorkingHtml,
+  detectOverlappingPatchSpans,
   resetWorkingPreviewState,
   formatPatchCollectionText,
   formatWorkingPreviewStateText
@@ -284,6 +285,21 @@ assert.equal(safePreviewDoc.includes('<iframe'), false);
 assert.equal(safePreviewDoc.toLowerCase().includes('http-equiv="refresh"'), false);
 assert.equal(safePreviewDoc.includes('allow-scripts'), false);
 assert.equal(safePreviewDoc.includes('allow-same-origin'), false);
+
+
+const malformedScriptDoc = buildSafePreviewDocument('<h1>X</h1><script src="x.js">');
+assert.equal(malformedScriptDoc.includes('<script'), false);
+const malformedScriptDocInline = buildSafePreviewDocument('<h1>X</h1><script>alert(1)');
+assert.equal(malformedScriptDocInline.includes('<script'), false);
+const malformedScriptStatus = buildSafePreviewResult('<h1>X</h1><script src="x.js">');
+assert.equal(malformedScriptStatus.previewStatus.scriptsRemoved > 0, true);
+assert.equal(malformedScriptStatus.previewDocument.includes("default-src 'none'"), true);
+
+const blockedSvgData = buildSafePreviewDocument('<img src="data:image/svg+xml,%3Csvg%3E"/><a href="data:text/html,abc">x</a>');
+assert.equal(blockedSvgData.includes('data:image/svg+xml'), false);
+assert.equal(blockedSvgData.includes('href="#"'), true);
+const allowedPngData = buildSafePreviewDocument('<img src="data:image/png;base64,AAAA">');
+assert.equal(allowedPngData.includes('data:image/png;base64,AAAA'), true);
 
 const htmlPreviewDoc = await createSafeHtmlPreviewDocument({
   name: 'preview.html',
@@ -591,6 +607,33 @@ const reverseFirst = addOrUpdatePatchInCollection(reverseCollection, p2).collect
 const reverseSecond = addOrUpdatePatchInCollection(reverseFirst, p1).collection;
 const reverseApply = applyPatchCollectionToWorkingHtml(multiHtml, reverseSecond, multiInventory);
 assert.equal(reverseApply.workingHtml, '<h1>Title A</h1><p>Body B</p><span>Hello</span>');
+
+
+const overlapHtml = '<div><h1>Title</h1></div>';
+const overlapInventory = createEditableTextInventory(overlapHtml);
+const overlapH1 = overlapInventory.candidates.find((candidate) => candidate.tagName === 'h1');
+const overlapDiv = overlapInventory.candidates.find((candidate) => candidate.tagName === 'div');
+let overlapCollection = createPatchCollectionState();
+overlapCollection = addOrUpdatePatchInCollection(overlapCollection, createTextPatchPlan(createDraftEdit(overlapH1, 'New H1'))).collection;
+overlapCollection = addOrUpdatePatchInCollection(overlapCollection, createTextPatchPlan(createDraftEdit(overlapDiv, 'New Div Text'))).collection;
+const overlaps = detectOverlappingPatchSpans(overlapCollection, overlapInventory);
+assert.equal(overlaps.length > 0, true);
+const overlapApply = applyPatchCollectionToWorkingHtml(overlapHtml, overlapCollection, overlapInventory);
+assert.equal(overlapApply.applyStatus, 'blocked-overlapping-patches');
+assert.equal(overlapApply.appliedAny, false);
+assert.equal('workingHtml' in overlapApply, false);
+
+const blockedOverlapExport = createEditedHtmlExportFromHtmlText(overlapHtml, 'deck.html', overlapCollection);
+assert.equal(blockedOverlapExport.exported, false);
+assert.equal(blockedOverlapExport.exportStatus, 'blocked');
+
+let sameCandidateCollection = createPatchCollectionState();
+sameCandidateCollection = addOrUpdatePatchInCollection(sameCandidateCollection, createTextPatchPlan(createDraftEdit(first, 'Interim'))).collection;
+sameCandidateCollection = addOrUpdatePatchInCollection(sameCandidateCollection, createTextPatchPlan(createDraftEdit(first, 'Final Title'))).collection;
+assert.equal(sameCandidateCollection.orderedCandidateIds.length, 1);
+assert.equal(detectOverlappingPatchSpans(sameCandidateCollection, multiInventory).length, 0);
+const sameCandidateApply = applyPatchCollectionToWorkingHtml(multiHtml, sameCandidateCollection, multiInventory);
+assert.equal(sameCandidateApply.workingHtml, '<h1>Final Title</h1><p>World</p><span>Hello</span>');
 
 const prefixedHtml = '<script>console.log(1)</script><style>.x{color:red}</style><template><p>ignored</p></template><h2>Hello</h2><p>World</p><span>Hello</span>';
 const prefixedInventory = createEditableTextInventory(prefixedHtml);

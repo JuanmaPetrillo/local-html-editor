@@ -386,3 +386,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No new editing/export capabilities added; ZIP remains preflight-only; no image replacement; no drag/resize; no persistence; no dependencies added; no network calls; no telemetry; no iframe permission changes.
 Next recommended task: Proceed only with explicit approval for the next narrow milestone slice.
+
+### 2026-05-13 (PR 1 P0 blockers: overlap + preview hardening)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: PR 1 - P0 blocker fixes only
+Summary: Added overlap detection for patch collections and blocked apply/export on overlapping source spans; hardened safe preview sanitization to remove/count unclosed script tags; narrowed data URL image allowlist to safe raster MIME types and blocked `data:image/svg+xml`; added regression tests with exact-output assertions.
+Files changed: apps/desktop/src/editable-model.mjs, apps/desktop/src/preview-sandbox.mjs, apps/desktop/src/exporter.mjs, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new features added; ZIP remains preflight-only; no image replacement/drag-resize/persistence; no iframe permission changes.
+Next recommended task: Start PR 2 or PR 3 only with explicit approval.
