@@ -430,6 +430,16 @@ Result: Passed.
 Known limitations: No new product features added; ZIP remains preflight-only; no image replacement, drag/resize, persistence/autosave, dependency additions, network calls, telemetry, iframe permission changes, or Tauri/React/Vite conversion.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
 
+### 2026-05-13 (PR 4 P3 cleanup polish only)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: PR 4 - P3 cleanup (low-risk polish only)
+Summary: Applied narrow P3 cleanup items only: clarified non-persistent UI copy by replacing misleading "Recent Projects" section with explicit session-scope messaging, made download URL revocation safer by deferring `URL.revokeObjectURL(...)` to the next tick after click, improved placeholder typecheck script output to state its limited scope, and added E2E assertions to guard against recurrence of misleading persistence wording.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, scripts/typecheck.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new product features added; ZIP remains preflight-only; no image replacement, drag/resize, persistence/autosave, dependencies, network calls, telemetry, iframe permission changes, or Tauri/React/Vite conversion.
+Next recommended task: Proceed only with explicit approval for another narrow, reviewable slice.
 
 ### 2026-05-13 (strategy alignment docs update: best-effort arbitrary HTML + optional Copilot metadata)
 Date: 2026-05-13
