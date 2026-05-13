@@ -25,6 +25,8 @@ if (!html.includes('id="editable-draft-text"')) throw new Error('shell ui missin
 if (!html.includes('id="editable-candidate-select"')) throw new Error('shell ui missing editable candidate selector');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('shell ui missing safe preview iframe region');
 if (!html.includes('id="safe-preview-status"')) throw new Error('shell ui missing safe preview status region');
+if (!html.includes('Session Scope')) throw new Error('shell ui missing session scope section');
+if (html.includes('Recent Projects')) throw new Error('shell ui still references recent projects despite no persistence');
 if (!html.includes('id="preview-fit-width"')) throw new Error('shell ui missing preview fit width control');
 if (!html.includes('id="preview-compact-height"')) throw new Error('shell ui missing preview compact control');
 if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missing preview tall control');
