@@ -75,7 +75,11 @@ import {
   formatVisualObjectInventoryText,
   formatVisualObjectOptionLabel,
   formatVisualObjectSelectionText,
-  selectVisualObject
+  selectVisualObject,
+  createVisualTextCandidateLinks,
+  findEditableCandidateForVisualObject,
+  createVisualTextEditBridgeState,
+  formatVisualTextEditBridgeText
 } from '../apps/desktop/src/visual-object-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
@@ -865,6 +869,44 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'binary'), fa
 assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'workingHtml'), false);
 assert.equal(formatVisualObjectInventoryText(visualInventory).includes('object-001'), true);
 assert.equal(formatVisualObjectInventoryText(visualInventory).includes('geometry overlay-ready'), true);
+
+
+const spanSource = '<h1>Title</h1><p>Body</p>';
+const spanVisual = createVisualObjectInventory(spanSource).objects.filter((o) => o.type === 'text');
+assert.equal(Number.isInteger(spanVisual[0].textSourceStart), true);
+assert.equal(Number.isInteger(spanVisual[0].textSourceEnd), true);
+assert.equal(spanVisual[0].textLength, spanVisual[0].textSourceEnd - spanVisual[0].textSourceStart);
+
+const spanOffsetHtml = '<script>bad()</script><style>.x{}</style><template><p>x</p></template><noscript>x</noscript><p>Keep</p>';
+const spanOffsetVisual = createVisualObjectInventory(spanOffsetHtml).objects.find((o) => o.type === 'text' && o.tagName === 'p');
+const spanOffsetEditable = createEditableTextInventory(spanOffsetHtml).candidates.find((c) => c.tagName === 'p');
+assert.equal(spanOffsetVisual.textSourceStart, spanOffsetEditable.sourceStart);
+assert.equal(spanOffsetVisual.textSourceEnd, spanOffsetEditable.sourceEnd);
+
+const dupHtml = '<p>Same</p><p>Same</p>';
+const dupVisual = createVisualObjectInventory(dupHtml);
+const dupEditable = createEditableTextInventory(dupHtml);
+const dupLinks = createVisualTextCandidateLinks(dupVisual, dupEditable);
+assert.equal(dupLinks.length, 2);
+assert.equal(dupLinks[0].candidateId, 'text-001');
+assert.equal(dupLinks[1].candidateId, 'text-002');
+
+const linkedCandidate = findEditableCandidateForVisualObject(dupVisual.objects[0], dupEditable);
+assert.equal(linkedCandidate.candidateId, 'text-001');
+const nonTextBridge = createVisualTextEditBridgeState({ objectId: 'object-999', type: 'image', editability: 'editable' }, dupEditable);
+assert.equal(nonTextBridge.linked, false);
+assert.equal(nonTextBridge.available, false);
+const linkedBridge = createVisualTextEditBridgeState(dupVisual.objects[0], dupEditable);
+assert.equal(linkedBridge.linked, true);
+assert.equal(linkedBridge.candidateId, 'text-001');
+assert.equal(createVisualTextEditBridgeState(dupVisual.objects[0], dupEditable).candidateId, dupEditable.candidates[0].candidateId);
+assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'rawHtmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'htmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'rawBytes'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'binary'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'workingHtml'), false);
+assert.equal(formatVisualTextEditBridgeText(linkedBridge).includes('text-001'), true);
+assert.equal(formatVisualTextEditBridgeText(nonTextBridge).includes('object-999'), true);
 
 const visualForZip = await createVisualObjectInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>X</h1>' });
 assert.equal(visualForZip, null);

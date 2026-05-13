@@ -40,7 +40,9 @@ import {
   formatOverlayStatusText,
   formatVisualObjectInventoryText,
   formatVisualObjectOptionLabel,
-  formatVisualObjectSelectionText
+  formatVisualObjectSelectionText,
+  createVisualTextEditBridgeState,
+  formatVisualTextEditBridgeText
 } from './visual-object-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
@@ -145,6 +147,7 @@ const editableInventory = hasDom ? document.querySelector('#editable-inventory')
 const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
 const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
 const visualObjectSelectionStatus = hasDom ? document.querySelector('#visual-object-selection-status') : null;
+const visualTextEditBridgeStatus = hasDom ? document.querySelector('#visual-text-edit-bridge-status') : null;
 const visualOverlayLayer = hasDom ? document.querySelector('#visual-overlay-layer') : null;
 const visualOverlayStatus = hasDom ? document.querySelector('#visual-overlay-status') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
@@ -179,6 +182,7 @@ if (
   visualObjectInventory instanceof HTMLElement &&
   visualObjectSelect instanceof HTMLSelectElement &&
   visualObjectSelectionStatus instanceof HTMLElement &&
+  visualTextEditBridgeStatus instanceof HTMLElement &&
   visualOverlayLayer instanceof HTMLElement &&
   visualOverlayStatus instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
@@ -255,6 +259,7 @@ if (
     visualObjectSelect.replaceChildren();
     visualObjectSelect.disabled = true;
     visualObjectSelectionStatus.textContent = 'Visual object selection: unavailable.';
+    visualTextEditBridgeStatus.textContent = 'Visual text edit bridge: unavailable.';
     visualOverlayLayer.replaceChildren();
     visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
   };
@@ -283,6 +288,12 @@ if (
   const renderVisualObjectSelection = (inventory) => {
     const state = createVisualObjectSelectionState(inventory, visualObjectSelect.value);
     visualObjectSelectionStatus.textContent = formatVisualObjectSelectionText(state);
+    const bridgeState = createVisualTextEditBridgeState(state.selectedObject, currentInventory);
+    visualTextEditBridgeStatus.textContent = formatVisualTextEditBridgeText(bridgeState);
+    if (bridgeState.linked && bridgeState.candidateId) {
+      editableCandidateSelect.value = bridgeState.candidateId;
+      renderDraftFromSelection(currentInventory);
+    }
     renderVisualOverlay(inventory, state.selectedObjectId);
   };
 
@@ -374,6 +385,7 @@ if (
     visualObjectInventory.textContent = 'Visual object discovery: waiting for .html/.htm selection.';
     resetVisualObjectSelectionUi();
     currentVisualInventory = null;
+    visualTextEditBridgeStatus.textContent = 'Visual text edit bridge: unavailable.';
     editableInventory.textContent = 'Editable text candidates: unavailable.';
     currentInventory = null;
     currentHtmlFile = null;
@@ -397,9 +409,12 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      const inventory = await createEditableInventoryForHtmlFile(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       const visualInventory = await createVisualObjectInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentVisualInventory = visualInventory;
+      currentInventory = inventory;
       visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
       visualObjectSelect.replaceChildren();
       if (visualInventory && Array.isArray(visualInventory.objects)) {
@@ -414,10 +429,6 @@ if (
       if (!visualObjectSelect.disabled) {
         visualObjectSelect.value = visualInventory.objects[0].objectId;
       }
-      renderVisualObjectSelection(visualInventory);
-      const inventory = await createEditableInventoryForHtmlFile(selected);
-      if (selectionGeneration !== currentSelectionGeneration) return;
-      currentInventory = inventory;
       editableInventory.textContent = formatEditableInventoryText(inventory);
       draftState = createDraftEditState(inventory);
       editableCandidateSelect.replaceChildren();
@@ -429,9 +440,10 @@ if (
       }
       editableCandidateSelect.disabled = inventory.candidates.length === 0;
       editableDraftText.disabled = inventory.candidates.length === 0;
-      if (draftState.selectedCandidateId) {
+      if (draftState.selectedCandidateId && !editableCandidateSelect.value) {
         editableCandidateSelect.value = draftState.selectedCandidateId;
       }
+      renderVisualObjectSelection(visualInventory);
       renderDraftFromSelection(inventory);
       const previewResult = await createSafeHtmlPreviewResult(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;

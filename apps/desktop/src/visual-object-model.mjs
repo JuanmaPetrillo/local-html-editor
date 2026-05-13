@@ -170,12 +170,13 @@ export function extractVisualObjectsFromHtml(htmlText) {
       const between = source.slice(tagRegex.lastIndex, textRegionEnd);
       const withoutTags = normalizeWhitespace(between.replace(/<[^>]*>/g, ''));
       if (withoutTags) {
+        const textSourceStart = tagRegex.lastIndex;
         objectNumber += 1;
         const hasNestedTag = /<\s*[a-z][^>]*>/i.test(between);
         const nestedDepth = depth > 0;
         const editable = !hasNestedTag && !nestedDepth;
         const geometry = extractObjectGeometry(tagName, tagSource);
-        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd, geometry }));
+        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd, textSourceStart, textSourceEnd: textRegionEnd, textLength: textRegionEnd - textSourceStart, geometry }));
       }
     } else if (CONTAINER_TAGS.has(tagName) && !isSelfClosing) {
       const closeTag = new RegExp(`<\\s*\\/\\s*${tagName}\\s*>`, 'ig');
@@ -196,6 +197,61 @@ export function extractVisualObjectsFromHtml(htmlText) {
   }
 
   return objects;
+}
+
+export function findEditableCandidateForVisualObject(visualObject, editableInventory) {
+  if (!visualObject || visualObject.type !== 'text' || visualObject.editability !== 'editable') return null;
+  if (!Number.isInteger(visualObject.textSourceStart) || !Number.isInteger(visualObject.textSourceEnd)) return null;
+  const candidates = editableInventory && Array.isArray(editableInventory.candidates) ? editableInventory.candidates : [];
+  return candidates.find((candidate) => (
+    candidate &&
+    Number.isInteger(candidate.sourceStart) &&
+    Number.isInteger(candidate.sourceEnd) &&
+    candidate.sourceStart === visualObject.textSourceStart &&
+    candidate.sourceEnd === visualObject.textSourceEnd
+  )) || null;
+}
+
+export function createVisualTextCandidateLinks(visualInventory, editableInventory) {
+  const objects = visualInventory && Array.isArray(visualInventory.objects) ? visualInventory.objects : [];
+  return objects
+    .map((object) => {
+      const candidate = findEditableCandidateForVisualObject(object, editableInventory);
+      return candidate ? { objectId: object.objectId, candidateId: candidate.candidateId } : null;
+    })
+    .filter(Boolean);
+}
+
+export function createVisualTextEditBridgeState(visualObject, editableInventory) {
+  const state = {
+    objectId: visualObject && visualObject.objectId ? visualObject.objectId : '',
+    linked: false,
+    available: false,
+    candidateId: '',
+    reason: 'Selected object is not safely text-editable in this MVP.'
+  };
+  if (!visualObject) {
+    return { ...state, reason: 'No visual object selected.' };
+  }
+  if (visualObject.type !== 'text') {
+    return { ...state, reason: 'Selected object is not text.' };
+  }
+  if (visualObject.editability !== 'editable') {
+    return { ...state, reason: 'Selected object is not safely text-editable in this MVP.' };
+  }
+  const candidate = findEditableCandidateForVisualObject(visualObject, editableInventory);
+  if (!candidate) {
+    return { ...state, reason: 'Selected object is not safely text-editable in this MVP.' };
+  }
+  return { objectId: visualObject.objectId, linked: true, available: true, candidateId: candidate.candidateId, reason: '' };
+}
+
+export function formatVisualTextEditBridgeText(bridgeState) {
+  if (!bridgeState || !bridgeState.objectId) return 'Visual text edit bridge: unavailable.';
+  if (bridgeState.linked && bridgeState.candidateId) {
+    return `Selected visual text object is linked to editable text candidate ${bridgeState.candidateId}.`;
+  }
+  return `Selected object is not safely text-editable in this MVP.\nobjectId: ${bridgeState.objectId}\nreason: ${bridgeState.reason || 'unavailable'}`;
 }
 
 export function createVisualObjectInventory(htmlText) {
