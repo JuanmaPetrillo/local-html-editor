@@ -35,6 +35,9 @@ import {
 import { formatExportStatusText } from './exporter.mjs';
 import {
   createVisualObjectSelectionState,
+  createVisualOverlayItems,
+  createVisualOverlaySelectionState,
+  formatOverlayStatusText,
   formatVisualObjectInventoryText,
   formatVisualObjectOptionLabel,
   formatVisualObjectSelectionText
@@ -142,6 +145,8 @@ const editableInventory = hasDom ? document.querySelector('#editable-inventory')
 const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
 const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
 const visualObjectSelectionStatus = hasDom ? document.querySelector('#visual-object-selection-status') : null;
+const visualOverlayLayer = hasDom ? document.querySelector('#visual-overlay-layer') : null;
+const visualOverlayStatus = hasDom ? document.querySelector('#visual-overlay-status') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
 const safePreviewFrameWrap = hasDom ? document.querySelector('#safe-preview-frame-wrap') : null;
 const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
@@ -174,6 +179,8 @@ if (
   visualObjectInventory instanceof HTMLElement &&
   visualObjectSelect instanceof HTMLSelectElement &&
   visualObjectSelectionStatus instanceof HTMLElement &&
+  visualOverlayLayer instanceof HTMLElement &&
+  visualOverlayStatus instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
   safePreviewFrameWrap instanceof HTMLElement &&
   safePreviewStatus instanceof HTMLElement &&
@@ -248,11 +255,35 @@ if (
     visualObjectSelect.replaceChildren();
     visualObjectSelect.disabled = true;
     visualObjectSelectionStatus.textContent = 'Visual object selection: unavailable.';
+    visualOverlayLayer.replaceChildren();
+    visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
+  };
+
+  const renderVisualOverlay = (inventory, selectedObjectId) => {
+    visualOverlayLayer.replaceChildren();
+    const overlayItems = createVisualOverlayItems(inventory);
+    const overlayState = createVisualOverlaySelectionState(overlayItems, selectedObjectId);
+    for (const item of overlayState.items) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'visual-overlay-box';
+      button.dataset.objectId = item.objectId;
+      button.style.cssText = item.style;
+      button.setAttribute('aria-label', item.label);
+      button.setAttribute('aria-pressed', item.objectId === overlayState.selectedObjectId ? 'true' : 'false');
+      button.addEventListener('click', () => {
+        visualObjectSelect.value = item.objectId;
+        renderVisualObjectSelection(currentVisualInventory);
+      });
+      visualOverlayLayer.appendChild(button);
+    }
+    visualOverlayStatus.textContent = formatOverlayStatusText(overlayState);
   };
 
   const renderVisualObjectSelection = (inventory) => {
     const state = createVisualObjectSelectionState(inventory, visualObjectSelect.value);
     visualObjectSelectionStatus.textContent = formatVisualObjectSelectionText(state);
+    renderVisualOverlay(inventory, state.selectedObjectId);
   };
 
   const renderDraftFromSelection = (inventory) => {
