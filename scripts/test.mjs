@@ -845,6 +845,7 @@ assert.equal(formatOverlayStatusText(createVisualOverlaySelectionState([], 'obje
 const visualTextObjects = extractVisualObjectsFromHtml('<h1>Title</h1><p>Body</p>');
 assert.equal(visualTextObjects.filter((o) => o.type === 'text').length, 2);
 assert.equal(visualTextObjects[0].editability, 'editable');
+assert.equal(visualTextObjects[0].editableText, 'Title');
 
 const visualImageObjects = extractVisualObjectsFromHtml('<img src="images/pic.png">');
 assert.equal(visualImageObjects[0].type, 'image');
@@ -910,11 +911,16 @@ assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'binary'), false
 assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'workingHtml'), false);
 assert.equal(formatVisualTextEditBridgeText(linkedBridge).includes('text-001'), true);
 assert.equal(formatVisualTextEditBridgeText(nonTextBridge).includes('object-999'), true);
-assert.equal(getVisualObjectEditableText({ type: 'text', textPreview: 'Headline' }), 'Headline');
+assert.equal(getVisualObjectEditableText({ type: 'text', textPreview: 'Headline', editableText: 'Headline full' }), 'Headline full');
 assert.equal(getVisualObjectEditableText({ type: 'image', textPreview: 'Ignored' }), '');
+const longVisualText = `One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty end.`;
+const longVisualObjects = extractVisualObjectsFromHtml(`<p>${longVisualText}</p>`);
+assert.equal(longVisualObjects[0].textPreview.length <= 80, true);
+assert.equal(getVisualObjectEditableText(longVisualObjects[0]), longVisualText);
+assert.notEqual(getVisualObjectEditableText(longVisualObjects[0]), longVisualObjects[0].textPreview);
 const selectedStatusEditable = createSelectedTextEditStatus({ selectedObject: dupVisual.objects[0] }, linkedBridge);
 assert.equal(selectedStatusEditable.editable, true);
-assert.equal(formatSelectedTextEditStatus(selectedStatusEditable).includes('Selected text is editable.'), true);
+assert.equal(formatSelectedTextEditStatus(selectedStatusEditable).includes('Review or edit the text below'), true);
 const selectedStatusLocked = createSelectedTextEditStatus({ selectedObject: { objectId: 'object-200', type: 'image' } }, nonTextBridge);
 assert.equal(selectedStatusLocked.editable, false);
 assert.equal(formatSelectedTextEditStatus(selectedStatusLocked).includes('not safely text-editable'), true);

@@ -510,3 +510,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No in-place contenteditable editing, no drag/resize, no image replacement, no ZIP extraction/listing/export, no persistence/autosave, no dependency additions, no network calls, no telemetry, no iframe internals access, and no Tauri/React/Vite conversion.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
+
+### 2026-05-13 (phase 4b follow-up: prevent truncated selected-text prefill)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Phase 4B follow-up fix (blocking)
+Summary: Fixed selected-text draft prefill safety by adding normalized full text metadata (`editableText`) for visual text objects and switching prefill helper to use full normalized text, not capped `textPreview`. This prevents accidental truncation when selected visual text exceeds preview length while keeping `textPreview` capped for labels.
+Files changed: apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: unchanged from Phase 4B scope; no in-place editing/drag-resize/image replacement/ZIP extraction/persistence/dependencies/network/telemetry/iframe internals access.
+Next recommended task: Proceed only with explicit approval for next narrow scope.
