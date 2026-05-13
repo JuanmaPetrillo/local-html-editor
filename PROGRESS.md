@@ -17,6 +17,9 @@ Current app files:
 - `apps/desktop/index.html`
 - `apps/desktop/src/app-shell.mjs`
 - `apps/desktop/src/importer.mjs`
+- `apps/desktop/src/preview-sandbox.mjs`
+- `apps/desktop/src/editable-model.mjs`
+- `apps/desktop/src/exporter.mjs`
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 
@@ -408,3 +411,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No new capabilities added beyond existing HTML text-only in-memory patch/edit/export; ZIP remains preflight-only; no image replacement; no drag/resize; no persistence/autosave; no iframe permission changes; no dependencies/network calls/telemetry; no Tauri/React/Vite conversion.
 Next recommended task: Proceed only with explicitly approved PR 3 docs/test-hardening scope.
+
+
+### 2026-05-13 (PR 3 P2 hardening + docs accuracy)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: PR 3 - P2 hardening
+Summary: Updated docs to match current browser-first MVP behavior; added raw-content leakage regression assertions across shell-facing models/results; added/confirmed UI transition/reset/export blocking coverage and exact export-output coverage; refactored security checks script by category without reducing invariants; added concise manual smoke checklist.
+Files changed: README.md, MASTER_PLAN.md, DECISIONS.md, FILES.md, PROGRESS.md, scripts/test.mjs, scripts/test-security.mjs
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new product features added; ZIP remains preflight-only; no image replacement, drag/resize, persistence/autosave, dependency additions, network calls, telemetry, iframe permission changes, or Tauri/React/Vite conversion.
+Next recommended task: Proceed only with explicit approval for next narrow scope.

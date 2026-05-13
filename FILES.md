@@ -5,6 +5,9 @@
 - `apps/desktop/index.html`
 - `apps/desktop/src/app-shell.mjs`
 - `apps/desktop/src/importer.mjs`
+- `apps/desktop/src/preview-sandbox.mjs`
+- `apps/desktop/src/editable-model.mjs`
+- `apps/desktop/src/exporter.mjs`
 
 ## Validation/build scripts
 

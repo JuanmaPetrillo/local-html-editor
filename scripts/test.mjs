@@ -739,3 +739,32 @@ const cleanExport = createEditedHtmlExportFromHtmlText('<h1>Old title</h1>', 'cl
 }, { hasScripts: false, hasRemoteReferences: false });
 assert.equal(cleanExport.disclosureWarning || '', '');
 assert.equal(formatExportStatusText(warningExport).includes('blocked in safe preview'), true);
+
+const forbiddenShellKeys = ['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'workingHtml'];
+const assertNoForbiddenKeys = (label, value) => {
+  if (!value || typeof value !== 'object') return;
+  for (const key of forbiddenShellKeys) {
+    assert.equal(key in value, false, `${label} leaked forbidden key: ${key}`);
+  }
+};
+
+assertNoForbiddenKeys('import status', safeHtmlStatus);
+assertNoForbiddenKeys('import report', safeHtmlReport);
+assertNoForbiddenKeys('import manifest', safeHtmlManifest);
+assertNoForbiddenKeys('editable inventory', candidateInventory);
+assertNoForbiddenKeys('draft edit', draft);
+assertNoForbiddenKeys('patch plan', patchPlan);
+assertNoForbiddenKeys('patch collection apply state', collectionPreview.applyState);
+assertNoForbiddenKeys('preview apply state', previewWithScript);
+assertNoForbiddenKeys('export result metadata', exportSingle);
+assertNoForbiddenKeys('blocked export result', blockedEmpty);
+assertNoForbiddenKeys('overlap-blocked export result', blockedOverlapExport);
+
+// UI transition/state invariants modeled by pure states in current no-browser tests
+assert.equal(createPatchCollectionState().orderedCandidateIds.length, 0);
+assert.equal(resetWorkingPreviewState().applyStatus, 'reset-to-original');
+assert.equal(blockedEmpty.exportStatus, 'blocked');
+assert.equal(blockedEmpty.exported, false);
+assert.equal(validZipManifest.capabilities.includes('local-edited-html-export'), false);
+assert.equal(nonHtmlManifest.capabilities.includes('editable-text-candidates'), false);
+assert.equal(createDraftEditState({ candidates: [] }).selectedCandidateId, '');
