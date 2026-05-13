@@ -3,6 +3,7 @@ import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sand
 import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from './exporter.mjs';
 import { createVisualObjectInventory } from './visual-object-model.mjs';
+import { applyVisualMovePatchesToHtml } from './visual-layout-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -258,8 +259,44 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
   };
 }
 
+export async function createCombinedPatchedSafePreviewResult(file, textPatchCollection, visualMoveCollection) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) return null;
+  const htmlText = await file.text();
+  const inventory = createEditableTextInventory(htmlText);
+  const visualInventory = createVisualObjectInventory(htmlText);
+  const textState = applyPatchCollectionToWorkingHtml(htmlText, textPatchCollection, inventory);
+  const moveSource = textState.workingHtml || htmlText;
+  const moveState = applyVisualMovePatchesToHtml(moveSource, visualMoveCollection, visualInventory);
+  if (Array.isArray(textState.warnings) && textState.warnings.includes('overlapping-patches')) {
+    return { applyState: { applyStatus: 'blocked-overlapping-patches', warnings: ['overlapping-patches'] }, previewResult: null };
+  }
+  if (Array.isArray(moveState.warnings) && moveState.warnings.includes('overlapping-move-patches')) {
+    return { applyState: { applyStatus: 'blocked-overlapping-move-patches', warnings: ['overlapping-move-patches'] }, previewResult: null };
+  }
+  const combinedWarnings = [];
+  const textSpans = (inventory.candidates || []).map((candidate) => ({ start: candidate.sourceStart, end: candidate.sourceEnd }));
+  const moveSpans = (visualMoveCollection?.orderedObjectIds || [])
+    .map((id) => visualMoveCollection.patchesByObjectId[id])
+    .filter(Boolean)
+    .map((patch) => ({ start: patch.sourceStart, end: patch.sourceEnd }));
+  for (const textSpan of textSpans) {
+    if (moveSpans.some((moveSpan) => textSpan.start < moveSpan.end && moveSpan.start < textSpan.end)) {
+      combinedWarnings.push('overlapping-text-and-move-patches');
+      break;
+    }
+  }
+  if (combinedWarnings.length > 0) {
+    return { applyState: { applyStatus: 'blocked-overlapping-text-and-move-patches', warnings: combinedWarnings }, previewResult: null };
+  }
+  const workingHtml = moveState.workingHtml || moveSource;
+  const previewResult = buildSafePreviewResult(workingHtml);
+  previewResult.previewStatus.fileName = file.name;
+  return { applyState: { applyStatus: 'applied-combined-patches', warnings: [] }, previewResult };
+}
+
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection, safetySummary = null) {
+export async function createEditedHtmlExport(file, patchCollection, safetySummary = null, visualMoveCollection = null) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) {
     const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
@@ -268,7 +305,7 @@ export async function createEditedHtmlExport(file, patchCollection, safetySummar
     return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
   }
   const htmlText = await file.text();
-  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, safetySummary);
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, safetySummary, visualMoveCollection);
 }
 
 /**

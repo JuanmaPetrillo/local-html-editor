@@ -78,7 +78,17 @@
       </section>
       <section>
         <h2>Text edit workflow</h2>
-        <section id="selected-text-edit-panel">
+  
+      <section id="visual-move-panel">
+        <h3>Move selected object</h3>
+        <p>This object cannot be moved safely.</p>
+        <button id="move-selected-up" type="button" disabled>Move up</button>
+        <button id="move-selected-down" type="button" disabled>Move down</button>
+        <button id="move-selected-left" type="button" disabled>Move left</button>
+        <button id="move-selected-right" type="button" disabled>Move right</button>
+        <pre id="visual-move-status">Visual move status: unavailable.</pre>
+      </section>
+      <section id="selected-text-edit-panel">
           <h3>Edit selected text</h3>
           <p id="selected-text-edit-status">Select a visual text object to edit.</p>
         </section>

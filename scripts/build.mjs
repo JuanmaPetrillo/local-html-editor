@@ -8,6 +8,7 @@ cpSync('apps/desktop/src/preview-sandbox.mjs', 'dist/src/preview-sandbox.mjs');
 cpSync('apps/desktop/src/editable-model.mjs', 'dist/src/editable-model.mjs');
 cpSync('apps/desktop/src/exporter.mjs', 'dist/src/exporter.mjs');
 cpSync('apps/desktop/src/visual-object-model.mjs', 'dist/src/visual-object-model.mjs');
+cpSync('apps/desktop/src/visual-layout-model.mjs', 'dist/src/visual-layout-model.mjs');
 
 const distHtml = readFileSync('dist/index.html', 'utf8');
 const distShell = readFileSync('dist/src/app-shell.mjs', 'utf8');
@@ -16,6 +17,7 @@ const distPreviewSandbox = readFileSync('dist/src/preview-sandbox.mjs', 'utf8');
 const distEditableModel = readFileSync('dist/src/editable-model.mjs', 'utf8');
 const distExporter = readFileSync('dist/src/exporter.mjs', 'utf8');
 const distVisualObjectModel = readFileSync('dist/src/visual-object-model.mjs', 'utf8');
+const distVisualLayoutModel = readFileSync('dist/src/visual-layout-model.mjs', 'utf8');
 
 if (!distHtml.includes('src="./src/app-shell.mjs"')) {
   throw new Error('build output missing app-shell module reference');
@@ -50,7 +52,10 @@ if (distExporter.length === 0) {
 if (distVisualObjectModel.length === 0) {
   throw new Error('dist/src/visual-object-model.mjs is empty');
 }
+if (distVisualLayoutModel.length === 0) {
+  throw new Error('dist/src/visual-layout-model.mjs is empty');
+}
 
 console.log(
-  'build completed: dist/index.html, dist/src/app-shell.mjs, dist/src/importer.mjs, dist/src/preview-sandbox.mjs, dist/src/editable-model.mjs, dist/src/exporter.mjs, dist/src/visual-object-model.mjs'
+  'build completed: dist/index.html, dist/src/app-shell.mjs, dist/src/importer.mjs, dist/src/preview-sandbox.mjs, dist/src/editable-model.mjs, dist/src/exporter.mjs, dist/src/visual-object-model.mjs, dist/src/visual-layout-model.mjs'
 );

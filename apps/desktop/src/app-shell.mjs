@@ -12,6 +12,7 @@ import {
   createEditableInventoryForHtmlFile,
   createVisualObjectInventoryForHtmlFile,
   createCollectionPatchedSafePreviewResult,
+  createCombinedPatchedSafePreviewResult,
   createEditedHtmlExport
 } from './importer.mjs';
 import {
@@ -47,6 +48,12 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
+import {
+  createVisualMovePatchCollectionState,
+  createVisualMovePatchPlan,
+  addOrUpdateVisualMovePatch,
+  formatVisualMoveStatusText
+} from './visual-layout-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -152,6 +159,11 @@ const visualObjectSelect = hasDom ? document.querySelector('#visual-object-selec
 const visualObjectSelectionStatus = hasDom ? document.querySelector('#visual-object-selection-status') : null;
 const visualTextEditBridgeStatus = hasDom ? document.querySelector('#visual-text-edit-bridge-status') : null;
 const selectedTextEditStatus = hasDom ? document.querySelector('#selected-text-edit-status') : null;
+const moveSelectedUp = hasDom ? document.querySelector('#move-selected-up') : null;
+const moveSelectedDown = hasDom ? document.querySelector('#move-selected-down') : null;
+const moveSelectedLeft = hasDom ? document.querySelector('#move-selected-left') : null;
+const moveSelectedRight = hasDom ? document.querySelector('#move-selected-right') : null;
+const visualMoveStatus = hasDom ? document.querySelector('#visual-move-status') : null;
 const visualOverlayLayer = hasDom ? document.querySelector('#visual-overlay-layer') : null;
 const visualOverlayStatus = hasDom ? document.querySelector('#visual-overlay-status') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
@@ -188,6 +200,11 @@ if (
   visualObjectSelectionStatus instanceof HTMLElement &&
   visualTextEditBridgeStatus instanceof HTMLElement &&
   selectedTextEditStatus instanceof HTMLElement &&
+  moveSelectedUp instanceof HTMLButtonElement &&
+  moveSelectedDown instanceof HTMLButtonElement &&
+  moveSelectedLeft instanceof HTMLButtonElement &&
+  moveSelectedRight instanceof HTMLButtonElement &&
+  visualMoveStatus instanceof HTMLElement &&
   visualOverlayLayer instanceof HTMLElement &&
   visualOverlayStatus instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
@@ -235,14 +252,16 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
+  let visualMoveCollection = createVisualMovePatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   const updateExportUi = () => {
     const patchCount = patchCollection.orderedCandidateIds.length;
-    exportEditedHtml.disabled = !currentHtmlFile || patchCount === 0;
+    const movePatchCount = visualMoveCollection.orderedObjectIds.length;
+    exportEditedHtml.disabled = !currentHtmlFile || (patchCount === 0 && movePatchCount === 0);
     exportStatus.textContent = patchCount === 0
       ? 'Export status: blocked (no in-memory patches).'
-      : `Export status: ready. ${patchCount} patch(es) in memory.`;
+      : `Export status: ready. ${patchCount} text patch(es), ${movePatchCount} move patch(es) in memory.`;
   };
 
   const resetDraftUi = () => {
@@ -266,6 +285,7 @@ if (
     visualObjectSelectionStatus.textContent = 'Visual object selection: unavailable.';
     visualTextEditBridgeStatus.textContent = 'Visual text edit bridge: unavailable.';
     selectedTextEditStatus.textContent = 'Select a visual text object to edit.';
+    visualMoveStatus.textContent = 'Visual move status: unavailable.';
     visualOverlayLayer.replaceChildren();
     visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
   };
@@ -306,6 +326,13 @@ if (
       editableDraftText.value = draftPrefillByCandidateId.get(bridgeState.candidateId) || '';
       renderDraftFromSelection(currentInventory);
     }
+    const movePlan = createVisualMovePatchPlan(state.selectedObject, 0, 0);
+    const movable = movePlan.applyStatus === 'planned';
+    moveSelectedUp.disabled = !movable;
+    moveSelectedDown.disabled = !movable;
+    moveSelectedLeft.disabled = !movable;
+    moveSelectedRight.disabled = !movable;
+    visualMoveStatus.textContent = movable ? 'Move selected object\nThis object can be moved.' : 'Move selected object\nThis object cannot be moved safely.';
     renderVisualOverlay(inventory, state.selectedObjectId);
   };
 
@@ -351,7 +378,7 @@ if (
     patchCollection = nextCollection.collection;
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
-    const patched = await createCollectionPatchedSafePreviewResult(currentHtmlFile, patchCollection);
+    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, visualMoveCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
       return;
@@ -368,6 +395,7 @@ if (
   resetWorkingPreview.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
+    visualMoveCollection = createVisualMovePatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
@@ -406,6 +434,7 @@ if (
     currentHtmlFile = null;
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
+    visualMoveCollection = createVisualMovePatchCollectionState();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
@@ -511,9 +540,33 @@ if (
     }
   });
 
+
+  const nudgeSelectedObject = async (dx, dy) => {
+    if (!currentVisualInventory) return;
+    const selection = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
+    const movePlan = createVisualMovePatchPlan(selection.selectedObject, dx, dy);
+    if (movePlan.applyStatus !== 'planned') {
+      visualMoveStatus.textContent = formatVisualMoveStatusText(movePlan);
+      return;
+    }
+    const next = addOrUpdateVisualMovePatch(visualMoveCollection, movePlan);
+    visualMoveCollection = next.collection;
+    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, visualMoveCollection);
+    if (patched && patched.previewResult) {
+      safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+      safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+    }
+    visualMoveStatus.textContent = formatVisualMoveStatusText({ applyStatus: 'applied', collectionCount: visualMoveCollection.orderedObjectIds.length });
+    updateExportUi();
+  };
+  moveSelectedUp.addEventListener('click', () => { void nudgeSelectedObject(0, -10); });
+  moveSelectedDown.addEventListener('click', () => { void nudgeSelectedObject(0, 10); });
+  moveSelectedLeft.addEventListener('click', () => { void nudgeSelectedObject(-10, 0); });
+  moveSelectedRight.addEventListener('click', () => { void nudgeSelectedObject(10, 0); });
+
   exportEditedHtml.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
-    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, currentExportSafetySummary);
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, currentExportSafetySummary, visualMoveCollection);
     exportStatus.textContent = formatExportStatusText(exportResult);
     if (!exportResult.exported || !exportResult.blob) return;
     const objectUrl = URL.createObjectURL(exportResult.blob);

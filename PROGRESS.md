@@ -521,3 +521,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: unchanged from Phase 4B scope; no in-place editing/drag-resize/image replacement/ZIP extraction/persistence/dependencies/network/telemetry/iframe internals access.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
+
+### 2026-05-13 (phase 5A visual move MVP)
+
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Phase 5A - safe visual movement MVP
+Summary: Added trusted-shell nudge controls for overlay-ready inline-style objects, in-memory visual move patch tracking, combined preview patch apply (text + movement), and export support for movement patches.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/exporter.mjs, apps/desktop/src/visual-layout-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: pending
+Known limitations: No free drag, resize, image replacement, in-place editing, ZIP extraction/listing/export, or persistence.
+Next recommended task: Phase 5B (if approved): constrained free drag for same safe overlay-ready object class.

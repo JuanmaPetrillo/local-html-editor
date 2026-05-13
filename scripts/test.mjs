@@ -84,6 +84,13 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from '../apps/desktop/src/visual-object-model.mjs';
+import {
+  createVisualMovePatchCollectionState,
+  createVisualMovePatchPlan,
+  addOrUpdateVisualMovePatch,
+  updateInlineStylePx,
+  applyVisualMovePatchesToHtml
+} from '../apps/desktop/src/visual-layout-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -980,3 +987,20 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'htmlTex
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'rawBytes'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'binary'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'workingHtml'), false);
+
+const moveInventory = createVisualObjectInventory('<p style="left:10px;top:20px;width:30px;height:40px">Hello</p>');
+const moveObject = moveInventory.objects.find((obj) => obj.type === 'text');
+const movePlan = createVisualMovePatchPlan(moveObject, 10, -10);
+assert.equal(movePlan.applyStatus, 'planned');
+const blockedMove = createVisualMovePatchPlan({ objectId: 'x', geometry: { overlayReady: false } }, 10, 0);
+assert.equal(blockedMove.applyStatus, 'blocked');
+assert.equal(createVisualMovePatchPlan({ objectId: 'x', geometry: { overlayReady: true, source: 'image-attributes', left: 1, top: 1, width: 1, height: 1 }, sourceStart: 1, sourceEnd: 5 }, 10, 0).applyStatus, 'blocked');
+const movedTag = updateInlineStylePx('<div style="left:10px; top:20px; width:30px; height:40px; color:red">', { left: 25, top: 35 });
+assert.equal(movedTag.includes('left:25px'), true);
+assert.equal(movedTag.includes('top:35px'), true);
+assert.equal(movedTag.includes('width:30px'), true);
+assert.equal(updateInlineStylePx('<div style="left:10%; top:20px">', { left: 20, top: 30 }), null);
+let moveCollection = createVisualMovePatchCollectionState();
+moveCollection = addOrUpdateVisualMovePatch(moveCollection, movePlan).collection;
+const movedApply = applyVisualMovePatchesToHtml('<p style="left:10px;top:20px;width:30px;height:40px">Hello</p>', moveCollection, moveInventory);
+assert.equal(movedApply.workingHtml.includes('left:20px'), true);
