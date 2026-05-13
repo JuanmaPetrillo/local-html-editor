@@ -36,6 +36,9 @@ import { formatExportStatusText } from './exporter.mjs';
 import {
   createVisualObjectSelectionState,
   createVisualOverlayItems,
+  createMovePatchCollectionState,
+  addOrUpdateMovePatch,
+  createMovePatchFromNudge,
   createVisualOverlaySelectionState,
   formatOverlayStatusText,
   formatVisualObjectInventoryText,
@@ -168,6 +171,10 @@ const workingPreviewStatus = hasDom ? document.querySelector('#working-preview-s
 const resetWorkingPreview = hasDom ? document.querySelector('#reset-working-preview') : null;
 const exportEditedHtml = hasDom ? document.querySelector('#export-edited-html') : null;
 const exportStatus = hasDom ? document.querySelector('#export-status') : null;
+const nudgeLeft = hasDom ? document.querySelector('#nudge-left') : null;
+const nudgeRight = hasDom ? document.querySelector('#nudge-right') : null;
+const nudgeUp = hasDom ? document.querySelector('#nudge-up') : null;
+const nudgeDown = hasDom ? document.querySelector('#nudge-down') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -176,38 +183,38 @@ const previewResetLayout = hasDom ? document.querySelector('#preview-reset-layou
 if (
   hasDom &&
   fileInput instanceof HTMLInputElement &&
-  fileStatus instanceof HTMLElement &&
-  fileDetails instanceof HTMLElement &&
-  fileWarning instanceof HTMLElement &&
-  fileScan instanceof HTMLElement &&
-  importReport instanceof HTMLElement &&
-  importManifest instanceof HTMLElement &&
-  editableInventory instanceof HTMLElement &&
-  visualObjectInventory instanceof HTMLElement &&
+  fileStatus != null &&
+  fileDetails != null &&
+  fileWarning != null &&
+  fileScan != null &&
+  importReport != null &&
+  importManifest != null &&
+  editableInventory != null &&
+  visualObjectInventory != null &&
   visualObjectSelect instanceof HTMLSelectElement &&
-  visualObjectSelectionStatus instanceof HTMLElement &&
-  visualTextEditBridgeStatus instanceof HTMLElement &&
-  selectedTextEditStatus instanceof HTMLElement &&
-  visualOverlayLayer instanceof HTMLElement &&
-  visualOverlayStatus instanceof HTMLElement &&
+  visualObjectSelectionStatus != null &&
+  visualTextEditBridgeStatus != null &&
+  selectedTextEditStatus != null &&
+  visualOverlayLayer != null &&
+  visualOverlayStatus != null &&
   safePreviewFrame instanceof HTMLIFrameElement &&
-  safePreviewFrameWrap instanceof HTMLElement &&
-  safePreviewStatus instanceof HTMLElement &&
+  safePreviewFrameWrap != null &&
+  safePreviewStatus != null &&
   editableCandidateSelect instanceof HTMLSelectElement &&
   editableDraftText instanceof HTMLTextAreaElement &&
-  editableDraftStatus instanceof HTMLElement &&
-  editablePatchPlan instanceof HTMLElement &&
-  applyPatchPreview instanceof HTMLButtonElement &&
-  patchApplyStatus instanceof HTMLElement &&
-  patchCollectionStatus instanceof HTMLElement &&
-  workingPreviewStatus instanceof HTMLElement &&
-  resetWorkingPreview instanceof HTMLButtonElement &&
-  exportEditedHtml instanceof HTMLButtonElement &&
-  exportStatus instanceof HTMLElement &&
-  previewFitWidth instanceof HTMLButtonElement &&
-  previewCompactHeight instanceof HTMLButtonElement &&
-  previewTallHeight instanceof HTMLButtonElement &&
-  previewResetLayout instanceof HTMLButtonElement
+  editableDraftStatus != null &&
+  editablePatchPlan != null &&
+  applyPatchPreview != null &&
+  patchApplyStatus != null &&
+  patchCollectionStatus != null &&
+  workingPreviewStatus != null &&
+  resetWorkingPreview != null &&
+  exportEditedHtml != null &&
+  exportStatus != null &&
+  previewFitWidth != null &&
+  previewCompactHeight != null &&
+  previewTallHeight != null &&
+  previewResetLayout != null
 ) {
   /** @param {{compact: boolean, tall: boolean, fit: boolean}} layout */
   const applyPreviewLayoutState = (layout) => {
@@ -235,14 +242,17 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
+  let movePatchCollection = createMovePatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   const updateExportUi = () => {
-    const patchCount = patchCollection.orderedCandidateIds.length;
-    exportEditedHtml.disabled = !currentHtmlFile || patchCount === 0;
-    exportStatus.textContent = patchCount === 0
+    const textPatchCount = patchCollection.orderedCandidateIds.length;
+    const movePatchCount = movePatchCollection.orderedObjectIds.length;
+    const totalPatchCount = textPatchCount + movePatchCount;
+    exportEditedHtml.disabled = !currentHtmlFile || totalPatchCount === 0;
+    exportStatus.textContent = totalPatchCount === 0
       ? 'Export status: blocked (no in-memory patches).'
-      : `Export status: ready. ${patchCount} patch(es) in memory.`;
+      : `Export status: ready. ${totalPatchCount} patch(es) in memory.`;
   };
 
   const resetDraftUi = () => {
@@ -272,7 +282,7 @@ if (
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
     visualOverlayLayer.replaceChildren();
-    const overlayItems = createVisualOverlayItems(inventory);
+    const overlayItems = createVisualOverlayItems(inventory, movePatchCollection);
     const overlayState = createVisualOverlaySelectionState(overlayItems, selectedObjectId);
     for (const item of overlayState.items) {
       const button = document.createElement('button');
@@ -307,6 +317,12 @@ if (
       renderDraftFromSelection(currentInventory);
     }
     renderVisualOverlay(inventory, state.selectedObjectId);
+    const selected = state.selectedObject;
+    const nudgeEnabled = !!(selected && selected.geometry && Number.isFinite(selected.geometry.left) && Number.isFinite(selected.geometry.top));
+    if (nudgeLeft != null) nudgeLeft.disabled = !nudgeEnabled;
+    if (nudgeRight != null) nudgeRight.disabled = !nudgeEnabled;
+    if (nudgeUp != null) nudgeUp.disabled = !nudgeEnabled;
+    if (nudgeDown != null) nudgeDown.disabled = !nudgeEnabled;
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -320,6 +336,10 @@ if (
 
   resetDraftUi();
   resetVisualObjectSelectionUi();
+  if (nudgeLeft != null) nudgeLeft.disabled = true;
+  if (nudgeRight != null) nudgeRight.disabled = true;
+  if (nudgeUp != null) nudgeUp.disabled = true;
+  if (nudgeDown != null) nudgeDown.disabled = true;
 
   visualObjectSelect.addEventListener('change', () => {
     renderVisualObjectSelection(currentVisualInventory);
@@ -368,6 +388,7 @@ if (
   resetWorkingPreview.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
+    movePatchCollection = createMovePatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
@@ -406,6 +427,7 @@ if (
     currentHtmlFile = null;
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
+    movePatchCollection = createMovePatchCollectionState();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
@@ -527,3 +549,17 @@ if (
     exportStatus.textContent = formatExportStatusText({ ...exportResult, exportStatus: 'exported' });
   });
 }
+  const applyNudge = (dx, dy) => {
+    const state = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
+    if (!state.selectedObject) return;
+    const existing = movePatchCollection.movePatchesByObjectId[state.selectedObject.objectId];
+    const patch = createMovePatchFromNudge(state.selectedObject, dx, dy, existing);
+    if (!patch) return;
+    movePatchCollection = addOrUpdateMovePatch(movePatchCollection, patch).collection;
+    updateExportUi();
+    renderVisualOverlay(currentVisualInventory, state.selectedObject.objectId);
+  };
+  if (nudgeLeft != null) nudgeLeft.addEventListener('click', () => applyNudge(-10, 0));
+  if (nudgeRight != null) nudgeRight.addEventListener('click', () => applyNudge(10, 0));
+  if (nudgeUp != null) nudgeUp.addEventListener('click', () => applyNudge(0, -10));
+  if (nudgeDown != null) nudgeDown.addEventListener('click', () => applyNudge(0, 10));

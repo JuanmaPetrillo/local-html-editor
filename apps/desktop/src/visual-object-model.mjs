@@ -322,19 +322,53 @@ export function formatVisualObjectInventoryText(inventory) {
 }
 
 
-export function createVisualOverlayItems(inventory) {
+export function createMovePatchCollectionState() {
+  return { movePatchesByObjectId: {}, orderedObjectIds: [] };
+}
+
+export function addOrUpdateMovePatch(collection, patch) {
+  const next = collection && Array.isArray(collection.orderedObjectIds)
+    ? { movePatchesByObjectId: { ...collection.movePatchesByObjectId }, orderedObjectIds: [...collection.orderedObjectIds] }
+    : createMovePatchCollectionState();
+  if (!patch || !patch.objectId || !patch.nextGeometry) return { collection: next, changed: false };
+  if (!next.orderedObjectIds.includes(patch.objectId)) next.orderedObjectIds.push(patch.objectId);
+  next.movePatchesByObjectId[patch.objectId] = { ...patch };
+  return { collection: next, changed: true };
+}
+
+export function createMovePatchFromNudge(object, dx, dy, existingPatch = null) {
+  if (!object || !object.objectId || !object.geometry || !Number.isFinite(object.geometry.left) || !Number.isFinite(object.geometry.top)) return null;
+  const baseLeft = existingPatch && existingPatch.nextGeometry ? existingPatch.nextGeometry.left : object.geometry.left;
+  const baseTop = existingPatch && existingPatch.nextGeometry ? existingPatch.nextGeometry.top : object.geometry.top;
+  return {
+    patchId: `patch-move-${object.objectId}`,
+    objectId: object.objectId,
+    operation: 'move-object',
+    deltaX: (existingPatch && Number.isFinite(existingPatch.deltaX) ? existingPatch.deltaX : 0) + dx,
+    deltaY: (existingPatch && Number.isFinite(existingPatch.deltaY) ? existingPatch.deltaY : 0) + dy,
+    nextGeometry: { left: baseLeft + dx, top: baseTop + dy, width: object.geometry.width, height: object.geometry.height }
+  };
+}
+
+export function createVisualOverlayItems(inventory, movePatchCollection = null) {
   if (!inventory || !Array.isArray(inventory.objects)) return [];
   return inventory.objects
     .filter((obj) => obj && obj.geometry && obj.geometry.overlayReady)
-    .map((obj) => ({
+    .map((obj) => {
+      const moved = movePatchCollection && movePatchCollection.movePatchesByObjectId
+        ? movePatchCollection.movePatchesByObjectId[obj.objectId]
+        : null;
+      const geometry = moved && moved.nextGeometry ? moved.nextGeometry : obj.geometry;
+      return ({
       objectId: obj.objectId,
-      left: obj.geometry.left,
-      top: obj.geometry.top,
-      width: obj.geometry.width,
-      height: obj.geometry.height,
-      style: `left:${obj.geometry.left}px;top:${obj.geometry.top}px;width:${obj.geometry.width}px;height:${obj.geometry.height}px;`,
+      left: geometry.left,
+      top: geometry.top,
+      width: geometry.width,
+      height: geometry.height,
+      style: `left:${geometry.left}px;top:${geometry.top}px;width:${geometry.width}px;height:${geometry.height}px;`,
       label: `Overlay ${obj.objectId} (${obj.type})`
-    }));
+      });
+    });
 }
 
 export function createVisualOverlaySelectionState(overlayItems, selectedObjectId) {
