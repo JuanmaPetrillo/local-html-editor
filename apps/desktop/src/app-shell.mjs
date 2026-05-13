@@ -409,9 +409,12 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      const inventory = await createEditableInventoryForHtmlFile(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       const visualInventory = await createVisualObjectInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentVisualInventory = visualInventory;
+      currentInventory = inventory;
       visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
       visualObjectSelect.replaceChildren();
       if (visualInventory && Array.isArray(visualInventory.objects)) {
@@ -426,10 +429,6 @@ if (
       if (!visualObjectSelect.disabled) {
         visualObjectSelect.value = visualInventory.objects[0].objectId;
       }
-      renderVisualObjectSelection(visualInventory);
-      const inventory = await createEditableInventoryForHtmlFile(selected);
-      if (selectionGeneration !== currentSelectionGeneration) return;
-      currentInventory = inventory;
       editableInventory.textContent = formatEditableInventoryText(inventory);
       draftState = createDraftEditState(inventory);
       editableCandidateSelect.replaceChildren();
@@ -441,9 +440,10 @@ if (
       }
       editableCandidateSelect.disabled = inventory.candidates.length === 0;
       editableDraftText.disabled = inventory.candidates.length === 0;
-      if (draftState.selectedCandidateId) {
+      if (draftState.selectedCandidateId && !editableCandidateSelect.value) {
         editableCandidateSelect.value = draftState.selectedCandidateId;
       }
+      renderVisualObjectSelection(visualInventory);
       renderDraftFromSelection(inventory);
       const previewResult = await createSafeHtmlPreviewResult(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;

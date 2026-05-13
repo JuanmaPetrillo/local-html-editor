@@ -496,6 +496,6 @@ Milestone: Phase 4A - first direct visual text edit bridge
 Summary: Added conservative visual text span metadata and exact source-span bridge mapping from selected visual text objects to existing editable text candidates. Wired visual object selection (dropdown and overlay click path) into existing draft candidate selection flow and added trusted-shell bridge status messaging for linked/unlinked selections.
 Files changed: apps/desktop/src/visual-object-model.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending run in this task after code changes.
+Result: Passed.
 Known limitations: Conservative exact-span mapping only; no in-place editing, drag/resize, image replacement, ZIP extraction/listing/export, persistence/autosave, or iframe internals access.
 Next recommended task: Proceed only with explicit approval for next narrow slice.

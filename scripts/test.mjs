@@ -899,6 +899,7 @@ assert.equal(nonTextBridge.available, false);
 const linkedBridge = createVisualTextEditBridgeState(dupVisual.objects[0], dupEditable);
 assert.equal(linkedBridge.linked, true);
 assert.equal(linkedBridge.candidateId, 'text-001');
+assert.equal(createVisualTextEditBridgeState(dupVisual.objects[0], dupEditable).candidateId, dupEditable.candidates[0].candidateId);
 assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'rawHtmlText'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'htmlText'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'rawBytes'), false);
