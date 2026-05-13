@@ -59,7 +59,15 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
-import { extractVisualObjectsFromHtml, createVisualObjectInventory, formatVisualObjectInventoryText } from '../apps/desktop/src/visual-object-model.mjs';
+import {
+  createVisualObjectInventory,
+  createVisualObjectSelectionState,
+  extractVisualObjectsFromHtml,
+  formatVisualObjectInventoryText,
+  formatVisualObjectOptionLabel,
+  formatVisualObjectSelectionText,
+  selectVisualObject
+} from '../apps/desktop/src/visual-object-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -823,3 +831,28 @@ const summaryLocked = createVisualObjectInventory('<iframe></iframe>');
 assert.equal(summaryLocked.summary.lockedCount, 1);
 const summaryMixed = createVisualObjectInventory('<h1>A</h1><canvas></canvas><p>B</p>');
 assert.equal(summaryMixed.summary.totalCount, 3);
+
+const selectedVisualObject = selectVisualObject(summaryMixed, 'object-001');
+assert.equal(selectedVisualObject.objectId, 'object-001');
+assert.equal(selectVisualObject(summaryMixed, 'object-999'), null);
+const safeNullSelection = createVisualObjectSelectionState(null, 'object-001');
+assert.equal(safeNullSelection.available, false);
+assert.equal(safeNullSelection.selectedObject, null);
+const selectionText = formatVisualObjectSelectionText(createVisualObjectSelectionState(summaryMixed, 'object-001'));
+assert.equal(selectionText.includes('Selected object: object-001'), true);
+assert.equal(selectionText.includes('- type:'), true);
+assert.equal(selectionText.includes('- editability:'), true);
+assert.equal(selectionText.includes('- confidence:'), true);
+assert.equal(selectionText.includes('- reason:'), true);
+const optionLabelText = formatVisualObjectOptionLabel({ objectId: 'object-001', type: 'text', textPreview: 'Hello' });
+assert.equal(optionLabelText.includes('object-001'), true);
+assert.equal(optionLabelText.includes('text'), true);
+assert.equal(optionLabelText.includes('Hello'), true);
+const optionLabelSrc = formatVisualObjectOptionLabel({ objectId: 'object-002', type: 'image', srcPreview: 'image.png' });
+assert.equal(optionLabelSrc.includes('image.png'), true);
+const visualSelectionState = createVisualObjectSelectionState(summaryMixed, 'object-001');
+assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'rawHtmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'htmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'rawBytes'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'binary'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'workingHtml'), false);

@@ -33,7 +33,12 @@ import {
   resetWorkingPreviewState
 } from './editable-model.mjs';
 import { formatExportStatusText } from './exporter.mjs';
-import { formatVisualObjectInventoryText } from './visual-object-model.mjs';
+import {
+  createVisualObjectSelectionState,
+  formatVisualObjectInventoryText,
+  formatVisualObjectOptionLabel,
+  formatVisualObjectSelectionText
+} from './visual-object-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -135,6 +140,8 @@ const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
 const editableInventory = hasDom ? document.querySelector('#editable-inventory') : null;
 const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
+const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
+const visualObjectSelectionStatus = hasDom ? document.querySelector('#visual-object-selection-status') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
 const safePreviewFrameWrap = hasDom ? document.querySelector('#safe-preview-frame-wrap') : null;
 const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
@@ -165,6 +172,8 @@ if (
   importManifest instanceof HTMLElement &&
   editableInventory instanceof HTMLElement &&
   visualObjectInventory instanceof HTMLElement &&
+  visualObjectSelect instanceof HTMLSelectElement &&
+  visualObjectSelectionStatus instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
   safePreviewFrameWrap instanceof HTMLElement &&
   safePreviewStatus instanceof HTMLElement &&
@@ -235,6 +244,16 @@ if (
     draftState = null;
     currentExportSafetySummary = null;
   };
+  const resetVisualObjectSelectionUi = () => {
+    visualObjectSelect.replaceChildren();
+    visualObjectSelect.disabled = true;
+    visualObjectSelectionStatus.textContent = 'Visual object selection: unavailable.';
+  };
+
+  const renderVisualObjectSelection = (inventory) => {
+    const state = createVisualObjectSelectionState(inventory, visualObjectSelect.value);
+    visualObjectSelectionStatus.textContent = formatVisualObjectSelectionText(state);
+  };
 
   const renderDraftFromSelection = (inventory) => {
     const candidate = selectEditableCandidate(inventory, editableCandidateSelect.value);
@@ -246,6 +265,11 @@ if (
   };
 
   resetDraftUi();
+  resetVisualObjectSelectionUi();
+
+  visualObjectSelect.addEventListener('change', () => {
+    renderVisualObjectSelection(currentVisualInventory);
+  });
 
   editableCandidateSelect.addEventListener('change', () => {
     renderDraftFromSelection(currentInventory);
@@ -257,6 +281,8 @@ if (
 
   /** @type {any} */
   let currentInventory = null;
+  /** @type {any} */
+  let currentVisualInventory = null;
 
 
   applyPatchPreview.addEventListener('click', async () => {
@@ -315,6 +341,8 @@ if (
     importReport.textContent = '';
     importManifest.textContent = '';
     visualObjectInventory.textContent = 'Visual object discovery: waiting for .html/.htm selection.';
+    resetVisualObjectSelectionUi();
+    currentVisualInventory = null;
     editableInventory.textContent = 'Editable text candidates: unavailable.';
     currentInventory = null;
     currentHtmlFile = null;
@@ -340,7 +368,22 @@ if (
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
       const visualInventory = await createVisualObjectInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
+      currentVisualInventory = visualInventory;
       visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
+      visualObjectSelect.replaceChildren();
+      if (visualInventory && Array.isArray(visualInventory.objects)) {
+        for (const object of visualInventory.objects) {
+          const option = document.createElement('option');
+          option.value = object.objectId;
+          option.textContent = formatVisualObjectOptionLabel(object);
+          visualObjectSelect.appendChild(option);
+        }
+      }
+      visualObjectSelect.disabled = !visualInventory || !Array.isArray(visualInventory.objects) || visualInventory.objects.length === 0;
+      if (!visualObjectSelect.disabled) {
+        visualObjectSelect.value = visualInventory.objects[0].objectId;
+      }
+      renderVisualObjectSelection(visualInventory);
       const inventory = await createEditableInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentInventory = inventory;
@@ -377,6 +420,7 @@ if (
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
       visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
+      resetVisualObjectSelectionUi();
       editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
@@ -399,6 +443,7 @@ if (
         createImportManifestFromStatus(unsupportedStatus, report)
       );
       visualObjectInventory.textContent = 'Visual object discovery: unavailable for this file type.';
+      resetVisualObjectSelectionUi();
       editableInventory.textContent = 'Editable text candidates: unavailable for this file type.';
       safePreviewStatus.textContent = formatPreviewStatusText(
         createUnavailablePreviewStatus('unknown', project.name)

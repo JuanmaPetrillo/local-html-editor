@@ -133,3 +133,47 @@ export function formatVisualObjectInventoryText(inventory) {
   }
   return lines.join('\n');
 }
+
+export function selectVisualObject(inventory, objectId) {
+  if (!inventory || !Array.isArray(inventory.objects) || !objectId) {
+    return null;
+  }
+  return inventory.objects.find((obj) => obj.objectId === objectId) || null;
+}
+
+export function createVisualObjectSelectionState(inventory, objectId) {
+  const selectedObject = selectVisualObject(inventory, objectId);
+  return {
+    available: !!inventory && Array.isArray(inventory.objects) && inventory.objects.length > 0,
+    selectedObjectId: selectedObject ? selectedObject.objectId : '',
+    selectedObject
+  };
+}
+
+export function formatVisualObjectOptionLabel(object) {
+  if (!object) return '';
+  const preview = object.textPreview || object.srcPreview || 'no-preview';
+  return `${object.objectId} | ${object.type} | ${preview}`;
+}
+
+export function formatVisualObjectSelectionText(selectionState) {
+  if (!selectionState || !selectionState.selectedObject) {
+    return 'Visual object selection: unavailable.';
+  }
+  const object = selectionState.selectedObject;
+  const actions = Array.isArray(object.allowedActions) && object.allowedActions.length > 0
+    ? object.allowedActions.join(', ')
+    : 'none';
+  const lines = [
+    `Selected object: ${object.objectId}`,
+    `- type: ${object.type}`,
+    `- tag: <${object.tagName}>`,
+    `- editability: ${object.editability}`,
+    `- confidence: ${object.confidence}`,
+    `- allowed actions: ${actions}`,
+    `- reason: ${object.reason}`
+  ];
+  if (object.textPreview) lines.push(`- text preview: ${object.textPreview}`);
+  if (object.srcPreview) lines.push(`- source preview: ${object.srcPreview}`);
+  return lines.join('\n');
+}
