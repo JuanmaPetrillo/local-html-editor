@@ -108,3 +108,11 @@ Images should expose alt-text editing.
 ## Current milestone guardrail
 
 Rendering/preview must wait for a dedicated sandboxed preview milestone. Do not implement rendering during scan-only import milestones.
+
+
+## Additional strategic UX principles
+
+- Users should never need to know what HTML is.
+- Default UI should show slides/objects, not candidate IDs or patch plans.
+- Locked content must be explained plainly.
+- Advanced diagnostics are hidden by default.
