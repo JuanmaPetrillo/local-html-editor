@@ -6,11 +6,17 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: PR C - MVP usability polish and readiness pass (complete).
+Current milestone: P2 hardening - documentation accuracy, leakage tests, and security-script cleanup (complete).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, 4D, and PR B are complete for the current browser-first implementation. PR B adds the first user-initiated local-only export path for the in-memory edited working HTML copy using the patch collection, without mutating the imported source.
+Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, 4D, PR A, PR B, PR C, PR 1 (P0), PR 2 (P1), and PR 3 (P2 hardening) are complete for the current browser-first implementation.
+
+Browser-first MVP currently supports HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery, in-memory text patch collection, reset-to-original preview, and user-initiated local edited HTML export.
+
+PR C usability polish is complete. PR 1/P0 fixes are complete (overlapping patch application blocked, unclosed/lone script tags stripped-counted in preview sanitization, and `data:image/svg+xml` blocked in safe preview). PR 2/P1 fixes are complete (file-selection race guard, full-document preview wrapping fix, source-kind-aware manifest/inventory wording updates, UI step order fix, and export disclosure warning). P2 hardening is complete (documentation accuracy cleanup, raw-content leakage regression coverage, security script cleanup, and manual smoke checklist).
+
+ZIP remains preflight-only. No image replacement, drag/resize visual editing, persistence/autosave, or Tauri/React/Vite conversion is implemented in this branch.
 
 Current app files:
 
