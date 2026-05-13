@@ -653,6 +653,11 @@ assert.equal(
 const collectionPreview = await createCollectionPatchedSafePreviewResult({ name: 'preview.html', text: async () => multiHtml }, c);
 assert.equal(collectionPreview.previewResult.previewDocument.includes("default-src 'none'"), true);
 assert.equal('workingHtml' in collectionPreview.applyState, false);
+const overlapPreview = await createCollectionPatchedSafePreviewResult({ name: 'preview.html', text: async () => overlapHtml }, overlapCollection);
+assert.equal(overlapPreview.previewResult, null);
+assert.equal(overlapPreview.applyState.applyStatus, 'blocked-overlapping-patches');
+assert.equal(overlapPreview.applyState.warnings.includes('overlapping-patches'), true);
+assert.equal('workingHtml' in overlapPreview.applyState, false);
 const resetState = resetWorkingPreviewState();
 assert.equal(resetState.applyStatus, 'reset-to-original');
 assert.equal(formatPatchCollectionText(createPatchCollectionState()).includes('none applied'), true);

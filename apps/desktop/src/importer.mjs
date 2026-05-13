@@ -219,6 +219,19 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
   const htmlText = await file.text();
   const inventory = createEditableTextInventory(htmlText);
   const applyState = applyPatchCollectionToWorkingHtml(htmlText, collection, inventory);
+  if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview' || !applyState.workingHtml) {
+    return {
+      applyState: {
+        appliedAny: applyState.appliedAny,
+        applyStatus: applyState.applyStatus,
+        applyResults: applyState.applyResults,
+        collectionCount: applyState.collectionCount,
+        warnings: Array.isArray(applyState.warnings) ? applyState.warnings : []
+      },
+      previewResult: null
+    };
+  }
+
   const previewResult = buildSafePreviewResult(applyState.workingHtml);
   previewResult.previewStatus.fileName = file.name;
   return {
@@ -226,7 +239,8 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
       appliedAny: applyState.appliedAny,
       applyStatus: applyState.applyStatus,
       applyResults: applyState.applyResults,
-      collectionCount: applyState.collectionCount
+      collectionCount: applyState.collectionCount,
+      warnings: Array.isArray(applyState.warnings) ? applyState.warnings : []
     },
     previewResult
   };
