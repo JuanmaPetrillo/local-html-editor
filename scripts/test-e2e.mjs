@@ -29,6 +29,11 @@ if (!html.includes('id="preview-fit-width"')) throw new Error('shell ui missing 
 if (!html.includes('id="preview-compact-height"')) throw new Error('shell ui missing preview compact control');
 if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missing preview tall control');
 if (!html.includes('id="preview-reset-layout"')) throw new Error('shell ui missing preview reset control');
+
+const step2Index = html.indexOf('2) Review safe preview');
+const step3Index = html.indexOf('3) Select editable text candidate');
+if (step2Index === -1 || step3Index === -1 || step2Index > step3Index) throw new Error('shell ui step order mismatch: safe preview must be before text candidate workflow');
+
 if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing preview compact class');
 if (!html.includes('preview-frame--fit')) throw new Error('shell ui missing preview fit class');
 if (!html.includes('preview-frame--tall')) throw new Error('shell ui missing preview tall class');

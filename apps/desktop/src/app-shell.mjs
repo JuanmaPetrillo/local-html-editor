@@ -206,6 +206,8 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
+  let currentSelectionGeneration = 0;
+  let currentExportSafetySummary = null;
   const updateExportUi = () => {
     const patchCount = patchCollection.orderedCandidateIds.length;
     exportEditedHtml.disabled = !currentHtmlFile || patchCount === 0;
@@ -227,6 +229,7 @@ if (
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     updateExportUi();
     draftState = null;
+    currentExportSafetySummary = null;
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -290,6 +293,8 @@ if (
   });
 
   fileInput.addEventListener('change', async () => {
+    currentSelectionGeneration += 1;
+    const selectionGeneration = currentSelectionGeneration;
     const selected = fileInput.files && fileInput.files.length > 0 ? fileInput.files[0] : null;
     const project = selected
       ? createProjectFileModel({
@@ -317,13 +322,19 @@ if (
 
     if (selected && project && project.sourceKind === 'html') {
       const scanResult = await importHtmlFileScan(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       currentHtmlFile = selected;
       const status = createImportStatusFromHtmlScan(scanResult);
+      currentExportSafetySummary = {
+        hasScripts: scanResult.ok && scanResult.scan.scriptTagCount > 0,
+        hasRemoteReferences: scanResult.ok && (scanResult.scan.remoteUrlCount > 0 || scanResult.referenceScan.byType.remote > 0)
+      };
       const report = createImportReportFromStatus(status);
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
       const inventory = await createEditableInventoryForHtmlFile(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       currentInventory = inventory;
       editableInventory.textContent = formatEditableInventoryText(inventory);
       draftState = createDraftEditState(inventory);
@@ -341,6 +352,7 @@ if (
       }
       renderDraftFromSelection(inventory);
       const previewResult = await createSafeHtmlPreviewResult(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       safePreviewFrame.srcdoc = previewResult ? previewResult.previewDocument : safePreviewFrame.srcdoc;
       safePreviewStatus.textContent = previewResult
         ? formatPreviewStatusText(previewResult.previewStatus)
@@ -349,7 +361,9 @@ if (
 
     if (selected && project && project.sourceKind === 'zip') {
       const scanResult = await importZipFilePreflight(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
       const status = createImportStatusFromZipPreflight(scanResult);
+      currentExportSafetySummary = null;
       const report = createImportReportFromStatus(status);
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
@@ -359,6 +373,7 @@ if (
     }
 
     if (selected && project && project.sourceKind === 'unknown') {
+      currentExportSafetySummary = null;
       const unsupportedStatus = {
         sourceKind: 'unknown',
         fileName: project.name,
@@ -383,7 +398,7 @@ if (
 
   exportEditedHtml.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
-    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection);
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, currentExportSafetySummary);
     exportStatus.textContent = formatExportStatusText(exportResult);
     if (!exportResult.exported || !exportResult.blob) return;
     const objectUrl = URL.createObjectURL(exportResult.blob);

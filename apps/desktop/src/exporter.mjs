@@ -11,7 +11,7 @@ export function createSuggestedEditedHtmlFileName(fileName) {
 }
 
 /** @param {string} htmlText @param {string} fileName @param {any} patchCollection */
-export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection) {
+export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection, safetySummary = null) {
   const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
     ? patchCollection.orderedCandidateIds.length
     : 0;
@@ -45,6 +45,9 @@ export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchColl
     exportStatus: 'ready',
     warnings: [],
     message: 'Edited HTML prepared for local download. The app did not save a copy.',
+    disclosureWarning: safetySummary && (safetySummary.hasScripts || safetySummary.hasRemoteReferences)
+      ? 'Exported HTML may contain scripts or remote references that were blocked in safe preview. Review before forwarding.'
+      : '',
     blob
   };
 }
@@ -59,6 +62,7 @@ export function formatExportStatusText(exportResult) {
     `MIME type: ${exportResult.mimeType}`,
     `Patch count: ${exportResult.patchCount}`,
     exportResult.message,
+    exportResult.disclosureWarning || '',
     'Download is local only and unsaved by the app.'
   ].join('\n');
 }

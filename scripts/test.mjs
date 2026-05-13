@@ -57,7 +57,7 @@ import {
   formatPatchCollectionText,
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
-import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from '../apps/desktop/src/exporter.mjs';
+import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
 assert.equal(detectExtension('deck.HTM'), 'htm');
@@ -114,8 +114,13 @@ assert.equal(safeHtmlReport.warnings.length, 0);
 assert.equal(safeHtmlManifest.sourceKind, 'html');
 assert.equal(safeHtmlManifest.referenceSummary.totalCount, 0);
 assert.equal(safeHtmlManifest.nextAvailableActions.includes('save-project'), false);
-assert.equal(safeHtmlManifest.nextAvailableActions.includes('export'), false);
-assert.equal(safeHtmlManifest.nextAvailableActions.includes('edit'), false);
+assert.equal(safeHtmlManifest.capabilities.includes('local-edited-html-export'), true);
+assert.equal(safeHtmlManifest.capabilities.includes('editable-text-candidates'), true);
+assert.equal(safeHtmlManifest.limitations.includes('no-persistence'), true);
+assert.equal(safeHtmlManifest.limitations.includes('no-zip-extraction'), true);
+assert.equal(safeHtmlManifest.limitations.includes('no-export'), false);
+assert.equal(safeHtmlManifest.limitations.includes('no-edit'), false);
+assert.equal(safeHtmlManifest.limitations.includes('no-preview'), false);
 
 const localImageRefs = scanHtmlReferences('<img src="images/photo.png">');
 assert.equal(localImageRefs.byType['local-relative'], 1);
@@ -286,6 +291,14 @@ assert.equal(safePreviewDoc.toLowerCase().includes('http-equiv="refresh"'), fals
 assert.equal(safePreviewDoc.includes('allow-scripts'), false);
 assert.equal(safePreviewDoc.includes('allow-same-origin'), false);
 
+const fullDocPreview = buildSafePreviewDocument('<!doctype html><html><head><style>h1{color:blue}</style><script>alert(1)</script></head><body><h1>T</h1></body></html>');
+assert.equal((fullDocPreview.match(/<html\b/gi) || []).length, 1);
+assert.equal((fullDocPreview.match(/<head\b/gi) || []).length, 1);
+assert.equal((fullDocPreview.match(/<body\b/gi) || []).length, 1);
+assert.equal(fullDocPreview.includes('Content-Security-Policy'), true);
+assert.equal(fullDocPreview.includes('h1{color:blue}'), true);
+assert.equal(fullDocPreview.includes('<h1>T</h1>'), true);
+assert.equal(fullDocPreview.includes('<script'), false);
 
 const malformedScriptDoc = buildSafePreviewDocument('<h1>X</h1><script src="x.js">');
 assert.equal(malformedScriptDoc.includes('<script'), false);
@@ -449,7 +462,8 @@ assert.equal('rawHtmlText' in inventory, false);
 assert.equal('htmlText' in inventory, false);
 assert.equal('rawBytes' in inventory, false);
 assert.equal('binary' in inventory, false);
-assert.equal(formatEditableInventoryText(inventory).includes('Editing is not enabled yet'), true);
+assert.equal(formatEditableInventoryText(inventory).includes('Editing is not enabled yet'), false);
+assert.equal(formatEditableInventoryText(inventory).toLowerCase().includes('in memory'), true);
 
 const zipInventory = await createEditableInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>no</h1>' });
 assert.equal(zipInventory, null);
@@ -695,3 +709,23 @@ const blockedEmpty = await createEditedHtmlExport({ name: 'deck.html', text: asy
 assert.equal(blockedEmpty.exportStatus, 'blocked');
 const blockedFail = await createEditedHtmlExport({ name: 'deck.html', text: async () => '<h1>One</h1>' }, { patchesByCandidateId: { missing: { patchId: 'patch-missing', candidateId: 'missing', replacementText: 'x', replacementLength: 1, applyStatus: 'planned' } }, orderedCandidateIds: ['missing'] });
 assert.equal(blockedFail.exported, false);
+
+
+const warningExport = createEditedHtmlExportFromHtmlText('<h1>Old title</h1>', 'slides.html', {
+  patchesByCandidateId: { 'text-001': { patchId: 'patch-text-001', candidateId: 'text-001', replacementText: 'Hello!', replacementLength: 6, applyStatus: 'planned' } },
+  orderedCandidateIds: ['text-001']
+}, { hasScripts: true, hasRemoteReferences: false });
+assert.equal(warningExport.exported, true);
+assert.equal((warningExport.disclosureWarning || '').includes('blocked in safe preview'), true);
+assert.equal((warningExport.blob ? 'ok' : 'missing'), 'ok');
+const scriptPreservedExport = await createEditedHtmlExport({ name: 'scripted.html', text: async () => '<h1>Old title</h1><script>ok()</script>' }, {
+  patchesByCandidateId: { 'text-001': { patchId: 'patch-text-001', candidateId: 'text-001', replacementText: 'Hi', replacementLength: 2, applyStatus: 'planned' } },
+  orderedCandidateIds: ['text-001']
+});
+assert.equal((await scriptPreservedExport.blob.text()).includes('<script>ok()</script>'), true);
+const cleanExport = createEditedHtmlExportFromHtmlText('<h1>Old title</h1>', 'clean.html', {
+  patchesByCandidateId: { 'text-001': { patchId: 'patch-text-001', candidateId: 'text-001', replacementText: 'Hi', replacementLength: 2, applyStatus: 'planned' } },
+  orderedCandidateIds: ['text-001']
+}, { hasScripts: false, hasRemoteReferences: false });
+assert.equal(cleanExport.disclosureWarning || '', '');
+assert.equal(formatExportStatusText(warningExport).includes('blocked in safe preview'), true);

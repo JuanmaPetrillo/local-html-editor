@@ -46,8 +46,22 @@
         <pre id="import-manifest" aria-live="polite"></pre>
       </section>
       <section>
+        <h2>2) Review safe preview</h2>
+        <p>Safe preview is sanitized. Scripts are disabled, and risky remote content is blocked by default.</p>
+        <div class="preview-controls" aria-label="Preview layout controls">
+          <button type="button" id="preview-fit-width">Fit width</button>
+          <button type="button" id="preview-compact-height">Compact height</button>
+          <button type="button" id="preview-tall-height">Tall preview</button>
+          <button type="button" id="preview-reset-layout">Reset preview layout</button>
+        </div>
+        <pre id="safe-preview-status" aria-live="polite">Safe static preview: unavailable. Select an HTML file for a sanitized preview.</pre>
+        <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
+          <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
+        </div>
+      </section>
+      <section>
         <h2>Text edit workflow</h2>
-        <p>Follow steps 2-5: review the safe preview, choose a text candidate, draft replacement text, and apply it to the in-memory preview.</p>
+        <p>Follow steps 3-5: choose a text candidate, draft replacement text, and apply it to the in-memory preview.</p>
         <pre id="editable-inventory" aria-live="polite">3) Editable text candidates: waiting for .html/.htm selection.</pre>
       <label for="editable-candidate-select">3) Select editable text candidate</label>
         <select id="editable-candidate-select" disabled></select>
@@ -65,20 +79,6 @@
       <section>
         <h2>Recent Projects</h2>
         <p>No recent projects yet.</p>
-      </section>
-      <section>
-        <h2>2) Review safe preview</h2>
-        <p>Safe preview is sanitized. Scripts are disabled, and risky remote content is blocked by default.</p>
-        <div class="preview-controls" aria-label="Preview layout controls">
-          <button type="button" id="preview-fit-width">Fit width</button>
-          <button type="button" id="preview-compact-height">Compact height</button>
-          <button type="button" id="preview-tall-height">Tall preview</button>
-          <button type="button" id="preview-reset-layout">Reset preview layout</button>
-        </div>
-        <pre id="safe-preview-status" aria-live="polite">Safe static preview: unavailable. Select an HTML file for a sanitized preview.</pre>
-        <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
-          <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
-        </div>
       </section>
     </main>
     <script type="module" src="./src/app-shell.mjs"></script>

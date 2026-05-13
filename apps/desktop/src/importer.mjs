@@ -247,7 +247,7 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection) {
+export async function createEditedHtmlExport(file, patchCollection, safetySummary = null) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) {
     const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
@@ -256,7 +256,7 @@ export async function createEditedHtmlExport(file, patchCollection) {
     return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
   }
   const htmlText = await file.text();
-  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection);
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, safetySummary);
 }
 
 /**
@@ -383,15 +383,16 @@ export function formatImportStatusSummary(status) {
 export function createImportManifestFromStatus(status, report) {
   const importStatus = status.ok ? 'ready-with-scan' : 'blocked';
   const nextAvailableActions = ['open-another-file'];
-  const capabilities = ['local-scan-report', 'manifest-summary'];
+  const capabilities = ['local-scan-report', 'manifest-summary', 'safe-static-preview', 'editable-text-candidates', 'in-memory-text-patching', 'local-edited-html-export'];
   const limitations = [
     'no-save',
-    'no-export',
-    'no-edit',
-    'no-render',
-    'no-preview',
+    'no-persistence',
     'no-zip-extraction',
-    'no-zip-entry-listing'
+    'no-zip-entry-listing',
+    'no-zip-export',
+    'no-image-replacement',
+    'no-drag-resize',
+    'no-visual-element-editing'
   ];
 
   return {
