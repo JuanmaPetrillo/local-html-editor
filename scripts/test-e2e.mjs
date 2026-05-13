@@ -15,6 +15,7 @@ if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing im
 if (!html.includes('id="visual-object-inventory"')) throw new Error('shell ui missing visual object inventory region');
 if (!html.includes('id="visual-object-select"')) throw new Error('shell ui missing visual object selector');
 if (!html.includes('id="visual-object-selection-status"')) throw new Error('shell ui missing visual object selection status region');
+if (!html.includes('id="visual-text-edit-bridge-status"')) throw new Error('shell ui missing visual text edit bridge status region');
 if (!html.includes('id="visual-overlay-layer"')) throw new Error('shell ui missing visual overlay layer');
 if (!html.includes('id="visual-overlay-status"')) throw new Error('shell ui missing visual overlay status region');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
