@@ -254,6 +254,27 @@ export function formatVisualTextEditBridgeText(bridgeState) {
   return `Selected object is not safely text-editable in this MVP.\nobjectId: ${bridgeState.objectId}\nreason: ${bridgeState.reason || 'unavailable'}`;
 }
 
+export function getVisualObjectEditableText(visualObject) {
+  if (!visualObject || visualObject.type !== 'text') return '';
+  return String(visualObject.textPreview || '');
+}
+
+export function createSelectedTextEditStatus(selectionState, bridgeState) {
+  const selectedObject = selectionState && selectionState.selectedObject ? selectionState.selectedObject : null;
+  if (!selectedObject) {
+    return { editable: false, message: 'Select a visual text object to edit.' };
+  }
+  if (bridgeState && bridgeState.linked && bridgeState.candidateId) {
+    return { editable: true, message: 'Selected text is editable. Edit the text below, then apply to preview.' };
+  }
+  return { editable: false, message: 'This object is locked or not safely text-editable.' };
+}
+
+export function formatSelectedTextEditStatus(status) {
+  if (!status) return 'Select a visual text object to edit.';
+  return status.message || 'Select a visual text object to edit.';
+}
+
 export function createVisualObjectInventory(htmlText) {
   const objects = extractVisualObjectsFromHtml(htmlText);
   return {

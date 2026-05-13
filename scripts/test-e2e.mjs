@@ -16,6 +16,8 @@ if (!html.includes('id="visual-object-inventory"')) throw new Error('shell ui mi
 if (!html.includes('id="visual-object-select"')) throw new Error('shell ui missing visual object selector');
 if (!html.includes('id="visual-object-selection-status"')) throw new Error('shell ui missing visual object selection status region');
 if (!html.includes('id="visual-text-edit-bridge-status"')) throw new Error('shell ui missing visual text edit bridge status region');
+if (!html.includes('id="selected-text-edit-panel"')) throw new Error('shell ui missing selected text edit panel');
+if (!html.includes('id="selected-text-edit-status"')) throw new Error('shell ui missing selected text edit status');
 if (!html.includes('id="visual-overlay-layer"')) throw new Error('shell ui missing visual overlay layer');
 if (!html.includes('id="visual-overlay-status"')) throw new Error('shell ui missing visual overlay status region');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
@@ -24,6 +26,7 @@ if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing
 if (!html.includes('id="editable-draft-status"')) throw new Error('shell ui missing editable draft status region');
 if (!html.includes('id="editable-patch-plan"')) throw new Error('shell ui missing editable patch plan region');
 if (!html.includes('id="apply-patch-preview"')) throw new Error('shell ui missing apply patch preview button');
+if (!html.includes('Apply text edit to preview')) throw new Error('shell ui missing updated apply text edit label');
 if (!html.includes('id="patch-apply-status"')) throw new Error('shell ui missing patch apply status region');
 if (!html.includes('id="reset-working-preview"')) throw new Error('shell ui missing reset working preview button');
 if (!html.includes('id="patch-collection-status"')) throw new Error('shell ui missing patch collection status region');
@@ -31,6 +34,7 @@ if (!html.includes('id="working-preview-status"')) throw new Error('shell ui mis
 if (!html.includes('id="export-status"')) throw new Error('shell ui missing export status region');
 if (!html.includes('id="editable-draft-text"')) throw new Error('shell ui missing editable draft textarea');
 if (!html.includes('id="editable-candidate-select"')) throw new Error('shell ui missing editable candidate selector');
+if (!html.includes('Advanced text candidate selector')) throw new Error('shell ui missing advanced text candidate selector label');
 if (!html.includes('id="safe-preview-frame"')) throw new Error('shell ui missing safe preview iframe region');
 if (!html.includes('id="safe-preview-status"')) throw new Error('shell ui missing safe preview status region');
 if (!html.includes('Session Scope')) throw new Error('shell ui missing session scope section');
@@ -41,7 +45,7 @@ if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missin
 if (!html.includes('id="preview-reset-layout"')) throw new Error('shell ui missing preview reset control');
 
 const step2Index = html.indexOf('2) Review safe preview');
-const step3Index = html.indexOf('3) Select editable text candidate');
+const step3Index = html.indexOf('Advanced text candidate selector');
 if (step2Index === -1 || step3Index === -1 || step2Index > step3Index) throw new Error('shell ui step order mismatch: safe preview must be before text candidate workflow');
 
 if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing preview compact class');

@@ -499,3 +499,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Conservative exact-span mapping only; no in-place editing, drag/resize, image replacement, ZIP extraction/listing/export, persistence/autosave, or iframe internals access.
 Next recommended task: Proceed only with explicit approval for next narrow slice.
+
+### 2026-05-13 (phase 4b visual text edit UX bridge)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Phase 4B - visual text edit UX bridge over existing patch pipeline
+Summary: Added a business-user selected-text edit panel and status messaging for visual object selection flow. Linked visual text selections now prefill the existing draft textarea per candidate without wiping user-typed draft for the same candidate, and apply button copy was updated to “Apply text edit to preview”. Kept technical candidate selector available as “Advanced text candidate selector” while preserving existing patch/apply/reset/export behavior.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No in-place contenteditable editing, no drag/resize, no image replacement, no ZIP extraction/listing/export, no persistence/autosave, no dependency additions, no network calls, no telemetry, no iframe internals access, and no Tauri/React/Vite conversion.
+Next recommended task: Proceed only with explicit approval for next narrow scope.

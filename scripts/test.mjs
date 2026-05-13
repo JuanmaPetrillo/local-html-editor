@@ -79,7 +79,10 @@ import {
   createVisualTextCandidateLinks,
   findEditableCandidateForVisualObject,
   createVisualTextEditBridgeState,
-  formatVisualTextEditBridgeText
+  formatVisualTextEditBridgeText,
+  getVisualObjectEditableText,
+  createSelectedTextEditStatus,
+  formatSelectedTextEditStatus
 } from '../apps/desktop/src/visual-object-model.mjs';
 
 assert.equal(detectExtension('deck.html'), 'html');
@@ -907,6 +910,19 @@ assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'binary'), false
 assert.equal(Object.prototype.hasOwnProperty.call(linkedBridge, 'workingHtml'), false);
 assert.equal(formatVisualTextEditBridgeText(linkedBridge).includes('text-001'), true);
 assert.equal(formatVisualTextEditBridgeText(nonTextBridge).includes('object-999'), true);
+assert.equal(getVisualObjectEditableText({ type: 'text', textPreview: 'Headline' }), 'Headline');
+assert.equal(getVisualObjectEditableText({ type: 'image', textPreview: 'Ignored' }), '');
+const selectedStatusEditable = createSelectedTextEditStatus({ selectedObject: dupVisual.objects[0] }, linkedBridge);
+assert.equal(selectedStatusEditable.editable, true);
+assert.equal(formatSelectedTextEditStatus(selectedStatusEditable).includes('Selected text is editable.'), true);
+const selectedStatusLocked = createSelectedTextEditStatus({ selectedObject: { objectId: 'object-200', type: 'image' } }, nonTextBridge);
+assert.equal(selectedStatusLocked.editable, false);
+assert.equal(formatSelectedTextEditStatus(selectedStatusLocked).includes('not safely text-editable'), true);
+assert.equal(Object.prototype.hasOwnProperty.call(selectedStatusEditable, 'rawHtmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(selectedStatusEditable, 'htmlText'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(selectedStatusEditable, 'rawBytes'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(selectedStatusEditable, 'binary'), false);
+assert.equal(Object.prototype.hasOwnProperty.call(selectedStatusEditable, 'workingHtml'), false);
 
 const visualForZip = await createVisualObjectInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>X</h1>' });
 assert.equal(visualForZip, null);
