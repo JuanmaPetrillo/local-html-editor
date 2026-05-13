@@ -27,6 +27,102 @@ function classifyImageSrc(srcValue) {
   return { editability: 'editable', confidence: 'high', reason: 'Local relative image source detected.' };
 }
 
+export function parseInlineStyle(styleText) {
+  const map = Object.create(null);
+  const raw = String(styleText || '');
+  if (!raw) return map;
+  const segments = raw.split(';');
+  for (const segment of segments) {
+    const separator = segment.indexOf(':');
+    if (separator < 0) continue;
+    const name = segment.slice(0, separator).trim().toLowerCase();
+    const value = segment.slice(separator + 1).trim();
+    if (!name || !value) continue;
+    map[name] = value;
+  }
+  return map;
+}
+
+export function extractPixelValue(styleMap, propertyName) {
+  if (!styleMap || typeof styleMap !== 'object') return null;
+  const raw = String(styleMap[propertyName] || '').trim();
+  if (!raw) return null;
+  const match = /^(-?\d+(?:\.\d+)?)px$/i.exec(raw);
+  if (!match) return null;
+  const value = Number.parseFloat(match[1]);
+  return Number.isFinite(value) ? value : null;
+}
+
+function createEmptyGeometry() {
+  return {
+    source: 'none',
+    left: null,
+    top: null,
+    width: null,
+    height: null,
+    hasPosition: false,
+    hasSize: false,
+    overlayReady: false
+  };
+}
+
+export function createGeometryStatus(geometry) {
+  if (!geometry) return 'missing';
+  if (geometry.overlayReady) return 'ready';
+  if (geometry.hasPosition || geometry.hasSize) return 'partial';
+  return 'missing';
+}
+
+export function extractInlineGeometry(tagSource) {
+  const styleText = getAttribute(tagSource, 'style');
+  if (!styleText) return createEmptyGeometry();
+  const styleMap = parseInlineStyle(styleText);
+  const geometry = {
+    ...createEmptyGeometry(),
+    source: 'inline-style',
+    left: extractPixelValue(styleMap, 'left'),
+    top: extractPixelValue(styleMap, 'top'),
+    width: extractPixelValue(styleMap, 'width'),
+    height: extractPixelValue(styleMap, 'height')
+  };
+  geometry.hasPosition = geometry.left !== null && geometry.top !== null;
+  geometry.hasSize = geometry.width !== null && geometry.height !== null;
+  geometry.overlayReady = geometry.hasPosition && geometry.hasSize;
+  if (!geometry.hasPosition && !geometry.hasSize) return createEmptyGeometry();
+  return geometry;
+}
+
+export function extractImageAttributeGeometry(tagSource) {
+  const widthRaw = getAttribute(tagSource, 'width').trim();
+  const heightRaw = getAttribute(tagSource, 'height').trim();
+  const width = /^\d+(?:\.\d+)?$/.test(widthRaw) ? Number.parseFloat(widthRaw) : null;
+  const height = /^\d+(?:\.\d+)?$/.test(heightRaw) ? Number.parseFloat(heightRaw) : null;
+  if (width === null && height === null) return createEmptyGeometry();
+  const geometry = createEmptyGeometry();
+  geometry.source = 'image-attributes';
+  geometry.width = Number.isFinite(width) ? width : null;
+  geometry.height = Number.isFinite(height) ? height : null;
+  geometry.hasSize = geometry.width !== null && geometry.height !== null;
+  return geometry;
+}
+
+function extractObjectGeometry(tagName, tagSource) {
+  const inline = extractInlineGeometry(tagSource);
+  if (inline.source !== 'none') return inline;
+  if (tagName === 'img') return extractImageAttributeGeometry(tagSource);
+  return createEmptyGeometry();
+}
+
+export function formatGeometryText(geometry) {
+  const status = createGeometryStatus(geometry);
+  if (status === 'missing') return 'missing';
+  const left = geometry.left === null ? '-' : String(geometry.left);
+  const top = geometry.top === null ? '-' : String(geometry.top);
+  const width = geometry.width === null ? '-' : String(geometry.width);
+  const height = geometry.height === null ? '-' : String(geometry.height);
+  return `${status} (${geometry.source}; left:${left}, top:${top}, width:${width}, height:${height})`;
+}
+
 export function classifyVisualObject(input) {
   return { ...input };
 }
@@ -58,12 +154,14 @@ export function extractVisualObjectsFromHtml(htmlText) {
 
     if (LOCKED_TAGS.has(tagName)) {
       objectNumber += 1;
-      objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'unknown', tagName, editability: 'locked', allowedActions: [], reason: 'Unsupported or unsafe embedded object.', confidence: 'high', sourceStart, sourceEnd }));
+      const geometry = extractObjectGeometry(tagName, tagSource);
+      objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'unknown', tagName, editability: 'locked', allowedActions: [], reason: 'Unsupported or unsafe embedded object.', confidence: 'high', sourceStart, sourceEnd, geometry }));
     } else if (tagName === 'img') {
       const srcPreview = getAttribute(tagSource, 'src');
       const imageClass = classifyImageSrc(srcPreview);
       objectNumber += 1;
-      objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'image', tagName, srcPreview, editability: imageClass.editability, allowedActions: [], reason: imageClass.reason, confidence: imageClass.confidence, sourceStart, sourceEnd }));
+      const geometry = extractObjectGeometry(tagName, tagSource);
+      objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'image', tagName, srcPreview, editability: imageClass.editability, allowedActions: [], reason: imageClass.reason, confidence: imageClass.confidence, sourceStart, sourceEnd, geometry }));
     } else if (TEXT_TAGS.has(tagName)) {
       const closeTag = new RegExp(`<\\s*\\/\\s*${tagName}\\s*>`, 'ig');
       closeTag.lastIndex = tagRegex.lastIndex;
@@ -76,7 +174,8 @@ export function extractVisualObjectsFromHtml(htmlText) {
         const hasNestedTag = /<\s*[a-z][^>]*>/i.test(between);
         const nestedDepth = depth > 0;
         const editable = !hasNestedTag && !nestedDepth;
-        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd }));
+        const geometry = extractObjectGeometry(tagName, tagSource);
+        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd, geometry }));
       }
     } else if (CONTAINER_TAGS.has(tagName) && !isSelfClosing) {
       const closeTag = new RegExp(`<\\s*\\/\\s*${tagName}\\s*>`, 'ig');
@@ -85,7 +184,8 @@ export function extractVisualObjectsFromHtml(htmlText) {
       const content = source.slice(tagRegex.lastIndex, closeMatch ? closeMatch.index : tagRegex.lastIndex);
       if (/(<\s*(h[1-6]|p|button|a|li|label|figcaption|small|img)\b)/i.test(content)) {
         objectNumber += 1;
-        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'container', tagName, editability: 'partially-editable', allowedActions: [], reason: 'Container includes child visual objects; do not apply destructive overlap edits.', confidence: 'medium', sourceStart, sourceEnd }));
+        const geometry = extractObjectGeometry(tagName, tagSource);
+        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'container', tagName, editability: 'partially-editable', allowedActions: [], reason: 'Container includes child visual objects; do not apply destructive overlap edits.', confidence: 'medium', sourceStart, sourceEnd, geometry }));
       }
     }
 
@@ -105,7 +205,10 @@ export function createVisualObjectInventory(htmlText) {
       totalCount: objects.length,
       editableCount: objects.filter((obj) => obj.editability === 'editable').length,
       partiallyEditableCount: objects.filter((obj) => obj.editability === 'partially-editable').length,
-      lockedCount: objects.filter((obj) => obj.editability === 'locked').length
+      lockedCount: objects.filter((obj) => obj.editability === 'locked').length,
+      geometryReadyCount: objects.filter((obj) => createGeometryStatus(obj.geometry) === 'ready').length,
+      geometryPartialCount: objects.filter((obj) => createGeometryStatus(obj.geometry) === 'partial').length,
+      geometryMissingCount: objects.filter((obj) => createGeometryStatus(obj.geometry) === 'missing').length
     },
     objects
   };
@@ -118,15 +221,22 @@ export function formatVisualObjectInventoryText(inventory) {
   const editableCount = inventory.objects.filter((obj) => obj.editability === 'editable').length;
   const partiallyEditableCount = inventory.objects.filter((obj) => obj.editability === 'partially-editable').length;
   const lockedCount = inventory.objects.filter((obj) => obj.editability === 'locked').length;
+  const geometryReadyCount = inventory.objects.filter((obj) => createGeometryStatus(obj.geometry) === 'ready').length;
+  const geometryPartialCount = inventory.objects.filter((obj) => createGeometryStatus(obj.geometry) === 'partial').length;
+  const geometryMissingCount = inventory.objects.filter((obj) => createGeometryStatus(obj.geometry) === 'missing').length;
   const lines = [
     `Visual object discovery: ${inventory.objects.length} object(s) detected.`,
     `- editable: ${editableCount}`,
     `- partially-editable: ${partiallyEditableCount}`,
     `- locked: ${lockedCount}`,
+    `- geometry overlay-ready: ${geometryReadyCount}`,
+    `- geometry partial: ${geometryPartialCount}`,
+    `- geometry missing: ${geometryMissingCount}`,
     ''
   ];
   for (const obj of inventory.objects) {
     lines.push(`${obj.objectId} | ${obj.type} | <${obj.tagName}> | ${obj.editability} | confidence:${obj.confidence}`);
+    lines.push(`  geometry: ${formatGeometryText(obj.geometry)}`);
     if (obj.textPreview) lines.push(`  text: ${obj.textPreview}`);
     if (obj.srcPreview) lines.push(`  src: ${obj.srcPreview}`);
     lines.push(`  reason: ${obj.reason}`);
@@ -171,6 +281,7 @@ export function formatVisualObjectSelectionText(selectionState) {
     `- editability: ${object.editability}`,
     `- confidence: ${object.confidence}`,
     `- allowed actions: ${actions}`,
+    `- geometry: ${formatGeometryText(object.geometry)}`,
     `- reason: ${object.reason}`
   ];
   if (object.textPreview) lines.push(`- text preview: ${object.textPreview}`);

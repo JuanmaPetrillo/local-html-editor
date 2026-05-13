@@ -60,9 +60,15 @@ import {
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
 import {
+  createGeometryStatus,
   createVisualObjectInventory,
   createVisualObjectSelectionState,
+  extractImageAttributeGeometry,
+  extractInlineGeometry,
+  extractPixelValue,
   extractVisualObjectsFromHtml,
+  formatGeometryText,
+  parseInlineStyle,
   formatVisualObjectInventoryText,
   formatVisualObjectOptionLabel,
   formatVisualObjectSelectionText,
@@ -780,6 +786,38 @@ assert.equal(nonHtmlManifest.capabilities.includes('editable-text-candidates'), 
 assert.equal(createDraftEditState({ candidates: [] }).selectedCandidateId, '');
 
 
+
+const inlineStyleMap = parseInlineStyle('left: 120px; top: 80px; width: 400px; height: 240px; color: red;');
+assert.equal(inlineStyleMap.left, '120px');
+assert.equal(extractPixelValue(inlineStyleMap, 'left'), 120);
+assert.equal(extractPixelValue(inlineStyleMap, 'top'), 80);
+assert.equal(extractPixelValue(inlineStyleMap, 'width'), 400);
+assert.equal(extractPixelValue(inlineStyleMap, 'height'), 240);
+
+const inlineGeometryFull = extractInlineGeometry('<img style="left: 120px; top: 80px; width: 400px; height: 240px">');
+assert.equal(inlineGeometryFull.overlayReady, true);
+assert.equal(createGeometryStatus(inlineGeometryFull), 'ready');
+
+const imageAttributeGeometry = extractImageAttributeGeometry('<img width="400" height="240">');
+assert.equal(imageAttributeGeometry.source, 'image-attributes');
+assert.equal(imageAttributeGeometry.width, 400);
+assert.equal(imageAttributeGeometry.height, 240);
+assert.equal(imageAttributeGeometry.overlayReady, false);
+assert.equal(createGeometryStatus(imageAttributeGeometry), 'partial');
+
+const ignoredUnitsGeometry = extractInlineGeometry('<div style="left: 50%; top: 2rem; width: calc(100% - 2rem); height: auto"></div>');
+assert.equal(ignoredUnitsGeometry.source, 'none');
+assert.equal(createGeometryStatus(ignoredUnitsGeometry), 'missing');
+
+const malformedGeometry = extractInlineGeometry('<div style="left: abcpx; top: 10; width: px; height: 20p"></div>');
+assert.equal(malformedGeometry.source, 'none');
+assert.equal(createGeometryStatus(malformedGeometry), 'missing');
+
+const partialPositionGeometry = extractInlineGeometry('<div style="left: 12px; top: 20px"></div>');
+assert.equal(partialPositionGeometry.overlayReady, false);
+assert.equal(createGeometryStatus(partialPositionGeometry), 'partial');
+assert.equal(formatGeometryText(partialPositionGeometry).includes('partial'), true);
+
 const visualTextObjects = extractVisualObjectsFromHtml('<h1>Title</h1><p>Body</p>');
 assert.equal(visualTextObjects.filter((o) => o.type === 'text').length, 2);
 assert.equal(visualTextObjects[0].editability, 'editable');
@@ -809,6 +847,7 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'rawBytes'), 
 assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'binary'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(visualInventory, 'workingHtml'), false);
 assert.equal(formatVisualObjectInventoryText(visualInventory).includes('object-001'), true);
+assert.equal(formatVisualObjectInventoryText(visualInventory).includes('geometry overlay-ready'), true);
 
 const visualForZip = await createVisualObjectInventoryForHtmlFile({ name: 'slides.zip', text: async () => '<h1>X</h1>' });
 assert.equal(visualForZip, null);
@@ -831,6 +870,9 @@ const summaryLocked = createVisualObjectInventory('<iframe></iframe>');
 assert.equal(summaryLocked.summary.lockedCount, 1);
 const summaryMixed = createVisualObjectInventory('<h1>A</h1><canvas></canvas><p>B</p>');
 assert.equal(summaryMixed.summary.totalCount, 3);
+assert.equal(summaryMixed.summary.geometryReadyCount, 0);
+assert.equal(summaryMixed.summary.geometryPartialCount, 0);
+assert.equal(summaryMixed.summary.geometryMissingCount, 3);
 
 const selectedVisualObject = selectVisualObject(summaryMixed, 'object-001');
 assert.equal(selectedVisualObject.objectId, 'object-001');
@@ -843,6 +885,7 @@ assert.equal(selectionText.includes('Selected object: object-001'), true);
 assert.equal(selectionText.includes('- type:'), true);
 assert.equal(selectionText.includes('- editability:'), true);
 assert.equal(selectionText.includes('- confidence:'), true);
+assert.equal(selectionText.includes('- geometry:'), true);
 assert.equal(selectionText.includes('- reason:'), true);
 const optionLabelText = formatVisualObjectOptionLabel({ objectId: 'object-001', type: 'text', textPreview: 'Hello' });
 assert.equal(optionLabelText.includes('object-001'), true);

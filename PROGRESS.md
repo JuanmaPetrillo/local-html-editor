@@ -465,6 +465,18 @@ Result: Passed.
 Known limitations: Best-effort regex discovery only; no drag/resize/direct visual edit/image replacement/ZIP extraction/autosave.
 Next recommended task: Start click-to-edit visible text interactions over discovered object inventory while keeping locked content preserved.
 
+
+### 2026-05-13 (phase 3b safe visual object geometry metadata extraction)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Phase 3B - safe visual object geometry metadata extraction
+Summary: Added conservative geometry metadata extraction in visual object model from explicit inline px values (`left/top/width/height`) and optional `img` width/height numeric attributes, plus overlay-ready/partial/missing status and geometry summary counts in inventory/selection text output. No rendering/layout computation, no iframe internals access, no HTML mutation, and no export behavior changes were added.
+Files changed: apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Pending run in this task after Phase 3B code/test updates.
+Known limitations: Metadata-only; ignores non-px/malformed geometry and does not draw overlays, edit geometry, drag/resize, replace images, or change export/ZIP behavior.
+Next recommended task: Proceed only with explicit approval for the next narrow visual editing slice.
+
 ### 2026-05-13 (phase 3A visual object selection scaffold)
 Date: 2026-05-13
 Branch/PR: current branch / pending PR
