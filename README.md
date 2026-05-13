@@ -60,8 +60,11 @@ Active development is currently a **browser-first static prototype**.
 - Open local `.html`, `.htm`, and `.zip` files from the shell.
 - Scan selected imports and show local safety/reporting summaries.
 - Show a sanitized safe preview for HTML/HTM in a sandboxed iframe (`sandbox=""`, `referrerpolicy="no-referrer"`).
-- Discover editable text candidates from HTML/HTM.
-- Draft and apply multiple in-memory text replacements to a working preview copy.
+- Discover editable text candidates from HTML/HTM with source-span tracking and entity decode/encode roundtrip.
+- Discover visual objects from HTML/HTM with editability classification (editable / partially-editable / locked-preserved) and plain-language confidence reasons.
+- Render a trusted-shell overlay of positioned boxes over the safe preview stage for geometry-ready objects.
+- Select a visual object and bridge to the text-edit workflow via exact source-span matching.
+- Draft and apply multiple in-memory text replacements to a working preview copy (overlap detection, descending-offset application).
 - Reset the working preview back to the original imported content.
 - Export a user-initiated edited HTML copy locally (download), without mutating the original import.
 
@@ -69,10 +72,11 @@ Active development is currently a **browser-first static prototype**.
 
 - ZIP is preflight-only (no ZIP extraction/listing/export).
 - No image replacement.
-- No drag/resize or visual element manipulation.
+- No drag/resize or move of visual elements (Phase 4 — pending; see ROADMAP.md).
 - No project persistence/autosave/reopen flow.
 - No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
 - No Tauri/React/Vite/TypeScript conversion in this implementation branch.
+- Overlay positions are derived from inline pixel geometry in the HTML source; elements without explicit inline `left`/`top`/`width`/`height` pixel styles will not have overlay boxes.
 
 #### How to run locally
 

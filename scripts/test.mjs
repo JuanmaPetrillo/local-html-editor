@@ -1,4 +1,5 @@
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
 import {
   createProjectFileModel,
   detectExtension,
@@ -980,3 +981,165 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'htmlTex
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'rawBytes'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'binary'), false);
 assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'workingHtml'), false);
+
+// --- Fixture-based regression tests ---
+
+// entity-text-deck.html: entity decode roundtrip
+{
+  const html = readFileSync('tests/fixtures/entity-text-deck.html', 'utf8');
+  const inv = createEditableTextInventory(html);
+  const h1Candidate = inv.candidates.find((c) => c.tagName === 'h1');
+  assert.ok(h1Candidate, 'entity fixture: h1 candidate found');
+  // decoded text should contain literal & not &amp;
+  assert.equal(h1Candidate.textPreview.includes('AT&T'), true, 'entity fixture: &amp; decoded to &');
+  assert.equal(h1Candidate.textPreview.includes('&amp;'), false, 'entity fixture: raw &amp; not present in decoded text');
+
+  // patch roundtrip: apply replacement and verify entity encoding in output
+  const draftEdit = createDraftEdit(h1Candidate, 'New & Name');
+  const patchPlan = createTextPatchPlan(draftEdit);
+  assert.equal(patchPlan.applyStatus, 'planned', 'entity fixture: patchPlan is in planned state');
+  const patchResult = applyPlannedTextPatchToWorkingHtml(html, patchPlan, inv);
+  assert.equal(patchResult.applied, true, 'entity fixture: patch applied');
+  assert.equal(patchResult.workingHtml.includes('New &amp; Name'), true, 'entity fixture: replacement & escaped in output');
+  assert.equal(patchResult.workingHtml.includes('AT&amp;T'), false, 'entity fixture: original entity replaced');
+}
+
+// long-text-deck.html: textPreview truncated, editableText full length
+{
+  const html = readFileSync('tests/fixtures/long-text-deck.html', 'utf8');
+  const candidates = extractEditableTextCandidates(html);
+  const para = candidates.find((c) => c.tagName === 'p');
+  assert.ok(para, 'long-text fixture: p candidate found');
+  assert.equal(para.textPreview.length <= 81, true, 'long-text fixture: textPreview is capped (≤80 chars + ellipsis)');
+  assert.equal(para.textLength > 80, true, 'long-text fixture: full text is longer than 80 chars');
+
+  const visualObjects = extractVisualObjectsFromHtml(html);
+  const visualPara = visualObjects.find((o) => o.type === 'text' && o.tagName === 'p');
+  assert.ok(visualPara, 'long-text fixture: visual p object found');
+  assert.equal(visualPara.textPreview.length <= 81, true, 'long-text fixture: visual textPreview capped');
+  assert.equal(getVisualObjectEditableText(visualPara).length > 80, true, 'long-text fixture: editableText full length via getVisualObjectEditableText');
+  assert.notEqual(getVisualObjectEditableText(visualPara), visualPara.textPreview, 'long-text fixture: editableText differs from capped preview');
+}
+
+// duplicate-text-deck.html: distinct candidateIds and correct span mapping
+{
+  const html = readFileSync('tests/fixtures/duplicate-text-deck.html', 'utf8');
+  const candidates = extractEditableTextCandidates(html);
+  const h2s = candidates.filter((c) => c.tagName === 'h2');
+  const paras = candidates.filter((c) => c.tagName === 'p');
+  assert.equal(h2s.length, 2, 'duplicate fixture: two h2 candidates');
+  assert.equal(paras.length, 2, 'duplicate fixture: two p candidates');
+  // candidateIds must be distinct even for identical text
+  assert.notEqual(h2s[0].candidateId, h2s[1].candidateId, 'duplicate fixture: h2 candidateIds distinct');
+  assert.notEqual(paras[0].candidateId, paras[1].candidateId, 'duplicate fixture: p candidateIds distinct');
+  // spans must be distinct and ordered (second occurrence is later in source)
+  assert.equal(h2s[0].sourceStart < h2s[1].sourceStart, true, 'duplicate fixture: first h2 span before second');
+  assert.equal(paras[0].sourceStart < paras[1].sourceStart, true, 'duplicate fixture: first p span before second');
+  // each span must reference the correct text in the original HTML
+  assert.equal(html.slice(h2s[0].sourceStart, h2s[0].sourceEnd).includes('Q1 Results'), true, 'duplicate fixture: first h2 span contains correct text');
+  assert.equal(html.slice(h2s[1].sourceStart, h2s[1].sourceEnd).includes('Q1 Results'), true, 'duplicate fixture: second h2 span contains correct text');
+
+  // visual objects for duplicate text: inside body/html wrapper these are partially-editable
+  // (nestedDepth guard in visual-object-model); bridge is not available for partially-editable objects
+  const visualInv = createVisualObjectInventory(html);
+  const dupVisualH2s = visualInv.objects.filter((o) => o.type === 'text' && o.tagName === 'h2');
+  assert.equal(dupVisualH2s.length, 2, 'duplicate fixture: two visual h2 objects');
+  assert.equal(dupVisualH2s[0].editability, 'partially-editable', 'duplicate fixture: h2 inside body is partially-editable');
+  // spans between visual and editable models align even for partially-editable objects
+  const inv = createEditableTextInventory(html);
+  assert.equal(dupVisualH2s[0].textSourceStart, h2s[0].sourceStart, 'duplicate fixture: visual h2[0] span start matches editable candidate span start');
+  assert.equal(dupVisualH2s[1].textSourceStart, h2s[1].sourceStart, 'duplicate fixture: visual h2[1] span start matches editable candidate span start');
+
+  // inline-HTML bridge: top-level duplicate elements (no outer body/html) are editable and bridge correctly
+  const inlineHtml = '<h2>Dup</h2><h2>Dup</h2>';
+  const inlineVisual = createVisualObjectInventory(inlineHtml);
+  const inlineEditable = createEditableTextInventory(inlineHtml);
+  const inlineH2s = inlineVisual.objects.filter((o) => o.type === 'text' && o.tagName === 'h2');
+  assert.equal(inlineH2s[0].editability, 'editable', 'duplicate inline: top-level h2 is editable');
+  const bridgeLink0 = findEditableCandidateForVisualObject(inlineH2s[0], inlineEditable);
+  const bridgeLink1 = findEditableCandidateForVisualObject(inlineH2s[1], inlineEditable);
+  assert.ok(bridgeLink0, 'duplicate inline: first h2 bridges to a candidate');
+  assert.ok(bridgeLink1, 'duplicate inline: second h2 bridges to a candidate');
+  assert.notEqual(bridgeLink0.candidateId, bridgeLink1.candidateId, 'duplicate inline: duplicate visual objects bridge to distinct candidates');
+}
+
+// simple-positioned-deck.html: geometry extraction and overlay readiness
+{
+  const html = readFileSync('tests/fixtures/simple-positioned-deck.html', 'utf8');
+  const objects = extractVisualObjectsFromHtml(html);
+  const h1 = objects.find((o) => o.type === 'text' && o.tagName === 'h1');
+  assert.ok(h1, 'positioned fixture: h1 visual object found');
+  assert.equal(h1.geometry.left, 50, 'positioned fixture: h1 left=50');
+  assert.equal(h1.geometry.top, 20, 'positioned fixture: h1 top=20');
+  assert.equal(h1.geometry.width, 400, 'positioned fixture: h1 width=400');
+  assert.equal(h1.geometry.height, 60, 'positioned fixture: h1 height=60');
+  assert.equal(h1.geometry.overlayReady, true, 'positioned fixture: h1 geometry is overlay-ready');
+  const overlayItems = createVisualOverlayItems(createVisualObjectInventory(html));
+  assert.ok(overlayItems.length >= 1, 'positioned fixture: at least one overlay item');
+  const overlayH1 = overlayItems.find((item) => item.objectId === h1.objectId);
+  assert.ok(overlayH1, 'positioned fixture: h1 has overlay item');
+  assert.equal(overlayH1.left, 50, 'positioned fixture: overlay item left=50');
+  assert.equal(overlayH1.top, 20, 'positioned fixture: overlay item top=20');
+}
+
+// Offset stability: excluded blocks (script/style/template) replaced by spaces preserve span positions
+{
+  const html = readFileSync('tests/fixtures/risky-html-deck.html', 'utf8');
+  const candidates = extractEditableTextCandidates(html);
+  const h1 = candidates.find((c) => c.tagName === 'h1');
+  assert.ok(h1, 'offset fixture: h1 candidate found in risky deck');
+  // The source span must point back into the original HTML correctly
+  assert.equal(html.slice(h1.sourceStart, h1.sourceEnd).includes('Safe Headline'), true, 'offset fixture: h1 span points to correct text in original HTML');
+}
+
+// Export exact-output verification: patched export contains replacement, not original
+{
+  const html = '<p>Old text here.</p>';
+  const inv = createEditableTextInventory(html);
+  const candidate = inv.candidates[0];
+  const draftEdit = createDraftEdit(candidate, 'New text here.');
+  const patchPlan = createTextPatchPlan(draftEdit);
+  const addResult = addOrUpdatePatchInCollection(createPatchCollectionState(), patchPlan);
+  assert.equal(addResult.changed, true, 'export fixture: patch was added to collection');
+  const exportResult = createEditedHtmlExportFromHtmlText(html, 'test.html', addResult.collection);
+  assert.equal(exportResult.blob instanceof Blob, true, 'export fixture: result is a Blob');
+  assert.equal(exportResult.exportStatus, 'ready', 'export fixture: exportStatus is ready');
+  // Read blob text to verify exact content
+  const exportedText = await exportResult.blob.text();
+  assert.equal(exportedText.includes('New text here.'), true, 'export fixture: replacement text present in export');
+  assert.equal(exportedText.includes('Old text here.'), false, 'export fixture: original text absent from export');
+}
+
+// Reset clears patch collection
+{
+  const html = '<h1>Original</h1>';
+  const inv = createEditableTextInventory(html);
+  const candidate = inv.candidates[0];
+  const draftEdit = createDraftEdit(candidate, 'Replaced');
+  const patchPlan = createTextPatchPlan(draftEdit);
+  const addResult = addOrUpdatePatchInCollection(createPatchCollectionState(), patchPlan);
+  assert.equal(addResult.collection.orderedCandidateIds.length, 1, 'reset fixture: patch added to collection');
+  const resetState = resetWorkingPreviewState();
+  assert.equal(resetState.collection.orderedCandidateIds.length, 0, 'reset fixture: reset clears patch collection');
+  assert.equal(resetState.applyStatus, 'reset-to-original', 'reset fixture: applyStatus is reset-to-original after clear');
+}
+
+// Malicious fixture through preview sanitizer: scripts/handlers/remote srcs removed
+{
+  const html = readFileSync('tests/fixtures/risky-html-deck.html', 'utf8');
+  const result = buildSafePreviewResult(html);
+  assert.equal(result.previewStatus.status, 'sanitized', 'risky fixture: preview sanitized successfully');
+  assert.equal(result.previewStatus.scriptsRemoved > 0, true, 'risky fixture: at least one script removed');
+  assert.equal(result.previewStatus.inlineHandlersRemoved > 0, true, 'risky fixture: at least one inline handler removed');
+  assert.equal(result.previewStatus.dangerousUrlsNeutralized > 0, true, 'risky fixture: at least one dangerous URL neutralized');
+  // srcdoc must not contain script tags or inline handlers
+  assert.equal(result.previewDocument.includes('<script'), false, 'risky fixture: no script tags in srcdoc');
+  assert.equal(result.previewDocument.includes('onclick='), false, 'risky fixture: no onclick in srcdoc');
+  assert.equal(result.previewDocument.includes('onload='), false, 'risky fixture: no onload in srcdoc');
+  assert.equal(result.previewDocument.includes('javascript:'), false, 'risky fixture: no javascript: URL in srcdoc');
+  assert.equal(result.previewDocument.includes('data:image/svg+xml'), false, 'risky fixture: no svg data URI in srcdoc');
+  assert.equal(result.previewDocument.includes('https://tracker.example'), false, 'risky fixture: no remote tracker URL in srcdoc');
+  // safe content must be preserved
+  assert.equal(result.previewDocument.includes('Safe Headline'), true, 'risky fixture: safe headline preserved in srcdoc');
+  assert.equal(result.previewDocument.includes('Safe paragraph text.'), true, 'risky fixture: safe paragraph preserved in srcdoc');
+}

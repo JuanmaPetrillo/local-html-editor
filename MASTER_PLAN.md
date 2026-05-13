@@ -8,10 +8,27 @@ The product must support arbitrary HTML as a best-effort input, classify what is
 
 ## Current implementation status
 
-- Browser-first MVP foundation is active and complete for current scope (scan/report/manifest, safe preview, text candidate discovery, in-memory text patching, reset, local edited HTML export).
-- The current implementation is a proof-of-concept foundation, not the final visual-editor UX.
-- ZIP remains preflight-only (no extraction/listing/export).
-- No image replacement, drag/resize, persistence/autosave, or packaged desktop distribution is implemented in this branch.
+Browser-first MVP foundation is active through Phase 4B. Implemented capabilities:
+
+- HTML/HTM intake scan, import report, and import manifest.
+- Sandboxed safe preview (iframe with `sandbox=""`, `referrerpolicy="no-referrer"`, injected CSP).
+- Editable text candidate discovery with source-span metadata; simple entity decode/encode roundtrip.
+- In-memory text patch collection (multiple patches, overlap detection, descending-offset application).
+- Reset working preview to original; user-initiated local edited HTML export (Blob download).
+- Visual object discovery from arbitrary HTML with editability classification (editable / partially-editable / locked-preserved) and plain-language confidence reasons.
+- Trusted-shell overlay rendering: positioned boxes over safe preview stage for geometry-ready objects.
+- Visual object selector and selection inspector (trusted-shell only, no iframe internals access).
+- Visual object → editable candidate bridge via exact source-span matching; prefills draft textarea for linked text objects.
+- "Apply text edit to preview" UX panel with per-candidate draft prefill memory (no overwrite of user-typed draft).
+
+The current implementation is a proof-of-concept foundation, not the final visual-editor UX.
+
+Still not implemented in this branch:
+- Move/resize/drag (Phase 4 — pending; PR32 attempted but is not merged).
+- Image replacement (Phase 5).
+- ZIP extraction/listing/export (ZIP remains preflight-only).
+- Persistence/autosave.
+- Tauri/React/Vite/TypeScript conversion.
 
 ## Core strategy
 
