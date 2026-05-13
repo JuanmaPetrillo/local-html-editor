@@ -176,7 +176,7 @@ export function extractVisualObjectsFromHtml(htmlText) {
         const nestedDepth = depth > 0;
         const editable = !hasNestedTag && !nestedDepth;
         const geometry = extractObjectGeometry(tagName, tagSource);
-        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd, textSourceStart, textSourceEnd: textRegionEnd, textLength: textRegionEnd - textSourceStart, geometry }));
+        objects.push(classifyVisualObject({ objectId: `object-${String(objectNumber).padStart(3, '0')}`, type: 'text', tagName, textPreview: withoutTags.slice(0, 80), editableText: withoutTags, editability: editable ? 'editable' : 'partially-editable', allowedActions: editable ? ['text'] : ['text'], reason: editable ? 'Simple text leaf object.' : 'Nested or structured text object; limited text-safe edits only.', confidence: editable ? 'high' : 'medium', sourceStart, sourceEnd, textSourceStart, textSourceEnd: textRegionEnd, textLength: textRegionEnd - textSourceStart, geometry }));
       }
     } else if (CONTAINER_TAGS.has(tagName) && !isSelfClosing) {
       const closeTag = new RegExp(`<\\s*\\/\\s*${tagName}\\s*>`, 'ig');
@@ -252,6 +252,27 @@ export function formatVisualTextEditBridgeText(bridgeState) {
     return `Selected visual text object is linked to editable text candidate ${bridgeState.candidateId}.`;
   }
   return `Selected object is not safely text-editable in this MVP.\nobjectId: ${bridgeState.objectId}\nreason: ${bridgeState.reason || 'unavailable'}`;
+}
+
+export function getVisualObjectEditableText(visualObject) {
+  if (!visualObject || visualObject.type !== 'text') return '';
+  return String(visualObject.editableText || '');
+}
+
+export function createSelectedTextEditStatus(selectionState, bridgeState) {
+  const selectedObject = selectionState && selectionState.selectedObject ? selectionState.selectedObject : null;
+  if (!selectedObject) {
+    return { editable: false, message: 'Select a visual text object to edit.' };
+  }
+  if (bridgeState && bridgeState.linked && bridgeState.candidateId) {
+    return { editable: true, message: 'Selected text is editable. Review or edit the text below, then apply to preview.' };
+  }
+  return { editable: false, message: 'This object is locked or not safely text-editable.' };
+}
+
+export function formatSelectedTextEditStatus(status) {
+  if (!status) return 'Select a visual text object to edit.';
+  return status.message || 'Select a visual text object to edit.';
 }
 
 export function createVisualObjectInventory(htmlText) {

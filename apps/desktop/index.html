@@ -78,15 +78,19 @@
       </section>
       <section>
         <h2>Text edit workflow</h2>
-        <p>Follow steps 3-5: choose a text candidate, draft replacement text, and apply it to the in-memory preview.</p>
+        <section id="selected-text-edit-panel">
+          <h3>Edit selected text</h3>
+          <p id="selected-text-edit-status">Select a visual text object to edit.</p>
+        </section>
+        <p>Follow the selected-text flow first. Advanced controls are available below.</p>
         <pre id="editable-inventory" aria-live="polite">3) Editable text candidates: waiting for .html/.htm selection.</pre>
-      <label for="editable-candidate-select">3) Select editable text candidate</label>
+      <label for="editable-candidate-select">Advanced text candidate selector</label>
         <select id="editable-candidate-select" disabled></select>
         <label for="editable-draft-text">4) Type draft replacement text</label>
         <textarea id="editable-draft-text" rows="4" disabled></textarea>
         <pre id="editable-draft-status" aria-live="polite">Draft edit: unavailable.</pre>
         <pre id="editable-patch-plan" aria-live="polite">Patch plan: unavailable.</pre>
-        <button id="apply-patch-preview" type="button" disabled>5) Apply draft to preview</button>
+        <button id="apply-patch-preview" type="button" disabled>Apply text edit to preview</button>
         <button id="reset-working-preview" type="button">Reset preview to original (original file unchanged)</button>
         <pre id="patch-apply-status" aria-live="polite">Patch apply status: unavailable.</pre>
         <pre id="patch-collection-status" aria-live="polite">Patch collection: none applied yet (in-memory only; original file unchanged).</pre>

@@ -42,7 +42,10 @@ import {
   formatVisualObjectOptionLabel,
   formatVisualObjectSelectionText,
   createVisualTextEditBridgeState,
-  formatVisualTextEditBridgeText
+  formatVisualTextEditBridgeText,
+  getVisualObjectEditableText,
+  createSelectedTextEditStatus,
+  formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
@@ -148,6 +151,7 @@ const visualObjectInventory = hasDom ? document.querySelector('#visual-object-in
 const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
 const visualObjectSelectionStatus = hasDom ? document.querySelector('#visual-object-selection-status') : null;
 const visualTextEditBridgeStatus = hasDom ? document.querySelector('#visual-text-edit-bridge-status') : null;
+const selectedTextEditStatus = hasDom ? document.querySelector('#selected-text-edit-status') : null;
 const visualOverlayLayer = hasDom ? document.querySelector('#visual-overlay-layer') : null;
 const visualOverlayStatus = hasDom ? document.querySelector('#visual-overlay-status') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
@@ -183,6 +187,7 @@ if (
   visualObjectSelect instanceof HTMLSelectElement &&
   visualObjectSelectionStatus instanceof HTMLElement &&
   visualTextEditBridgeStatus instanceof HTMLElement &&
+  selectedTextEditStatus instanceof HTMLElement &&
   visualOverlayLayer instanceof HTMLElement &&
   visualOverlayStatus instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
@@ -260,6 +265,7 @@ if (
     visualObjectSelect.disabled = true;
     visualObjectSelectionStatus.textContent = 'Visual object selection: unavailable.';
     visualTextEditBridgeStatus.textContent = 'Visual text edit bridge: unavailable.';
+    selectedTextEditStatus.textContent = 'Select a visual text object to edit.';
     visualOverlayLayer.replaceChildren();
     visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
   };
@@ -290,8 +296,14 @@ if (
     visualObjectSelectionStatus.textContent = formatVisualObjectSelectionText(state);
     const bridgeState = createVisualTextEditBridgeState(state.selectedObject, currentInventory);
     visualTextEditBridgeStatus.textContent = formatVisualTextEditBridgeText(bridgeState);
+    selectedTextEditStatus.textContent = formatSelectedTextEditStatus(createSelectedTextEditStatus(state, bridgeState));
     if (bridgeState.linked && bridgeState.candidateId) {
+      const selectedText = getVisualObjectEditableText(state.selectedObject);
+      if (!draftPrefillByCandidateId.has(bridgeState.candidateId)) {
+        draftPrefillByCandidateId.set(bridgeState.candidateId, selectedText);
+      }
       editableCandidateSelect.value = bridgeState.candidateId;
+      editableDraftText.value = draftPrefillByCandidateId.get(bridgeState.candidateId) || '';
       renderDraftFromSelection(currentInventory);
     }
     renderVisualOverlay(inventory, state.selectedObjectId);
@@ -314,10 +326,12 @@ if (
   });
 
   editableCandidateSelect.addEventListener('change', () => {
+    editableDraftText.value = draftPrefillByCandidateId.get(editableCandidateSelect.value) || '';
     renderDraftFromSelection(currentInventory);
   });
 
   editableDraftText.addEventListener('input', () => {
+    draftPrefillByCandidateId.set(editableCandidateSelect.value, editableDraftText.value);
     renderDraftFromSelection(currentInventory);
   });
 
@@ -325,6 +339,7 @@ if (
   let currentInventory = null;
   /** @type {any} */
   let currentVisualInventory = null;
+  const draftPrefillByCandidateId = new Map();
 
 
   applyPatchPreview.addEventListener('click', async () => {
@@ -415,6 +430,7 @@ if (
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentVisualInventory = visualInventory;
       currentInventory = inventory;
+      draftPrefillByCandidateId.clear();
       visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
       visualObjectSelect.replaceChildren();
       if (visualInventory && Array.isArray(visualInventory.objects)) {
@@ -443,6 +459,7 @@ if (
       if (draftState.selectedCandidateId && !editableCandidateSelect.value) {
         editableCandidateSelect.value = draftState.selectedCandidateId;
       }
+      editableDraftText.value = '';
       renderVisualObjectSelection(visualInventory);
       renderDraftFromSelection(inventory);
       const previewResult = await createSafeHtmlPreviewResult(selected);
