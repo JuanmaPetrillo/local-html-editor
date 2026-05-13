@@ -56,17 +56,6 @@ Known limitations:
 Next recommended task:
 ```
 
-### 2026-05-13 (phase 3A visual object selection scaffold)
-Date: 2026-05-13
-Branch/PR: current branch / pending PR
-Milestone: Phase 3A - trusted-shell visual object selection scaffold
-Summary: Added a trusted-shell visual object selector and selection-status inspector sourced from existing visual object discovery inventory for HTML/HTM selections. Selection resets/disabled for ZIP and unsupported files. No visual editing/drag-resize/image replacement/export mutation added.
-Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
-Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending run in this task after implementation updates.
-Known limitations: Selection/inspector scaffold only; no direct canvas interaction, no drag/resize, no HTML mutation from object selection, no ZIP extraction/listing/export, no persistence/autosave.
-Next recommended task: Proceed only with explicit approval for the next narrow visual editing slice.
-
 ## Change log
 
 ### 2026-05-11
@@ -475,3 +464,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Pending in this task run.
 Known limitations: Best-effort regex discovery only; no drag/resize/direct visual edit/image replacement/ZIP extraction/autosave.
 Next recommended task: Start click-to-edit visible text interactions over discovered object inventory while keeping locked content preserved.
+
+### 2026-05-13 (phase 3A visual object selection scaffold)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Phase 3A - trusted-shell visual object selection scaffold
+Summary: Added a trusted-shell visual object selector and selection-status inspector sourced from existing visual object discovery inventory for HTML/HTM selections. Selection resets/disabled for ZIP and unsupported files. No visual editing/drag-resize/image replacement/export mutation added.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-object-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Selection/inspector scaffold only; no direct canvas interaction, no drag/resize, no HTML mutation from object selection, no ZIP extraction/listing/export, no persistence/autosave.
+Next recommended task: Proceed only with explicit approval for the next narrow visual editing slice.
+
