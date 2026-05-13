@@ -2,6 +2,7 @@
 import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sandbox.mjs';
 import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from './exporter.mjs';
+import { createVisualObjectInventory } from './visual-object-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -153,6 +154,17 @@ export async function importHtmlFileScan(file) {
 }
 
 
+
+/** @param {{name: string, text: () => Promise<string>}} file */
+export async function createVisualObjectInventoryForHtmlFile(file) {
+  const extension = detectHtmlExtension(file.name);
+  if (!extension) {
+    return null;
+  }
+
+  const htmlText = await file.text();
+  return createVisualObjectInventory(htmlText);
+}
 /** @param {{name: string, text: () => Promise<string>}} file */
 export async function createEditableInventoryForHtmlFile(file) {
   const extension = detectHtmlExtension(file.name);

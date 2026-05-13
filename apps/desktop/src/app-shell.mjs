@@ -10,6 +10,7 @@ import {
   createImportReportFromStatus,
   createSafeHtmlPreviewResult,
   createEditableInventoryForHtmlFile,
+  createVisualObjectInventoryForHtmlFile,
   createCollectionPatchedSafePreviewResult,
   createEditedHtmlExport
 } from './importer.mjs';
@@ -32,6 +33,7 @@ import {
   resetWorkingPreviewState
 } from './editable-model.mjs';
 import { formatExportStatusText } from './exporter.mjs';
+import { formatVisualObjectInventoryText } from './visual-object-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -132,6 +134,7 @@ const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
 const editableInventory = hasDom ? document.querySelector('#editable-inventory') : null;
+const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
 const safePreviewFrame = hasDom ? document.querySelector('#safe-preview-frame') : null;
 const safePreviewFrameWrap = hasDom ? document.querySelector('#safe-preview-frame-wrap') : null;
 const safePreviewStatus = hasDom ? document.querySelector('#safe-preview-status') : null;
@@ -161,6 +164,7 @@ if (
   importReport instanceof HTMLElement &&
   importManifest instanceof HTMLElement &&
   editableInventory instanceof HTMLElement &&
+  visualObjectInventory instanceof HTMLElement &&
   safePreviewFrame instanceof HTMLIFrameElement &&
   safePreviewFrameWrap instanceof HTMLElement &&
   safePreviewStatus instanceof HTMLElement &&
@@ -310,6 +314,7 @@ if (
     fileScan.textContent = shellState.scanSummaryLabel;
     importReport.textContent = '';
     importManifest.textContent = '';
+    visualObjectInventory.textContent = 'Visual object discovery: waiting for .html/.htm selection.';
     editableInventory.textContent = 'Editable text candidates: unavailable.';
     currentInventory = null;
     currentHtmlFile = null;
@@ -333,6 +338,9 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      const visualInventory = await createVisualObjectInventoryForHtmlFile(selected);
+      if (selectionGeneration !== currentSelectionGeneration) return;
+      visualObjectInventory.textContent = formatVisualObjectInventoryText(visualInventory);
       const inventory = await createEditableInventoryForHtmlFile(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentInventory = inventory;
@@ -368,6 +376,7 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
       editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
@@ -389,6 +398,7 @@ if (
       importManifest.textContent = formatImportManifestText(
         createImportManifestFromStatus(unsupportedStatus, report)
       );
+      visualObjectInventory.textContent = 'Visual object discovery: unavailable for this file type.';
       editableInventory.textContent = 'Editable text candidates: unavailable for this file type.';
       safePreviewStatus.textContent = formatPreviewStatusText(
         createUnavailablePreviewStatus('unknown', project.name)

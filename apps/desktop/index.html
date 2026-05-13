@@ -16,7 +16,7 @@
       section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e5ebf1; }
       #file-status { margin-top: 0.75rem; font-weight: 600; }
       #file-details, #file-warning { margin-top: 0.5rem; }
-      #import-report, #import-manifest, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status, #export-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
+      #import-report, #import-manifest, #visual-object-inventory, #editable-inventory, #editable-draft-status, #editable-patch-plan, #patch-apply-status, #patch-collection-status, #working-preview-status, #export-status { margin-top: 0.75rem; white-space: pre-wrap; background: #f8fafc; border: 1px solid #dbe2ea; border-radius: 8px; padding: 0.75rem; }
       #file-warning { color: #9a3412; }
       .preview-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
       .preview-frame { margin-top: 0.75rem; border: 1px solid #dbe2ea; border-radius: 10px; padding: 0.5rem; background: #f8fafc; }
@@ -58,6 +58,11 @@
         <div id="safe-preview-frame-wrap" class="preview-frame preview-frame--fit">
           <iframe id="safe-preview-frame" sandbox="" referrerpolicy="no-referrer" title="Safe preview frame"></iframe>
         </div>
+      </section>
+      <section>
+        <h2>Visual object discovery</h2>
+        <p>Best-effort editable objects detected in this HTML.</p>
+        <pre id="visual-object-inventory" aria-live="polite">Visual object discovery: waiting for .html/.htm selection.</pre>
       </section>
       <section>
         <h2>Text edit workflow</h2>
