@@ -521,3 +521,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: unchanged from Phase 4B scope; no in-place editing/drag-resize/image replacement/ZIP extraction/persistence/dependencies/network/telemetry/iframe internals access.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
+
+### 2026-05-13 (phase 5a visual nudge movement v2 replacement for stale PR #32)
+Date: 2026-05-13
+Branch/PR: codex/phase-5a-visual-nudge-movement-v2 / pending PR
+Milestone: Phase 5A - safe trusted-shell visual nudge movement
+Summary: Re-implemented trusted-shell nudge controls with cumulative move patch state and overlay geometry projection from move patch `nextGeometry`, while preserving script-off safe preview boundary and no iframe internals access. Export readiness status now uses combined text+move patch total.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-object-model.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: Move patch export serialization into edited HTML is not implemented in this slice; nudge state currently affects trusted-shell overlay and export readiness state only.
+Next recommended task: Add explicit move patch serialization/application in export pipeline with exact-output tests, still without drag/resize.
