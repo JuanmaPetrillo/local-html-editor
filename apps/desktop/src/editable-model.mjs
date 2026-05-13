@@ -310,6 +310,30 @@ export function addOrUpdatePatchInCollection(collection, patchPlan) {
   };
 }
 
+
+/** @param {{patchesByCandidateId: Record<string, any>, orderedCandidateIds: string[]}} collection @param {any} inventory */
+export function detectOverlappingPatchSpans(collection, inventory) {
+  if (!collection || !Array.isArray(collection.orderedCandidateIds) || !inventory || !Array.isArray(inventory.candidates)) return [];
+  const candidateById = new Map(inventory.candidates.map((candidate) => [candidate.candidateId, candidate]));
+  const spans = collection.orderedCandidateIds
+    .filter((candidateId) => collection.patchesByCandidateId[candidateId])
+    .map((candidateId) => ({ candidateId, candidate: candidateById.get(candidateId) }))
+    .filter((item) => item.candidate && Number.isInteger(item.candidate.sourceStart) && Number.isInteger(item.candidate.sourceEnd))
+    .map((item) => ({ candidateId: item.candidateId, start: item.candidate.sourceStart, end: item.candidate.sourceEnd }))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const overlaps = [];
+  for (let i = 0; i < spans.length; i += 1) {
+    for (let j = i + 1; j < spans.length; j += 1) {
+      const a = spans[i];
+      const b = spans[j];
+      if (!(a.start < b.end && b.start < a.end)) continue;
+      overlaps.push({ a: a.candidateId, b: b.candidateId });
+    }
+  }
+  return overlaps;
+}
+
 export function resetWorkingPreviewState() {
   return { collection: createPatchCollectionState(), applyResults: [], applyStatus: 'reset-to-original' };
 }
@@ -344,6 +368,17 @@ export function applyPatchCollectionToWorkingHtml(htmlText, collection, inventor
       const endB = candidateB && Number.isInteger(candidateB.sourceEnd) ? candidateB.sourceEnd : -1;
       return endB - endA;
     });
+  const overlaps = detectOverlappingPatchSpans(collection, inventory);
+  if (overlaps.length > 0) {
+    return {
+      appliedAny: false,
+      applyStatus: 'blocked-overlapping-patches',
+      applyResults: [],
+      collectionCount: orderedToApply.length,
+      warnings: ['overlapping-patches']
+    };
+  }
+
   const applyResults = [];
   for (const candidateId of orderedToApply) {
     const result = applyPlannedTextPatchToWorkingHtml(workingHtml, collection.patchesByCandidateId[candidateId], inventory);

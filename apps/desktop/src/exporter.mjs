@@ -21,7 +21,19 @@ export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchColl
   const inventory = createEditableTextInventory(htmlText);
   const applyState = applyPatchCollectionToWorkingHtml(htmlText, patchCollection, inventory);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview') {
-    return { fileName, suggestedFileName: createSuggestedEditedHtmlFileName(fileName), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'failed', warnings: ['patch-application-failed'], message: 'Export blocked: one or more patches failed to apply.' };
+    const overlapBlocked = applyState.applyStatus === 'blocked-overlapping-patches';
+    return {
+      fileName,
+      suggestedFileName: createSuggestedEditedHtmlFileName(fileName),
+      mimeType: 'text/html',
+      patchCount,
+      exported: false,
+      exportStatus: overlapBlocked ? 'blocked' : 'failed',
+      warnings: overlapBlocked ? ['overlapping-patches'] : ['patch-application-failed'],
+      message: overlapBlocked
+        ? 'Export blocked: overlapping patches target the same source range.'
+        : 'Export blocked: one or more patches failed to apply.'
+    };
   }
   const blob = new Blob([applyState.workingHtml], { type: 'text/html' });
   return {

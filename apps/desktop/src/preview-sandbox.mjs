@@ -3,7 +3,8 @@ const PREVIEW_CSP =
 
 /** @param {string} htmlText */
 export function stripScripts(htmlText) {
-  return htmlText.replace(/<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '');
+  const noClosedScripts = htmlText.replace(/<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '');
+  return noClosedScripts.replace(/<\s*script\b[^>]*>[\s\S]*$/gi, '');
 }
 
 /** @param {string} htmlText */
@@ -51,7 +52,16 @@ function shouldAllowPreviewUrl(attrName, rawValue) {
   if (trimmed.startsWith('../')) return true;
   if (!trimmed.includes(':') && !trimmed.startsWith('//')) return true;
   const normalized = trimmed.toLowerCase();
-  if (attrName.toLowerCase() === 'src' && normalized.startsWith('data:image/')) return true;
+  if (attrName.toLowerCase() === 'src' && normalized.startsWith('data:image/')) {
+    return (
+      normalized.startsWith('data:image/png') ||
+      normalized.startsWith('data:image/jpeg') ||
+      normalized.startsWith('data:image/jpg') ||
+      normalized.startsWith('data:image/gif') ||
+      normalized.startsWith('data:image/webp') ||
+      normalized.startsWith('data:image/avif')
+    );
+  }
   if (attrName.toLowerCase() === 'src' && normalized.startsWith('blob:')) return true;
   return false;
 }
@@ -109,7 +119,7 @@ export function formatPreviewStatusText(status) {
 
 /** @param {string} htmlText */
 export function buildSafePreviewResult(htmlText) {
-  const scriptsRemoved = countMatches(htmlText, /<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi);
+  const scriptsRemoved = countMatches(htmlText, /<\s*script\b/gi);
   const inlineHandlersRemoved = countMatches(htmlText, /\son[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi);
   const dangerousJavascriptUrls = Array.from(
     htmlText.matchAll(/\s(href|src)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi)
