@@ -429,3 +429,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No new product features added; ZIP remains preflight-only; no image replacement, drag/resize, persistence/autosave, dependency additions, network calls, telemetry, iframe permission changes, or Tauri/React/Vite conversion.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
+
+
+### 2026-05-13 (strategy alignment docs update: best-effort arbitrary HTML + optional Copilot metadata)
+Date: 2026-05-13
+Branch/PR: current branch / pending PR
+Milestone: Docs strategy alignment
+Summary: Updated durable goal, product strategy, and phased roadmap to align on best-effort arbitrary HTML support, explicit editability classification, optional/recommended Copilot metadata, temporary helper workflows, and browser-first MVP as proof-of-concept (not final UX).
+Files changed: README.md, MASTER_PLAN.md, DECISIONS.md, PROGRESS.md, docs/ROADMAP.md, docs/UX_PRINCIPLES.md, docs/EDITABLE_CONTRACT.md, docs/COPILOT_HTML_CONTRACT.md, docs/IMPORT_EXPORT_SPEC.md, docs/USER_GUIDE_DRAFT.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Pending run in this task after doc updates.
+Known limitations: No runtime app code changes; no new editor feature implementation started.
+Next recommended task: Begin Phase 1 guidance deliverables only if explicitly approved.

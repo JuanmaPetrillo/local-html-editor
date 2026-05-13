@@ -53,3 +53,25 @@ The app should show:
 ## Recovery
 
 The app preserves the original imported file in the local project. If something breaks, restore from the original or a previous revision.
+
+
+## How to ask Copilot for small changes without breaking the presentation
+
+Use small, specific requests and keep layout intent explicit. Example pattern:
+
+- “Keep the current layout and styling. Only change the title text to: …”
+- “Keep all assets local and do not add remote URLs or CDN references.”
+- “Do not rewrite script logic unless necessary for the requested text/image change.”
+
+This workflow is a support path for immediate value while visual editing capabilities expand.
+
+## Temporary power-user workaround with DevTools/Notepad
+
+If a needed change is currently locked in the app, a temporary fallback is:
+
+1. Preview and identify the element to change.
+2. Use DevTools to inspect likely text/image source region.
+3. Make a minimal local edit in Notepad (or equivalent) without broad rewrites.
+4. Re-open and validate in safe preview.
+
+This is a temporary power-user workaround, not the target product UX. The target UX remains a local visual editor for non-technical users.
