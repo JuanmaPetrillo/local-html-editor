@@ -11,7 +11,7 @@ import {
   createSafeHtmlPreviewResult,
   createEditableInventoryForHtmlFile,
   createVisualObjectInventoryForHtmlFile,
-  createCollectionPatchedSafePreviewResult,
+  createCombinedPatchedSafePreviewResult,
   createEditedHtmlExport
 } from './importer.mjs';
 import {
@@ -36,9 +36,7 @@ import { formatExportStatusText } from './exporter.mjs';
 import {
   createVisualObjectSelectionState,
   createVisualOverlayItems,
-  createMovePatchCollectionState,
-  addOrUpdateMovePatch,
-  createMovePatchFromNudge,
+  
   createVisualOverlaySelectionState,
   formatOverlayStatusText,
   formatVisualObjectInventoryText,
@@ -50,6 +48,7 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
+import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides } from './visual-layout-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -171,10 +170,10 @@ const workingPreviewStatus = hasDom ? document.querySelector('#working-preview-s
 const resetWorkingPreview = hasDom ? document.querySelector('#reset-working-preview') : null;
 const exportEditedHtml = hasDom ? document.querySelector('#export-edited-html') : null;
 const exportStatus = hasDom ? document.querySelector('#export-status') : null;
-const nudgeLeft = hasDom ? document.querySelector('#nudge-left') : null;
-const nudgeRight = hasDom ? document.querySelector('#nudge-right') : null;
-const nudgeUp = hasDom ? document.querySelector('#nudge-up') : null;
-const nudgeDown = hasDom ? document.querySelector('#nudge-down') : null;
+const nudgeLeft = hasDom ? document.querySelector('#move-selected-left') : null;
+const nudgeRight = hasDom ? document.querySelector('#move-selected-right') : null;
+const nudgeUp = hasDom ? document.querySelector('#move-selected-up') : null;
+const nudgeDown = hasDom ? document.querySelector('#move-selected-down') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -242,7 +241,7 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
-  let movePatchCollection = createMovePatchCollectionState();
+  let movePatchCollection = createVisualMovePatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   const updateExportUi = () => {
@@ -282,7 +281,7 @@ if (
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
     visualOverlayLayer.replaceChildren();
-    const overlayItems = createVisualOverlayItems(inventory, movePatchCollection);
+    const overlayItems = createOverlayItemsWithMoveOverrides(inventory, movePatchCollection);
     const overlayState = createVisualOverlaySelectionState(overlayItems, selectedObjectId);
     for (const item of overlayState.items) {
       const button = document.createElement('button');
@@ -371,7 +370,7 @@ if (
     patchCollection = nextCollection.collection;
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
-    const patched = await createCollectionPatchedSafePreviewResult(currentHtmlFile, patchCollection);
+    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
       return;
@@ -388,7 +387,7 @@ if (
   resetWorkingPreview.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
-    movePatchCollection = createMovePatchCollectionState();
+    movePatchCollection = createVisualMovePatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
@@ -427,7 +426,7 @@ if (
     currentHtmlFile = null;
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
-    movePatchCollection = createMovePatchCollectionState();
+    movePatchCollection = createVisualMovePatchCollectionState();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
@@ -535,7 +534,7 @@ if (
 
   exportEditedHtml.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
-    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, currentExportSafetySummary);
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, movePatchCollection, currentExportSafetySummary);
     exportStatus.textContent = formatExportStatusText(exportResult);
     if (!exportResult.exported || !exportResult.blob) return;
     const objectUrl = URL.createObjectURL(exportResult.blob);
@@ -553,9 +552,10 @@ if (
     const state = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
     if (!state.selectedObject) return;
     const existing = movePatchCollection.movePatchesByObjectId[state.selectedObject.objectId];
-    const patch = createMovePatchFromNudge(state.selectedObject, dx, dy, existing);
+    const patch = createVisualMovePatchPlan(state.selectedObject, dx, dy, existing);
     if (!patch) return;
-    movePatchCollection = addOrUpdateMovePatch(movePatchCollection, patch).collection;
+    movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
+    const moveStatus = document.querySelector('#visual-move-status'); if (moveStatus) moveStatus.textContent = patch.applyStatus === "planned" ? "Moved selected object." : "Movement blocked: missing explicit inline geometry.";
     updateExportUi();
     renderVisualOverlay(currentVisualInventory, state.selectedObject.objectId);
   };
