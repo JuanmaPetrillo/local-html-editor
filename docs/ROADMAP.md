@@ -22,8 +22,6 @@
 ### Phase 5A: Trusted-shell nudge movement ✓
 
 - Button-based nudge movement is complete for selected overlay-ready inline-style objects.
-- Free drag movement remains pending.
-- Resize remains pending.
 
 ### Phase 5B: constrained drag movement and UX cleanup ✓
 
@@ -41,6 +39,10 @@
 ### Phase 7: ZIP/assets import-export
 ### Phase 8: Packaging/non-admin distribution
 ### Phase 9: Pilot hardening
+
+## Next focus
+
+- Phase 6 image replacement (only with explicit approval).
 
 ## Strategy guardrails across all phases
 

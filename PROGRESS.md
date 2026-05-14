@@ -10,13 +10,13 @@ Current milestone: Phase 5C complete (constrained trusted-shell resize handles).
 
 ## Latest summary
 
-Implementation is through Phase 5A. All earlier milestones (0 through PR 3/P2 hardening, visual object discovery, overlay MVP, Phase 3A selection scaffold, Phase 4A/4B visual text edit bridge, and Phase 5A nudge movement) are complete.
+Implementation is through Phase 5C. All earlier milestones (0 through PR 3/P2 hardening, visual object discovery, overlay MVP, Phase 3A selection scaffold, Phase 4A/4B visual text edit bridge, Phase 5A nudge movement, and Phase 5B constrained drag movement) are complete.
 
-Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, selected-text edit panel, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export, and trusted-shell button-based nudge movement for selected overlay-ready inline-style objects with cumulative move patch state, safe preview refresh, overlay geometry projection, and movement-aware export output.
+Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, selected-text edit panel, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export, Phase 5A trusted-shell nudge movement, Phase 5B constrained trusted-shell drag movement, and Phase 5C constrained trusted-shell resize handles with cumulative layout patch state and safe preview refresh on commit.
 
 Phase 5A trusted-shell nudge movement, Phase 5B constrained drag movement, and Phase 5C constrained resize handles are implemented.
 
-ZIP remains preflight-only. No image replacement, free drag/resize visual editing, persistence/autosave, or Tauri/React/Vite/TypeScript conversion is implemented in this branch.
+ZIP remains preflight-only (no extraction/listing/export). No image replacement, no persistence/autosave, no packaging/framework conversion (Tauri/React/Vite/TypeScript), and no arbitrary full PowerPoint-equivalent edit coverage are implemented in this branch.
 
 Current app files:
 

@@ -388,12 +388,12 @@ if (
       button.addEventListener('pointercancel', () => { handleDragCancel(); });
       if (item.objectId === overlayState.selectedObjectId) {
         for (const handle of ['bottom-right', 'right', 'bottom']) {
-          const handleButton = document.createElement('button');
-          handleButton.type = 'button';
-          handleButton.className = 'visual-resize-handle';
-          handleButton.dataset.resizeHandle = handle;
-          handleButton.setAttribute('aria-label', `Resize selected object (${handle})`);
-          handleButton.addEventListener('pointerdown', (event) => {
+          const handleEl = document.createElement('span');
+          handleEl.className = 'visual-resize-handle';
+          handleEl.dataset.resizeHandle = handle;
+          handleEl.setAttribute('role', 'presentation');
+          handleEl.setAttribute('title', `Resize selected object (${handle})`);
+          handleEl.addEventListener('pointerdown', (event) => {
             if (!currentVisualInventory) return;
             const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
             const selected = state.selectedObject;
@@ -404,15 +404,15 @@ if (
               return;
             }
             currentResizeSession = resizeSession;
-            handleButton.setPointerCapture(event.pointerId);
+            handleEl.setPointerCapture(event.pointerId);
           });
-          handleButton.addEventListener('pointermove', (event) => {
+          handleEl.addEventListener('pointermove', (event) => {
             if (!currentResizeSession || currentResizeSession.objectId !== item.objectId || currentResizeSession.handle !== handle) return;
             currentResizeSession = updateVisualResizeSession(currentResizeSession, event.clientX, event.clientY);
             if (currentResizeSession.applyStatus !== 'planned') return;
             button.style.cssText = `left:${currentResizeSession.currentGeometry.left}px;top:${currentResizeSession.currentGeometry.top}px;width:${currentResizeSession.currentGeometry.width}px;height:${currentResizeSession.currentGeometry.height}px;`;
           });
-          handleButton.addEventListener('pointerup', async () => {
+          handleEl.addEventListener('pointerup', async () => {
             if (!currentResizeSession || currentResizeSession.objectId !== item.objectId || !currentVisualInventory) return;
             const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
             const patch = createVisualMovePatchFromResize(state.selectedObject, currentResizeSession);
@@ -420,6 +420,15 @@ if (
             if (!patch || patch.applyStatus !== 'planned') {
               setResizeStatusText('Resize blocked: this object cannot be resized safely.');
               renderVisualOverlay(currentVisualInventory, item.objectId);
+              return;
+            }
+            const unchanged = patch.originalGeometry.left === patch.nextGeometry.left
+              && patch.originalGeometry.top === patch.nextGeometry.top
+              && patch.originalGeometry.width === patch.nextGeometry.width
+              && patch.originalGeometry.height === patch.nextGeometry.height;
+            if (unchanged) {
+              renderVisualOverlay(currentVisualInventory, item.objectId);
+              setResizeStatusText('Drag a corner handle to resize.');
               return;
             }
             const previousCollection = movePatchCollection;
@@ -431,7 +440,10 @@ if (
                 safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
               } else {
                 movePatchCollection = previousCollection;
+                updateExportUi();
                 renderVisualOverlay(currentVisualInventory, item.objectId);
+                setResizeStatusText('Resize blocked: this object cannot be resized safely.');
+                visualObjectSelect.value = item.objectId;
                 return;
               }
             }
@@ -440,8 +452,8 @@ if (
             renderVisualObjectSelection(currentVisualInventory);
             setResizeStatusText('Resized selected object.');
           });
-          handleButton.addEventListener('pointercancel', () => { handleResizeCancel(); });
-          button.appendChild(handleButton);
+          handleEl.addEventListener('pointercancel', () => { handleResizeCancel(); });
+          button.appendChild(handleEl);
         }
       }
       visualOverlayLayer.appendChild(button);

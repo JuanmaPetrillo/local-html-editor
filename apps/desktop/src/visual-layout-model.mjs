@@ -114,7 +114,7 @@ export function updateInlineStylePx(tagSource, nextGeometry) {
   const styleMatch = tagSource.match(/style\s*=\s*(["'])([\s\S]*?)\1/i);
   if (!styleMatch) return { ok: false, warning: 'style-missing' };
   const styleText = styleMatch[2];
-  if (!/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText)) return { ok: false, warning: 'non-px-or-malformed' };
+  if (!/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\bwidth\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\bheight\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText)) return { ok: false, warning: 'non-px-or-malformed' };
   const nextStyle = styleText
     .replace(/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i, `left:${nextGeometry.left}px`)
     .replace(/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i, `top:${nextGeometry.top}px`)

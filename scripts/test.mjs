@@ -60,7 +60,7 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
-import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize } from '../apps/desktop/src/visual-layout-model.mjs';
+import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize, updateInlineStylePx } from '../apps/desktop/src/visual-layout-model.mjs';
 import {
   createGeometryStatus,
   createVisualObjectInventory,
@@ -1253,6 +1253,9 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   const clamped = updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, null), -500, -500);
   assert.equal(clamped.currentGeometry.width, 20);
   assert.equal(clamped.currentGeometry.height, 20);
+  const noopPatch = createVisualMovePatchFromResize(object, updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, null), 0, 0));
+  assert.equal(noopPatch.originalGeometry.width, noopPatch.nextGeometry.width);
+  assert.equal(noopPatch.originalGeometry.height, noopPatch.nextGeometry.height);
 
   const lockedLike = { ...object, locked: true };
   assert.equal(createVisualResizeSession(lockedLike, 'bottom-right', 0, 0, null).applyStatus, 'blocked');
@@ -1265,4 +1268,9 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   const resizeAfterMove = createVisualMovePatchFromResize(object, updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, move), 5, 5));
   const exportResult = createEditedHtmlExportFromHtmlText(html, 'deck.html', createPatchCollectionState(), addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), resizeAfterMove).collection);
   assert.equal((await exportResult.blob.text()), '<h1 style="left:20px;top:30px;width:105px;height:35px">Title</h1>');
+
+  const missingWidth = updateInlineStylePx('<h1 style="left:10px;top:20px;height:30px">Title</h1>', { left: 10, top: 20, width: 100, height: 30 });
+  assert.equal(missingWidth.ok, false);
+  const malformedHeight = updateInlineStylePx('<h1 style="left:10px;top:20px;width:100px;height:auto">Title</h1>', { left: 10, top: 20, width: 100, height: 30 });
+  assert.equal(malformedHeight.ok, false);
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync('apps/desktop/index.html', 'utf8');
+const shellCode = readFileSync('apps/desktop/src/app-shell.mjs', 'utf8');
 
 if (!html.includes('<input id="file-input"')) throw new Error('shell ui missing local file picker');
 if (!html.includes('accept=".html,.htm,.zip"')) throw new Error('shell file picker missing accept hint');
@@ -35,6 +36,7 @@ if (!html.includes('Resize selected object')) throw new Error('shell ui missing 
 if (!html.includes('Drag a corner handle to resize.')) throw new Error('shell ui missing resize guidance copy');
 if (!html.includes('id="visual-resize-status"')) throw new Error('shell ui missing resize status');
 if (!html.includes('.visual-resize-handle')) throw new Error('shell ui missing visual resize handle class');
+if (shellCode.includes("const handleButton = document.createElement('button');")) throw new Error('resize handles must not be created as button elements');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
 if (!html.includes('position: absolute')) throw new Error('shell ui missing absolute positioning style for overlay rendering');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');
