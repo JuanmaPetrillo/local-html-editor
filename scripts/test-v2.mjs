@@ -1,59 +1,91 @@
 import { readFileSync } from 'node:fs';
-import { mapHtmlToModel, exportModelToHtml, classifyImageSource, escapeHtml, escapeAttribute } from '../apps/desktop-v2/src/app-v2.mjs';
+import {
+  mapHtmlToModel, exportModelToHtml, addTextObject, addImageObject, updateObject,
+  createHistory, pushHistory, undo, redo, deleteSelectedObject, selectSlide,
+  createProjectPayload, restoreProjectPayload, findSelectedObject, escapeAttribute,
+  normalizeModelForUse, beginInteraction, markInteractionChanged, commitInteraction
+} from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
 const js = readFileSync('apps/desktop-v2/src/app-v2.mjs', 'utf8');
-const fixture = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
+const simple = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
+const multi = readFileSync('tests/fixtures/v2-multi-slide.html', 'utf8');
+const remote = readFileSync('tests/fixtures/v2-remote-image.html', 'utf8');
+const attrs = readFileSync('tests/fixtures/v2-attributes.html', 'utf8');
 
-for (const token of ['id="canvas"', 'id="file"', 'id="delete"', 'id="export"']) if (!html.includes(token)) throw new Error(`missing ${token}`);
+for (const token of ['Open HTML', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="ins-x"']) if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 
-const model = mapHtmlToModel(fixture);
-const textCount = model.objects.filter((o) => o.type === 'text').length;
-const imageCount = model.objects.filter((o) => o.type === 'image').length;
-if (textCount < 1 || imageCount < 1) throw new Error('model should include text + image objects');
+let m1 = mapHtmlToModel(simple);
+if (!m1.slides.length) throw new Error('single slide import failed');
+if (!m1.slides[0].objects.some((o) => o.type === 'text')) throw new Error('text import missing');
+if (!m1.slides[0].objects.some((o) => o.type === 'image' || o.type === 'locked')) throw new Error('image/locked import missing');
 
-const firstText = model.objects.find((o) => o.type === 'text');
-firstText.text = 'A & B < C > D';
-const firstImage = model.objects.find((o) => o.type === 'image');
-firstImage.x = 333; firstImage.y = 222; firstImage.w = 111; firstImage.h = 99;
-const export1 = exportModelToHtml(model);
-if (!export1.includes('A &amp; B &lt; C &gt; D')) throw new Error('escaped text missing from export');
-if (!export1.includes('left:333px;top:222px;width:111px;height:99px')) throw new Error('geometry change missing from export');
+const wrapper = mapHtmlToModel('<div style="position:relative"><h1 style="left:10px;top:10px;width:100px;height:40px;">Title</h1><img src="data:image/png;base64,AA==" style="left:10px;top:60px;width:90px;height:90px;"></div>');
+if (!wrapper.slides[0].objects.some((o) => o.type === 'text')) throw new Error('wrapper import lost nested text');
+if (!wrapper.slides[0].objects.some((o) => o.type === 'image')) throw new Error('wrapper import lost nested image');
 
-model.objects = model.objects.filter((o) => o.id !== firstText.id);
-const export2 = exportModelToHtml(model);
-if (export2.includes('A &amp; B &lt; C &gt; D')) throw new Error('deleted object still present in export');
+let m2 = mapHtmlToModel(multi);
+if (m2.slides.length < 2) throw new Error('multi-slide import failed');
+selectSlide(m2, m2.slides[1].id);
+const t = addTextObject(m2);
+if (!t.id || m2.selectedObjectId !== t.id) throw new Error('add text failed');
+const img = addImageObject(m2, 'data:image/png;base64,AA==');
+if (img.type !== 'image') throw new Error('add image failed');
+updateObject(m2, img.id, { x: 111, y: 222, w: 123, h: 124, alt: 'x' });
+if (findSelectedObject(m2).id !== img.id) throw new Error('selected object lookup failed');
+m2.selectedObjectId = t.id;
+deleteSelectedObject(m2);
+if (m2.slides[1].objects.some((o) => o.id === t.id)) throw new Error('delete failed');
 
-model.objects.push({ id: 'add1', type: 'image', x: 10, y: 20, w: 30, h: 40, src: 'data:image/png;base64,AA==', blockedSource: '', lockedReason: '', alt: 'new', className: 'img-added', dataAttrs: { 'data-kind': 'added' } });
-const export3 = exportModelToHtml(model);
-if (!export3.includes('data:image/png;base64,AA==')) throw new Error('added data image missing from export');
-if (!export3.includes('class="img-added"') || !export3.includes('data-kind="added"') || !export3.includes('alt="new"')) throw new Error('image attributes missing from export');
+const hist = createHistory();
+pushHistory(hist, m2);
+updateObject(m2, img.id, { x: 444 });
+m2 = undo(hist, m2);
+if (m2.slides[1].objects.find((o) => o.id === img.id).x === 444) throw new Error('undo failed');
+m2 = redo(hist, m2);
+if (m2.slides[1].objects.find((o) => o.id === img.id).x !== 444) throw new Error('redo failed');
 
-const trickyModel = { width: 10, height: 10, objects: [{ id:'t1', type:'image', x:1, y:2, w:3, h:4, src:'data:image/png;base64,AA==', blockedSource:'', lockedReason:'', alt:`a"b'`, className:`c"d'`, dataAttrs:{'data-x':`e"f'<>&`} }] };
-const trickyExport = exportModelToHtml(trickyModel);
-if (!trickyExport.includes('src="data:image/png;base64,AA=="')) throw new Error('src should use escaped attribute path');
-if (trickyExport.includes("alt=\"a\"b'")) throw new Error('raw quote leaked in alt attribute');
-if (!trickyExport.includes('alt="a&quot;b&#39;"')) throw new Error('escaped alt missing');
-if (!trickyExport.includes('class="c&quot;d&#39;"')) throw new Error('escaped class missing');
-if (!trickyExport.includes('data-x="e&quot;f&#39;&lt;&gt;&amp;"')) throw new Error('escaped data attribute missing');
+const interHist = createHistory();
+const startX = m2.slides[1].objects.find((o) => o.id === img.id).x;
+let interaction = beginInteraction(m2, img.id);
+updateObject(m2, img.id, { x: startX + 50 });
+markInteractionChanged(interaction);
+interaction = commitInteraction(interHist, interaction);
+m2 = undo(interHist, m2);
+if (m2.slides[1].objects.find((o) => o.id === img.id).x !== startX) throw new Error('drag interaction undo failed');
 
-const remoteFixture = '<img src="https://example.com/x.png" style="left:1px;top:2px;width:3px;height:4px;" alt="x" class="c" data-id="r">';
-const remoteModel = mapHtmlToModel(remoteFixture);
-const remoteImage = remoteModel.objects[0];
-if (remoteImage.src) throw new Error('remote image should be blocked');
-if (remoteImage.lockedReason !== 'missing-image-source') throw new Error('blocked image reason missing');
-const remoteExport = exportModelToHtml(remoteModel);
-if (remoteExport.includes('https://example.com/x.png')) throw new Error('remote source leaked into export');
-if (!remoteExport.includes('Blocked remote image')) throw new Error('blocked placeholder missing in export');
+const mr = mapHtmlToModel(remote);
+if (mr.slides[0].objects[0].type !== 'locked') throw new Error('remote image not blocked');
 
-if (!classifyImageSource('data:image/png;base64,AA==').safe) throw new Error('png data url should be allowed');
-if (classifyImageSource('https://example.com/x.png').safe) throw new Error('https source should be blocked');
-if (escapeHtml('&<>') !== '&amp;&lt;&gt;') throw new Error('escapeHtml failed');
+const unsafeProject = {
+  schema: 'lheproj-v2', version: 2, model: {
+    slides: [{ id: 's1', name: 'S', width: 'x', height: null, objects: [{ id: '1', type: 'image', src: 'https://example.com/pwn.png', x: 'bad', y: '2', w: 'evil', h: 0, alt: 'a', className: 'c', dataAttrs: { onerror: 'x', 'data-ok': 'y' } }, { id: '2', type: 'text', tagName: 'script', text: 'T', x: 'x', y: 4, w: -1, h: 'x', dataAttrs: { onclick: 'no', 'data-a': 'yes' } }] }], selectedSlideId: 's1'
+  }
+};
+const restoredUnsafe = restoreProjectPayload(unsafeProject);
+if (!restoredUnsafe) throw new Error('restore failed');
+if (restoredUnsafe.slides[0].objects[0].type !== 'locked') throw new Error('unsafe image source not locked on restore');
+if (restoredUnsafe.slides[0].objects[1].tagName !== 'div') throw new Error('unsafe tagName not normalized');
+if ('onerror' in (restoredUnsafe.slides[0].objects[0].dataAttrs || {})) throw new Error('unsafe data attrs key not dropped');
+if (!Number.isFinite(restoredUnsafe.slides[0].objects[1].x) || restoredUnsafe.slides[0].objects[1].w < 20) throw new Error('malicious geometry not normalized');
 
-if (escapeAttribute(`a" b' c & < >`) !== 'a&quot; b&#39; c &amp; &lt; &gt;') throw new Error('escapeAttribute failed');
+const ma = mapHtmlToModel(attrs);
+ma.slides[0].objects.push({ id: 'ot', type: 'text', tagName: 'p', text: 'A & < B > C', x: 1, y: 1, w: 100, h: 20, className: '', dataAttrs: {} });
+const exp = exportModelToHtml(ma);
+if (!exp.includes('data-slide-id')) throw new Error('export slides missing');
+if (!exp.includes('A &amp; &lt; B &gt; C')) throw new Error('text escaping missing');
+if (escapeAttribute(`a"b'c&<>`) !== 'a&quot;b&#39;c&amp;&lt;&gt;') throw new Error('attribute escaping missing');
+if (exp.includes('https://example.com/remote.png')) throw new Error('remote image leaked');
 
-for (const token of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'postMessage', 'contentDocument', 'contentWindow', 'localStorage', 'indexedDB']) {
-  if (js.includes(token)) throw new Error(`forbidden token detected: ${token}`);
-}
+const badDirect = normalizeModelForUse({ slides: [{ objects: [{ type: 'image', src: 'https://evil.com/1.png', x: 'a', y: 'b', w: 'c', h: 'd' }] }] });
+const expBadDirect = exportModelToHtml(badDirect);
+if (expBadDirect.includes('https://evil.com/1.png')) throw new Error('direct bad model leaked remote url in export');
+if (expBadDirect.includes('<script')) throw new Error('unsafe script emitted');
+
+const project = createProjectPayload(m2);
+const restored = restoreProjectPayload(JSON.parse(JSON.stringify(project)));
+if (!restored || restored.slides.length !== m2.slides.length) throw new Error('project save/open failed');
+
+for (const bad of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'postMessage', 'contentDocument', 'contentWindow', 'localStorage', 'indexedDB']) if (js.includes(bad)) throw new Error(`forbidden api token: ${bad}`);
 
 console.log('v2 checks passed');

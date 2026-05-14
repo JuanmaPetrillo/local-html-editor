@@ -692,3 +692,7 @@ Result: Passed.
 Known limitations: Still no installer/executable; pilot remains browser-first/local-only; ZIP remains preflight-only.
 Next recommended task: Collect pilot feedback on launch reliability before considering any broader packaging changes.
 
+
+- 2026-05-14: V2 MVP canvas-first pilot implemented in apps/desktop-v2; build/package switched to V2 standalone bundle; validation gate run.
+
+- 2026-05-14: Continued V2 MVP with multi-slide model, inspector edits, locked object type, project schema payload helpers, and stronger fixture-driven test:v2 coverage.

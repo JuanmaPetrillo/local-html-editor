@@ -73,3 +73,7 @@
 - No autosave, no localStorage, no IndexedDB.
 - Project files may contain sensitive patch data and embedded replacement images.
 - Raw original HTML is not stored in project files.
+
+- V2 pilot promoted as default packaging target with standalone non-module bundle and START_HERE launcher.
+
+- V2 direct-canvas editor now includes multi-slide navigation and inspector/layers editing as primary pilot behavior.

@@ -117,3 +117,8 @@ Run this checklist with at least one synthetic fixture deck:
 - No autosave/localStorage/IndexedDB.
 - No installer/executable packaging in this milestone.
 - Browser security policies may vary by enterprise-managed browser configuration.
+
+## V2 pilot usage (updated)
+Use `npm run build` then `npm run package:pilot`. Package now includes standalone `index.html` + `app-v2.bundle.js` and `START_HERE.bat`.
+
+Updated V2 pilot behavior: slide navigator + inspector/layers + project save/open (`lheproj-v2`) + export all slides.
