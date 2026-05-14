@@ -669,3 +669,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No installer/executable packaging; ZIP remains preflight-only; no autosave/localStorage/IndexedDB; no framework conversion; no runtime behavior changes in app shell.
 Next recommended task: If pilot feedback is positive, define a narrow Phase 8C for repeatable CI artifact publication of portable folders (still no installer), then revisit executable packaging in a separate approved milestone.
+
+
+### 2026-05-14 (phase 8c manual github actions pilot artifact workflow)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 8C - repeatable manual CI pilot artifact publishing
+Summary: Added a manual-only GitHub Actions workflow (`Build Pilot Package`) that runs existing validation/build/package commands and uploads `pilot-dist/**` as artifact `local-html-editor-pilot` with 7-day retention. Updated README and manual pilot guide with run/download steps plus local fallback (`npm run package:pilot`).
+Files changed: .github/workflows/build-pilot.yml, README.md, docs/MANUAL_PILOT_GUIDE.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run package:pilot
+Result: Passed.
+Known limitations: Workflow is manual-only and produces portable folder artifacts only (no installer/executable); ZIP remains preflight-only.
+Next recommended task: Continue Phase 7 ZIP/assets implementation only with explicit approval.
+

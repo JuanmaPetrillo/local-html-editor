@@ -1,0 +1,47 @@
+name: Build Pilot Package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - name: Security tests
+        run: npm run test:security
+
+      - name: Build
+        run: npm run build
+
+      - name: Package pilot
+        run: npm run package:pilot
+
+      - name: Upload pilot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-html-editor-pilot
+          path: pilot-dist/**
+          retention-days: 7
