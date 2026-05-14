@@ -90,6 +90,20 @@ npm run build
 
 Then open `dist/index.html` in a local browser.
 
+### Manual pilot packaging (no-admin, docs/scripts only)
+
+For the current browser-first app, a simple manual pilot distribution flow is available:
+
+```bash
+npm ci
+npm run build
+npm run package:pilot
+```
+
+This creates a versioned portable folder under `pilot-dist/` containing `index.html`, `src/*.mjs`, and a short pilot readme.
+
+See `docs/MANUAL_PILOT_GUIDE.md` for the full checklist and limitations.
+
 #### How to test the MVP flow
 
 1. Open an `.html` or `.htm` file with **Open HTML/ZIP**.

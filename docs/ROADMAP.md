@@ -48,6 +48,13 @@
 ### Phase 8: Packaging/non-admin distribution
 ### Phase 9: Pilot hardening
 
+### Phase 8B: Manual pilot packaging guide (browser-first) ✓
+
+- Added docs/scripts-only manual pilot packaging flow for `dist/` portable distribution.
+- Added versioned portable-folder packaging helper (`npm run package:pilot`).
+- No installer/executable packaging added in this phase.
+
+
 ## Next focus
 
 - Phase 7 ZIP/assets import-export (only with explicit approval).
