@@ -50,18 +50,55 @@ function assertRequired(sourceText, tokens, category) {
   }
 }
 
-function assertNoForbiddenFieldsInObject(value, forbiddenFields, category) {
-  if (value == null) return;
-  if (Array.isArray(value)) {
-    for (const item of value) assertNoForbiddenFieldsInObject(item, forbiddenFields, category);
-    return;
-  }
-  if (typeof value !== 'object') return;
-  for (const [key, child] of Object.entries(value)) {
-    if (forbiddenFields.includes(key)) throw new Error(`[${category}] forbidden field detected: ${key}`);
-    assertNoForbiddenFieldsInObject(child, forbiddenFields, category);
-  }
+function assertNoForbiddenShellPayload(value, category, options = {}) {
+  const forbiddenFields = ['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'ArrayBuffer', 'Blob', 'workingHtml'];
+  const forbiddenStringMarkers = ['SECRET_DO_NOT_LEAK_12345', '<h1', '<script', '<img', '<!doctype'];
+  const allowBlobInstance = options.allowBlobInstance === true;
+  const seen = new Set();
+  const inspect = (node) => {
+    if (node == null) return;
+    if (typeof node === 'string') {
+      const lowered = node.toLowerCase();
+      for (const marker of forbiddenStringMarkers) {
+        if (marker === 'SECRET_DO_NOT_LEAK_12345') {
+          if (node.includes(marker)) throw new Error(`[${category}] forbidden string marker detected: ${marker}`);
+        } else if (lowered.includes(marker)) {
+          throw new Error(`[${category}] forbidden html marker detected: ${marker}`);
+        }
+      }
+      return;
+    }
+    if (node instanceof ArrayBuffer) throw new Error(`[${category}] forbidden binary value detected: ArrayBuffer`);
+    if (ArrayBuffer.isView(node)) throw new Error(`[${category}] forbidden binary value detected: TypedArray`);
+    if (node instanceof Blob && !allowBlobInstance) throw new Error(`[${category}] forbidden binary value detected: Blob`);
+    if (typeof node !== 'object') return;
+    if (seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) inspect(item);
+      return;
+    }
+    for (const [key, child] of Object.entries(node)) {
+      if (forbiddenFields.includes(key)) throw new Error(`[${category}] forbidden field detected: ${key}`);
+      inspect(child);
+    }
+  };
+  inspect(value);
 }
+
+function assertThrows(fn, expected, category) {
+  let threw = false;
+  try {
+    fn();
+  } catch (error) {
+    threw = true;
+    if (!String(error && error.message).includes(expected)) {
+      throw new Error(`[${category}] unexpected error: ${String(error && error.message)}`);
+    }
+  }
+  if (!threw) throw new Error(`[${category}] expected throw containing: ${expected}`);
+}
+
 
 // trusted shell forbidden APIs
 assertForbidden(shellCode, ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write', 'DOMParser'], 'trusted-shell');
@@ -96,9 +133,8 @@ const hardenedPreviewDoc = buildSafePreviewDocument(
 assertForbidden(hardenedPreviewDoc, ['mailto:', 'ftp://', 'file:///', 'tel:+', 'custom:', 'https://example.test', '//example.test'], 'preview-scheme-hardening');
 if (hardenedPreviewDoc.toLowerCase().includes('vbscript:')) throw new Error('[preview-scheme-hardening] forbidden token detected: vbscript:');
 
-const forbiddenShellFields = ['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'ArrayBuffer', 'Blob', 'workingHtml'];
 const secretMarker = 'SECRET_DO_NOT_LEAK_12345';
-const sampleHtml = `<h1>${secretMarker}</h1><p>Hello</p>`;
+const sampleHtml = '<h1>Visible title</h1><p>Hello</p>';
 const scan = {
   scriptTagCount: 0,
   inlineEventHandlerCount: 0,
@@ -121,23 +157,23 @@ const status = createImportStatusFromHtmlScan({
 });
 const report = createImportReportFromStatus(status);
 const manifest = createImportManifestFromStatus(status, report);
-assertNoForbiddenFieldsInObject(status, forbiddenShellFields, 'shell-facing-status');
-assertNoForbiddenFieldsInObject(report, forbiddenShellFields, 'shell-facing-report');
-assertNoForbiddenFieldsInObject(manifest, forbiddenShellFields, 'shell-facing-manifest');
+assertNoForbiddenShellPayload(status, 'shell-facing-status');
+assertNoForbiddenShellPayload(report, 'shell-facing-report');
+assertNoForbiddenShellPayload(manifest, 'shell-facing-manifest');
 const statusSummary = formatImportStatusSummary(status);
 const reportText = formatImportReportText(report);
 const manifestText = formatImportManifestText(manifest);
-if (statusSummary.includes(secretMarker)) throw new Error('[shell-facing-status-text] secret marker leaked');
-if (reportText.includes(secretMarker)) throw new Error('[shell-facing-report-text] secret marker leaked');
-if (manifestText.includes(secretMarker)) throw new Error('[shell-facing-manifest-text] secret marker leaked');
+assertNoForbiddenShellPayload(statusSummary, 'shell-facing-status-text');
+assertNoForbiddenShellPayload(reportText, 'shell-facing-report-text');
+assertNoForbiddenShellPayload(manifestText, 'shell-facing-manifest-text');
 
 const editableInventory = createEditableTextInventory(sampleHtml);
-assertNoForbiddenFieldsInObject(editableInventory, forbiddenShellFields, 'shell-facing-editable-inventory');
+assertNoForbiddenShellPayload(editableInventory, 'shell-facing-editable-inventory');
 const firstCandidate = editableInventory.candidates[0];
 const draftEdit = createDraftEdit(firstCandidate, 'Updated');
 const patchPlan = createTextPatchPlan(draftEdit);
-assertNoForbiddenFieldsInObject(draftEdit, forbiddenShellFields, 'shell-facing-draft-edit');
-assertNoForbiddenFieldsInObject(patchPlan, forbiddenShellFields, 'shell-facing-patch-plan');
+assertNoForbiddenShellPayload(draftEdit, 'shell-facing-draft-edit');
+assertNoForbiddenShellPayload(patchPlan, 'shell-facing-patch-plan');
 const patchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), patchPlan).collection;
 const textApplyState = applyPatchCollectionToWorkingHtml(sampleHtml, patchCollection, editableInventory);
 const shellFacingTextApplyState = {
@@ -147,14 +183,14 @@ const shellFacingTextApplyState = {
   collectionCount: patchCollection.orderedCandidateIds.length,
   warnings: textApplyState.warnings
 };
-assertNoForbiddenFieldsInObject(shellFacingTextApplyState, forbiddenShellFields, 'shell-facing-text-apply-state');
+assertNoForbiddenShellPayload(shellFacingTextApplyState, 'shell-facing-text-apply-state');
 
 const visualInventory = createVisualObjectInventory(sampleHtml);
-assertNoForbiddenFieldsInObject(visualInventory, forbiddenShellFields, 'shell-facing-visual-inventory');
+assertNoForbiddenShellPayload(visualInventory, 'shell-facing-visual-inventory');
 const visualSelection = createVisualObjectSelectionState(visualInventory, visualInventory.objects[0].objectId);
-assertNoForbiddenFieldsInObject(visualSelection, forbiddenShellFields, 'shell-facing-visual-selection-state');
+assertNoForbiddenShellPayload(visualSelection, 'shell-facing-visual-selection-state');
 const visualBridge = createVisualTextEditBridgeState(visualSelection.selectedObject, editableInventory);
-assertNoForbiddenFieldsInObject(visualBridge, forbiddenShellFields, 'shell-facing-visual-bridge-state');
+assertNoForbiddenShellPayload(visualBridge, 'shell-facing-visual-bridge-state');
 const combinedApplyState = applyCombinedTextAndVisualPatchesToHtml(
   sampleHtml,
   patchCollection,
@@ -170,18 +206,18 @@ const shellFacingCombinedApplyState = {
   collectionCount: patchCollection.orderedCandidateIds.length,
   warnings: combinedApplyState.warnings
 };
-assertNoForbiddenFieldsInObject(shellFacingCombinedApplyState, forbiddenShellFields, 'shell-facing-combined-apply-state');
+assertNoForbiddenShellPayload(shellFacingCombinedApplyState, 'shell-facing-combined-apply-state');
 const importerShellFacingResult = await createCombinedPatchedSafePreviewResult(
   { name: 'sample.html', text: async () => sampleHtml },
   patchCollection,
   createVisualMovePatchCollectionState(),
   createImageReplacementPatchCollectionState()
 );
-assertNoForbiddenFieldsInObject(importerShellFacingResult.applyState, forbiddenShellFields, 'shell-facing-importer-apply-state');
+assertNoForbiddenShellPayload(importerShellFacingResult.applyState, 'shell-facing-importer-apply-state');
 
 const exportResult = createEditedHtmlExportFromHtmlText(sampleHtml, 'sample.html', patchCollection, createVisualMovePatchCollectionState(), null, createImageReplacementPatchCollectionState());
 if (!(exportResult.blob instanceof Blob)) throw new Error('[export-blob] expected Blob for local download flow');
-assertNoForbiddenFieldsInObject(
+assertNoForbiddenShellPayload(
   {
     exportStatus: exportResult.exportStatus,
     fileName: exportResult.fileName,
@@ -191,8 +227,15 @@ assertNoForbiddenFieldsInObject(
     imagePatchCount: exportResult.imagePatchCount,
     warnings: exportResult.warnings
   },
-  forbiddenShellFields,
   'shell-facing-export-metadata'
 );
+
+assertThrows(() => assertNoForbiddenShellPayload({ payload: 'SECRET_DO_NOT_LEAK_12345' }, 'negative-secret'), 'forbidden string marker', 'negative-secret');
+assertThrows(() => assertNoForbiddenShellPayload({ payload: '<h1>secret</h1>' }, 'negative-html'), 'forbidden html marker', 'negative-html');
+assertThrows(() => assertNoForbiddenShellPayload({ data: new ArrayBuffer(8) }, 'negative-arraybuffer'), 'ArrayBuffer', 'negative-arraybuffer');
+assertThrows(() => assertNoForbiddenShellPayload({ data: new Uint8Array([1, 2]) }, 'negative-typed-array'), 'TypedArray', 'negative-typed-array');
+assertThrows(() => assertNoForbiddenShellPayload({ blob: new Blob(['x']) }, 'negative-blob'), 'Blob', 'negative-blob');
+assertNoForbiddenShellPayload({ status: 'ready', warningCount: 0, warnings: ['none'] }, 'negative-safe-metadata');
+assertNoForbiddenShellPayload({ blob: new Blob(['x']) }, 'negative-blob-allowed', { allowBlobInstance: true });
 
 console.log('security checks passed');
