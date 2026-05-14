@@ -26,6 +26,36 @@ export function createVisualMovePatchPlan(visualObject, deltaX, deltaY, existing
   };
 }
 
+export function createVisualResizeSession(visualObject, handle, pointerStartX, pointerStartY, existingPatch = null) {
+  const movePatch = createVisualMovePatchPlan(visualObject, 0, 0, existingPatch);
+  if (!movePatch || movePatch.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: movePatch && movePatch.warnings ? movePatch.warnings : ['missing-explicit-inline-geometry'] };
+  if (!['bottom-right', 'right', 'bottom'].includes(handle)) return { applyStatus: 'blocked', warnings: ['invalid-resize-handle'] };
+  if (![pointerStartX, pointerStartY].every(Number.isFinite)) return { applyStatus: 'blocked', warnings: ['invalid-pointer-start'] };
+  return { applyStatus: 'planned', warnings: [], objectId: visualObject.objectId, handle, pointerStartX, pointerStartY, baseGeometry: movePatch.nextGeometry, existingPatch: existingPatch || null, currentGeometry: movePatch.nextGeometry };
+}
+
+export function clampResizeGeometry(geometry, minWidth = 20, minHeight = 20) {
+  return { left: Math.round(geometry.left), top: Math.round(geometry.top), width: Math.max(minWidth, Math.round(geometry.width)), height: Math.max(minHeight, Math.round(geometry.height)) };
+}
+
+export function updateVisualResizeSession(resizeSession, pointerX, pointerY) {
+  if (!resizeSession || resizeSession.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: ['resize-session-unavailable'] };
+  const dx = Math.round(pointerX - resizeSession.pointerStartX);
+  const dy = Math.round(pointerY - resizeSession.pointerStartY);
+  const next = { ...resizeSession.baseGeometry };
+  if (resizeSession.handle === 'bottom-right' || resizeSession.handle === 'right') next.width = resizeSession.baseGeometry.width + dx;
+  if (resizeSession.handle === 'bottom-right' || resizeSession.handle === 'bottom') next.height = resizeSession.baseGeometry.height + dy;
+  return { ...resizeSession, currentGeometry: clampResizeGeometry(next) };
+}
+
+export function createVisualMovePatchFromResize(visualObject, resizeSession) {
+  if (!resizeSession || resizeSession.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: ['resize-session-unavailable'] };
+  const nextGeometry = clampResizeGeometry(resizeSession.currentGeometry);
+  const movePatch = createVisualMovePatchPlan(visualObject, 0, 0, resizeSession.existingPatch || null);
+  if (!movePatch || movePatch.applyStatus !== 'planned') return movePatch;
+  return { ...movePatch, nextGeometry };
+}
+
 
 
 export function createVisualDragSession(visualObject, pointerStartX, pointerStartY, existingPatch = null) {
@@ -80,14 +110,16 @@ export function addOrUpdateVisualMovePatch(collection, movePatch) {
 
 export function updateInlineStylePx(tagSource, nextGeometry) {
   if (typeof tagSource !== 'string' || !tagSource.includes('style=')) return { ok: false, warning: 'style-missing' };
-  if (![nextGeometry.left, nextGeometry.top].every(Number.isFinite)) return { ok: false, warning: 'geometry-invalid' };
+  if (![nextGeometry.left, nextGeometry.top, nextGeometry.width, nextGeometry.height].every(Number.isFinite)) return { ok: false, warning: 'geometry-invalid' };
   const styleMatch = tagSource.match(/style\s*=\s*(["'])([\s\S]*?)\1/i);
   if (!styleMatch) return { ok: false, warning: 'style-missing' };
   const styleText = styleMatch[2];
-  if (!/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText)) return { ok: false, warning: 'non-px-or-malformed' };
+  if (!/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\bwidth\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText) || !/\bheight\s*:\s*-?\d+(?:\.\d+)?px\b/i.test(styleText)) return { ok: false, warning: 'non-px-or-malformed' };
   const nextStyle = styleText
     .replace(/\bleft\s*:\s*-?\d+(?:\.\d+)?px\b/i, `left:${nextGeometry.left}px`)
-    .replace(/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i, `top:${nextGeometry.top}px`);
+    .replace(/\btop\s*:\s*-?\d+(?:\.\d+)?px\b/i, `top:${nextGeometry.top}px`)
+    .replace(/\bwidth\s*:\s*-?\d+(?:\.\d+)?px\b/i, `width:${nextGeometry.width}px`)
+    .replace(/\bheight\s*:\s*-?\d+(?:\.\d+)?px\b/i, `height:${nextGeometry.height}px`);
   return { ok: true, tagSource: tagSource.replace(styleMatch[0], `style=${styleMatch[1]}${nextStyle}${styleMatch[1]}`) };
 }
 

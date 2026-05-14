@@ -60,7 +60,7 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
-import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag } from '../apps/desktop/src/visual-layout-model.mjs';
+import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize, updateInlineStylePx } from '../apps/desktop/src/visual-layout-model.mjs';
 import {
   createGeometryStatus,
   createVisualObjectInventory,
@@ -1232,4 +1232,45 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   assert.equal(createVisualDragSession(partial, 0, 0, null).applyStatus, 'blocked');
   const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
   assert.equal(createVisualDragSession(imageAttr, 0, 0, null).applyStatus, 'blocked');
+}
+
+// Phase 5C resize regression coverage
+{
+  const html = '<h1 style="left:10px;top:20px;width:100px;height:30px">Title</h1>';
+  const visualInventory = createVisualObjectInventory(html);
+  const object = visualInventory.objects[0];
+  const resizeStart = createVisualResizeSession(object, 'bottom-right', 0, 0, null);
+  assert.equal(resizeStart.applyStatus, 'planned');
+  const resized = updateVisualResizeSession(resizeStart, 30, 15);
+  assert.equal(resized.currentGeometry.width, 130);
+  assert.equal(resized.currentGeometry.height, 45);
+  const patch = createVisualMovePatchFromResize(object, resized);
+  assert.equal(patch.nextGeometry.left, 10);
+  assert.equal(patch.nextGeometry.top, 20);
+
+  assert.equal(updateVisualResizeSession(createVisualResizeSession(object, 'right', 0, 0, null), 25, 40).currentGeometry.height, 30);
+  assert.equal(updateVisualResizeSession(createVisualResizeSession(object, 'bottom', 0, 0, null), 25, 40).currentGeometry.width, 100);
+  const clamped = updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, null), -500, -500);
+  assert.equal(clamped.currentGeometry.width, 20);
+  assert.equal(clamped.currentGeometry.height, 20);
+  const noopPatch = createVisualMovePatchFromResize(object, updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, null), 0, 0));
+  assert.equal(noopPatch.originalGeometry.width, noopPatch.nextGeometry.width);
+  assert.equal(noopPatch.originalGeometry.height, noopPatch.nextGeometry.height);
+
+  const lockedLike = { ...object, locked: true };
+  assert.equal(createVisualResizeSession(lockedLike, 'bottom-right', 0, 0, null).applyStatus, 'blocked');
+  const partial = { ...object, geometry: { ...object.geometry, width: null, overlayReady: false } };
+  assert.equal(createVisualResizeSession(partial, 'bottom-right', 0, 0, null).applyStatus, 'blocked');
+  const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
+  assert.equal(createVisualResizeSession(imageAttr, 'bottom-right', 0, 0, null).applyStatus, 'blocked');
+
+  const move = createVisualMovePatchPlan(object, 10, 10, null);
+  const resizeAfterMove = createVisualMovePatchFromResize(object, updateVisualResizeSession(createVisualResizeSession(object, 'bottom-right', 0, 0, move), 5, 5));
+  const exportResult = createEditedHtmlExportFromHtmlText(html, 'deck.html', createPatchCollectionState(), addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), resizeAfterMove).collection);
+  assert.equal((await exportResult.blob.text()), '<h1 style="left:20px;top:30px;width:105px;height:35px">Title</h1>');
+
+  const missingWidth = updateInlineStylePx('<h1 style="left:10px;top:20px;height:30px">Title</h1>', { left: 10, top: 20, width: 100, height: 30 });
+  assert.equal(missingWidth.ok, false);
+  const malformedHeight = updateInlineStylePx('<h1 style="left:10px;top:20px;width:100px;height:auto">Title</h1>', { left: 10, top: 20, width: 100, height: 30 });
+  assert.equal(malformedHeight.ok, false);
 }
