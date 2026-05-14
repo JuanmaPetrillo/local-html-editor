@@ -433,7 +433,7 @@ export function createPatchCollectionApplyOperations(collection, inventory) {
     const patch = collection.patchesByCandidateId[candidateId];
     const candidate = candidates.find((item) => item.candidateId === candidateId);
     if (!patch || !candidate || !Number.isInteger(candidate.sourceStart) || !Number.isInteger(candidate.sourceEnd) || typeof patch.replacementText !== 'string') continue;
-    ops.push({ operationId: patch.patchId || `patch-${candidateId}`, sourceStart: candidate.sourceStart, sourceEnd: candidate.sourceEnd, replacementText: patch.replacementText });
+    ops.push({ operationId: patch.patchId || `patch-${candidateId}`, sourceStart: candidate.sourceStart, sourceEnd: candidate.sourceEnd, replacementText: escapeTextForHtml(patch.replacementText) });
   }
   return ops;
 }

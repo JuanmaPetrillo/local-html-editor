@@ -1176,4 +1176,25 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   assert.equal(moveOnlyExport.textPatchCount, 0);
   assert.equal(moveOnlyExport.movePatchCount, 1);
   assert.equal((await moveOnlyExport.blob.text()).includes('left:30px'), true);
+
+  const htmlEscape = '<h1 style="left:10px;top:20px;width:100px;height:30px">Old</h1>';
+  const escInv = createEditableTextInventory(htmlEscape);
+  const escCand = escInv.candidates[0];
+  const escPatchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), createTextPatchPlan(createDraftEdit(escCand, 'A & <B>'))).collection;
+  const escMove = addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), createVisualMovePatchPlan(createVisualObjectInventory(htmlEscape).objects[0], 10, 0, null)).collection;
+  const escCombined = applyCombinedTextAndVisualPatchesToHtml(htmlEscape, escPatchCollection, escMove, escInv, createVisualObjectInventory(htmlEscape));
+  assert.equal(escCombined.workingHtml, '<h1 style="left:20px;top:20px;width:100px;height:30px">A &amp; &lt;B&gt;</h1>');
+  const escExport = createEditedHtmlExportFromHtmlText(htmlEscape, 'deck.html', escPatchCollection, escMove);
+  assert.equal((await escExport.blob.text()), '<h1 style="left:20px;top:20px;width:100px;height:30px">A &amp; &lt;B&gt;</h1>');
+  const maliciousPatchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), createTextPatchPlan(createDraftEdit(escCand, '<script>alert(1)</script>'))).collection;
+  const maliciousExport = createEditedHtmlExportFromHtmlText(htmlEscape, 'deck.html', maliciousPatchCollection, escMove);
+  assert.equal((await maliciousExport.blob.text()).includes('&lt;script&gt;alert(1)&lt;/script&gt;'), true);
+
+  const lockedLike = { ...object, locked: true };
+  assert.equal(createVisualMovePatchPlan(lockedLike, 0, 0, null).applyStatus, 'blocked');
+  const partial = { ...object, geometry: { ...object.geometry, width: null, overlayReady: false } };
+  assert.equal(createVisualMovePatchPlan(partial, 0, 0, null).applyStatus, 'blocked');
+  const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
+  assert.equal(createVisualMovePatchPlan(imageAttr, 0, 0, null).applyStatus, 'blocked');
+
 }

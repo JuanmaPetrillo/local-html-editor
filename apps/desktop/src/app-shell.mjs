@@ -317,7 +317,9 @@ if (
     }
     renderVisualOverlay(inventory, state.selectedObjectId);
     const selected = state.selectedObject;
-    const nudgeEnabled = !!(selected && selected.geometry && Number.isFinite(selected.geometry.left) && Number.isFinite(selected.geometry.top));
+    const existingMovePatch = selected && selected.objectId ? movePatchCollection.movePatchesByObjectId[selected.objectId] : null;
+    const movePlan = selected ? createVisualMovePatchPlan(selected, 0, 0, existingMovePatch) : null;
+    const nudgeEnabled = !!(movePlan && movePlan.applyStatus === 'planned');
     if (nudgeLeft != null) nudgeLeft.disabled = !nudgeEnabled;
     if (nudgeRight != null) nudgeRight.disabled = !nudgeEnabled;
     if (nudgeUp != null) nudgeUp.disabled = !nudgeEnabled;
