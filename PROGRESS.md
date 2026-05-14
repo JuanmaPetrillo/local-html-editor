@@ -6,15 +6,15 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: P2 hardening - documentation accuracy, leakage tests, and security-script cleanup (complete).
+Current milestone: Phase 4B complete (visual text edit UX bridge). Stabilization pass in progress (docs accuracy, fixture files, regression tests, TAG_PATTERN correctness fix).
 
 ## Latest summary
 
-Milestones 0, 1, 2A, 2B, 2C, 2D, 2E, 2F, 3A, 3B, 3C, 4A, 4B, 4C, 4D, PR A, PR B, PR C, PR 1 (P0), PR 2 (P1), and PR 3 (P2 hardening) are complete for the current browser-first implementation.
+Implementation is through Phase 4B. All earlier milestones (0 through PR 3/P2 hardening, and visual object discovery, overlay MVP, Phase 3A selection scaffold, Phase 4A/4B visual text edit bridge) are complete.
 
-Browser-first MVP currently supports HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery, in-memory text patch collection, reset-to-original preview, and user-initiated local edited HTML export.
+Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export.
 
-PR C usability polish is complete. PR 1/P0 fixes are complete (overlapping patch application blocked, unclosed/lone script tags stripped-counted in preview sanitization, and `data:image/svg+xml` blocked in safe preview). PR 2/P1 fixes are complete (file-selection race guard, full-document preview wrapping fix, source-kind-aware manifest/inventory wording updates, UI step order fix, and export disclosure warning). P2 hardening is complete (documentation accuracy cleanup, raw-content leakage regression coverage, security script cleanup, and manual smoke checklist).
+**Phase 4 (move/resize) is not implemented.** PR32 on GitHub attempted a Phase 5A movement spike but is not merged into `main` and is not trustworthy for integration without a confirmed diff review against security invariants. Do not merge PR32 without that review.
 
 ZIP remains preflight-only. No image replacement, drag/resize visual editing, persistence/autosave, or Tauri/React/Vite conversion is implemented in this branch.
 
@@ -26,10 +26,9 @@ Current app files:
 - `apps/desktop/src/preview-sandbox.mjs`
 - `apps/desktop/src/editable-model.mjs`
 - `apps/desktop/src/exporter.mjs`
+- `apps/desktop/src/visual-object-model.mjs`
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
-
-Static safe preview rendering is implemented for HTML/HTM. User-initiated local edited HTML export is implemented. Visual element editing (image replacement, drag/resize) is not implemented yet.
 
 ## Open risks
 
@@ -522,6 +521,16 @@ Result: Passed.
 Known limitations: unchanged from Phase 4B scope; no in-place editing/drag-resize/image replacement/ZIP extraction/persistence/dependencies/network/telemetry/iframe internals access.
 Next recommended task: Proceed only with explicit approval for next narrow scope.
 
+### 2026-05-13 (stabilization: docs accuracy + TAG_PATTERN fix + fixture files + regression tests)
+Date: 2026-05-13
+Branch/PR: claude/review-local-html-editor-7QAlC / pending PR
+Milestone: Stabilization pass (not a feature PR)
+Summary: Updated durable docs (README, MASTER_PLAN, ROADMAP, PROGRESS) to accurately reflect Phase 4B completion including visual object discovery, overlay rendering, and visual text edit bridge. Fixed latent TAG_PATTERN bug in editable-model.mjs by moving regex definition inside extractEditableTextCandidates to prevent shared lastIndex state across calls. Added five synthetic HTML fixture files in tests/fixtures/ (simple-positioned-deck, entity-text-deck, duplicate-text-deck, long-text-deck, risky-html-deck). Added fixture-based regression tests covering entity roundtrip, long-text no-truncation, duplicate-text span mapping, offset stability after excluded blocks, export exact-output verification, reset clears patches, and malicious content sanitization through preview-sandbox.
+Files changed: apps/desktop/src/editable-model.mjs, README.md, MASTER_PLAN.md, docs/ROADMAP.md, PROGRESS.md, tests/fixtures/simple-positioned-deck.html, tests/fixtures/entity-text-deck.html, tests/fixtures/duplicate-text-deck.html, tests/fixtures/long-text-deck.html, tests/fixtures/risky-html-deck.html, scripts/test.mjs
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No new product features; ZIP remains preflight-only; no move/resize/drag, image replacement, persistence, dependencies, network calls, telemetry, or iframe permission changes. Phase 4 (move/resize) is pending; PR32 is not merged.
+Next recommended task: Proceed to Phase 4 move/resize only with explicit approval after confirming PR32 diff safety.
 ### 2026-05-13 (phase 5a visual nudge movement v2 replacement for stale PR #32)
 Date: 2026-05-13
 Branch/PR: codex/phase-5a-visual-nudge-movement-v2 / pending PR

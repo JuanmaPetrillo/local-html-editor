@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Risky Deck</title>
+<script>alert('xss')</script>
+<script src="https://evil.example/payload.js"></script>
+</head>
+<body onload="evil()">
+<h1 onclick="steal()">Safe Headline</h1>
+<p>Safe paragraph text.</p>
+<img src="data:image/svg+xml,<svg><script>alert(1)</script></svg>">
+<img src="https://tracker.example/pixel.gif">
+<iframe src="https://evil.example/frame"></iframe>
+<a href="javascript:void(0)">Tricky link</a>
+</body>
+</html>

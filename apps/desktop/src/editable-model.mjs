@@ -3,7 +3,6 @@ const CANDIDATE_TEXT_TAGS = new Set([
 ]);
 
 const EXCLUDED_BLOCKS_PATTERN = /<\s*(script|style|noscript|template|iframe|object|embed|svg)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi;
-const TAG_PATTERN = /<\s*(\/?)([a-z0-9:-]+)\b[^>]*>/gi;
 const ENTITY_MAP = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
 
 /** @param {string} input */
@@ -38,16 +37,18 @@ function classifyCandidate(tagName, rawInner) {
 /** @param {string} htmlText */
 export function extractEditableTextCandidates(htmlText) {
   const sanitized = String(htmlText || '').replace(EXCLUDED_BLOCKS_PATTERN, (match) => ' '.repeat(match.length));
+  // Regex is defined locally so lastIndex resets on each call and exceptions mid-loop cannot corrupt shared state.
+  const tagPattern = /<\s*(\/?)([a-z0-9:-]+)\b[^>]*>/gi;
   const stack = [];
   const candidates = [];
-  let match = TAG_PATTERN.exec(sanitized);
+  let match = tagPattern.exec(sanitized);
 
   while (match) {
     const isClosing = match[1] === '/';
     const tagName = match[2].toLowerCase();
 
     if (!isClosing) {
-      stack.push({ tagName, start: TAG_PATTERN.lastIndex, openEnd: match.index + match[0].length });
+      stack.push({ tagName, start: tagPattern.lastIndex, openEnd: match.index + match[0].length });
     } else {
       let openIndex = stack.length - 1;
       while (openIndex >= 0 && stack[openIndex].tagName !== tagName) openIndex -= 1;
@@ -74,7 +75,7 @@ export function extractEditableTextCandidates(htmlText) {
       }
     }
 
-    match = TAG_PATTERN.exec(sanitized);
+    match = tagPattern.exec(sanitized);
   }
 
   return candidates;
