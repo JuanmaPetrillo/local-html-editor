@@ -53,6 +53,11 @@ if (!html.includes('id="preview-compact-height"')) throw new Error('shell ui mis
 if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missing preview tall control');
 if (!html.includes('id="preview-reset-layout"')) throw new Error('shell ui missing preview reset control');
 
+
+const exportSectionIndex = html.indexOf('5) Export edited copy');
+const exportButtonIndex = html.indexOf('id="export-edited-html"');
+if (exportSectionIndex === -1 || exportButtonIndex === -1 || exportButtonIndex < exportSectionIndex) throw new Error('shell ui export button should appear in export section');
+
 const step2Index = html.indexOf('2) Review safe preview');
 const stepEditIndex = html.indexOf('3) Edit selected text');
 const stepExportIndex = html.indexOf('5) Export edited copy');

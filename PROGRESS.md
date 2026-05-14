@@ -561,6 +561,6 @@ Milestone: UX cleanup slice (post Phase 5A)
 Summary: Reorganized shell layout to emphasize non-technical primary flow (open, safe preview, selected text editing, nudge movement, export) and moved diagnostic/technical regions into a collapsed-by-default `Advanced details` container while preserving all existing IDs and runtime behavior.
 Files changed: apps/desktop/index.html, scripts/test-e2e.mjs, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending run in this task after UX layout/test updates.
+Result: Passed.
 Known limitations: No new editing capabilities added; no drag/resize/image replacement/ZIP extraction-listing-export/persistence/dependencies/network/telemetry/iframe internals access or iframe permission changes.
 Next recommended task: Continue with explicitly approved narrow UX follow-up only.

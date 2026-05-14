@@ -40,12 +40,10 @@
         <div class="toolbar">
           <label class="open-label" for="file-input">1) Open HTML/ZIP</label>
           <button type="button" disabled>Save</button>
-          <button id="export-edited-html" type="button" disabled>Export edited HTML copy</button>
-        </div>
+                  </div>
         <input id="file-input" class="visually-hidden" type="file" accept=".html,.htm,.zip" />
         <p id="file-status" aria-live="polite">No file selected.</p>
         <p id="file-details">Choose an .html, .htm, or .zip file. For this MVP, HTML/HTM can be previewed and text-edited in memory; ZIP is preflight only.</p>
-        <p id="quick-status" aria-live="polite">Status: ready to open a file.</p>
         <p id="file-warning"></p>
       </section>
       <section>
@@ -67,11 +65,11 @@
         <div id="visual-move-panel" aria-label="Nudge controls">
           <h3>4) Move selected object</h3>
           <p>Use nudge buttons for precise movement.</p>
-                    <button id="move-selected-left" type="button" disabled>← Nudge</button>
-                    <button id="move-selected-right" type="button" disabled>Nudge →</button>
-                    <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
-                    <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
-                  <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
+          <button id="move-selected-left" type="button" disabled>← Nudge</button>
+          <button id="move-selected-right" type="button" disabled>Nudge →</button>
+          <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
+          <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
+          <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
         </div>
       </section>
       <section>
@@ -87,6 +85,7 @@
       <section>
         <h2>5) Export edited copy</h2>
         <p>When ready, export a local edited copy. Your original file remains unchanged.</p>
+        <button id="export-edited-html" type="button" disabled>Export edited HTML copy</button>
         <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches). Export downloads a local edited copy.</pre>
       </section>
       <details id="advanced-details">
