@@ -43,7 +43,7 @@ export function createZipEntrySafetyManifest(entryNames) {
     seen.add(normalized.normalizedPath);
     const entry = { entryName: String(entryName || ''), normalizedPath: normalized.normalizedPath };
     safeEntries.push(entry);
-    if (/\.(html?|HTML?)$/.test(normalized.normalizedPath)) htmlEntries.push(entry);
+    if (/\.(html?)$/i.test(normalized.normalizedPath)) htmlEntries.push(entry);
   }
   const autoSelectedMainHtmlPath = htmlEntries.length === 1 ? htmlEntries[0].normalizedPath : '';
   return {

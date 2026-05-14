@@ -142,6 +142,31 @@ export function createPreviewLayoutState(heightMode, fitWidth) {
   };
 }
 
+
+export function createZipMainHtmlSelectionUiState(zipManifest) {
+  const htmlEntries = zipManifest && Array.isArray(zipManifest.htmlEntries) ? zipManifest.htmlEntries : [];
+  if (htmlEntries.length === 0) {
+    return {
+      disabled: true,
+      selectedPath: '',
+      statusText: 'ZIP main HTML selection: unavailable (entry listing not available in this build).'
+    };
+  }
+  if (zipManifest && zipManifest.selectionRequired) {
+    return {
+      disabled: false,
+      selectedPath: '',
+      statusText: 'ZIP main HTML selection: multiple entries detected; choose one entry.'
+    };
+  }
+  const selectedPath = zipManifest && zipManifest.autoSelectedMainHtmlPath ? zipManifest.autoSelectedMainHtmlPath : htmlEntries[0].normalizedPath;
+  return {
+    disabled: true,
+    selectedPath,
+    statusText: `ZIP main HTML selection: auto-selected ${selectedPath}.`
+  };
+}
+
 /** @param {any} visualObject */
 export function canCreateImageReplacementPatchForObject(visualObject) {
   return !!(
@@ -737,16 +762,16 @@ if (
           option.textContent = entry.normalizedPath;
           zipMainHtmlSelect.appendChild(option);
         }
-        zipMainHtmlSelect.disabled = zipManifest.selectionRequired;
-        if (zipManifest.autoSelectedMainHtmlPath) {
-          zipMainHtmlSelect.value = zipManifest.autoSelectedMainHtmlPath;
+        const zipSelectionUiState = createZipMainHtmlSelectionUiState(zipManifest);
+        zipMainHtmlSelect.disabled = zipSelectionUiState.disabled;
+        if (zipSelectionUiState.selectedPath) {
+          zipMainHtmlSelect.value = zipSelectionUiState.selectedPath;
         }
-        zipMainHtmlStatus.textContent = zipManifest.selectionRequired
-          ? 'ZIP main HTML selection: multiple entries detected; selection required once listing is available.'
-          : `ZIP main HTML selection: auto-selected ${zipManifest.autoSelectedMainHtmlPath}.`;
+        zipMainHtmlStatus.textContent = zipSelectionUiState.statusText;
       } else {
-        zipMainHtmlSelect.disabled = true;
-        zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable (entry listing not available in this build).';
+        const zipSelectionUiState = createZipMainHtmlSelectionUiState(zipManifest);
+        zipMainHtmlSelect.disabled = zipSelectionUiState.disabled;
+        zipMainHtmlStatus.textContent = zipSelectionUiState.statusText;
       }
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }

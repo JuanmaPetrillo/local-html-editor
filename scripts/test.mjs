@@ -5,7 +5,8 @@ import {
   detectExtension,
   detectSourceKind,
   renderShellState,
-  canCreateImageReplacementPatchForObject
+  canCreateImageReplacementPatchForObject,
+  createZipMainHtmlSelectionUiState
 } from '../apps/desktop/src/app-shell.mjs';
 import { createPreviewLayoutState } from '../apps/desktop/src/app-shell.mjs';
 import {
@@ -1361,3 +1362,25 @@ import { normalizeZipEntryPath, createZipEntrySafetyManifest } from '../apps/des
   const noHtml = createZipEntrySafetyManifest(['assets/a.png']);
   assert.equal(noHtml.hasHtml, false);
 }
+
+  const mixedCase = createZipEntrySafetyManifest(['index.Html', 'deck.HtM', 'asset.HTML', 'image.png']);
+  assert.equal(mixedCase.htmlEntries.length, 3);
+
+  const multiUi = createZipMainHtmlSelectionUiState({
+    htmlEntries: [{ normalizedPath: 'a.html' }, { normalizedPath: 'b.html' }],
+    selectionRequired: true,
+    autoSelectedMainHtmlPath: ''
+  });
+  assert.equal(multiUi.disabled, false);
+  assert.equal(multiUi.selectedPath, '');
+
+  const singleUi = createZipMainHtmlSelectionUiState({
+    htmlEntries: [{ normalizedPath: 'deck/index.html' }],
+    selectionRequired: false,
+    autoSelectedMainHtmlPath: 'deck/index.html'
+  });
+  assert.equal(singleUi.disabled, true);
+  assert.equal(singleUi.selectedPath, 'deck/index.html');
+
+  const noneUi = createZipMainHtmlSelectionUiState({ htmlEntries: [], selectionRequired: false, autoSelectedMainHtmlPath: '' });
+  assert.equal(noneUi.disabled, true);
