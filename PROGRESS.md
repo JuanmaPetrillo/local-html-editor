@@ -595,7 +595,7 @@ Branch/PR: current branch / pending PR
 Milestone: Phase 6A - local image replacement
 Summary: Added initial local image replacement patch model and importer-owned image asset conversion for safe raster MIME types only (png/jpeg/jpg/gif/webp/avif), including base64 data URL generation and combined text+layout+image patch application support for preview/export pipelines.
 Files changed: apps/desktop/src/image-replacement-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/exporter.mjs, apps/desktop/src/visual-layout-model.mjs, docs/ROADMAP.md, PROGRESS.md
-Validation run: npm test; npm run lint; npm run typecheck; npm run test:e2e; npm run test:security; npm run build
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
 Known limitations: ZIP extraction/listing/export, persistence/autosave, packaging/framework conversion, network calls, telemetry, and iframe internals access remain unchanged and not added.
 Next recommended task: Proceed to Phase 7 ZIP/assets scope only with explicit approval.

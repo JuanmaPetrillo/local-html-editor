@@ -772,6 +772,11 @@ if (
         imagePatchCollection = previousImagePatchCollection;
         updateExportUi();
         renderVisualObjectSelection(currentVisualInventory);
+        const warnings = patched && patched.applyState && Array.isArray(patched.applyState.warnings) ? patched.applyState.warnings : [];
+        if (warnings.includes('missing-src-attribute') || warnings.includes('empty-src-attribute')) {
+          imageReplacementStatus.textContent = 'Selected image does not have a safely replaceable source.';
+          return;
+        }
         imageReplacementStatus.textContent = 'Image replacement could not be applied safely.';
         return;
       }

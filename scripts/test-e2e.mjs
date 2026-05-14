@@ -37,6 +37,7 @@ if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) 
 if (!shellCode.includes("'Image replacement could not be applied safely.'")) throw new Error('shell logic missing image replacement failure status copy');
 if (!shellCode.includes("'Image replacement applied to preview.'")) throw new Error('shell logic missing image replacement success status copy');
 if (!shellCode.includes("'Choose a local image file.'")) throw new Error('shell logic missing image replacement eligible status copy');
+if (!shellCode.includes("'Selected image does not have a safely replaceable source.'")) throw new Error('shell logic missing image source-specific blocked status copy');
 
 if (!html.includes('id="visual-move-panel"')) throw new Error('shell ui missing visual move panel');
 if (!html.includes('id="move-selected-up"')) throw new Error('shell ui missing move up button');
