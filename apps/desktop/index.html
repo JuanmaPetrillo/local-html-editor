@@ -36,18 +36,15 @@
       <h1>Local HTML Editor</h1>
       <p>Local-only MVP: make quick text edits safely. Your original file stays unchanged unless you export a new copy.</p>
       <section>
+        <h2>1) Open HTML file</h2>
         <div class="toolbar">
           <label class="open-label" for="file-input">1) Open HTML/ZIP</label>
           <button type="button" disabled>Save</button>
-          <button id="export-edited-html" type="button" disabled>6) Export edited HTML copy</button>
-        </div>
+                  </div>
         <input id="file-input" class="visually-hidden" type="file" accept=".html,.htm,.zip" />
         <p id="file-status" aria-live="polite">No file selected.</p>
         <p id="file-details">Choose an .html, .htm, or .zip file. For this MVP, HTML/HTM can be previewed and text-edited in memory; ZIP is preflight only.</p>
         <p id="file-warning"></p>
-        <p id="file-scan">Scan summary: waiting for .html/.htm selection.</p>
-        <pre id="import-report" aria-live="polite"></pre>
-        <pre id="import-manifest" aria-live="polite"></pre>
       </section>
       <section>
         <h2>2) Review safe preview</h2>
@@ -65,45 +62,55 @@
           </div>
           <div id="visual-overlay-layer" aria-label="Visual overlay layer"></div>
         </div>
-        <pre id="visual-overlay-status" aria-live="polite">Overlay status: waiting for .html/.htm selection.</pre>
+      </section>
+      <section>
+        <h2>3) Edit selected text</h2>
+        <section id="selected-text-edit-panel">
+          <p id="selected-text-edit-status">Select a visual text object to edit.</p>
+        </section>
+        <label for="editable-draft-text">Draft text</label>
+        <textarea id="editable-draft-text" rows="4" disabled></textarea>
+        <button id="apply-patch-preview" type="button" disabled>Apply text edit to preview</button>
+        <button id="reset-working-preview" type="button">Reset preview to original (original file unchanged)</button>
+      </section>
+      <section>
+        <h2>4) Move selected object</h2>
         <div id="visual-move-panel" aria-label="Nudge controls">
+          <p>Use nudge buttons for precise movement.</p>
           <button id="move-selected-left" type="button" disabled>← Nudge</button>
           <button id="move-selected-right" type="button" disabled>Nudge →</button>
           <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
           <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
-        <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
+          <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
         </div>
       </section>
       <section>
-        <h2>Visual object discovery</h2>
-        <p>Best-effort editable objects detected in this HTML.</p>
+        <h2>5) Export edited copy</h2>
+        <p>When ready, export a local edited copy. Your original file remains unchanged.</p>
+        <button id="export-edited-html" type="button" disabled>Export edited HTML copy</button>
+        <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches). Export downloads a local edited copy.</pre>
+      </section>
+      <details id="advanced-details">
+        <summary>Advanced details</summary>
+        <p>These details are useful for troubleshooting and review.</p>
+        <p id="file-scan">Scan summary: waiting for .html/.htm selection.</p>
+        <pre id="import-report" aria-live="polite"></pre>
+        <pre id="import-manifest" aria-live="polite"></pre>
         <pre id="visual-object-inventory" aria-live="polite">Visual object discovery: waiting for .html/.htm selection.</pre>
         <label for="visual-object-select">Select discovered visual object</label>
         <select id="visual-object-select" disabled></select>
         <pre id="visual-object-selection-status" aria-live="polite">Visual object selection: unavailable.</pre>
         <pre id="visual-text-edit-bridge-status" aria-live="polite">Visual text edit bridge: unavailable.</pre>
-      </section>
-      <section>
-        <h2>Text edit workflow</h2>
-        <section id="selected-text-edit-panel">
-          <h3>Edit selected text</h3>
-          <p id="selected-text-edit-status">Select a visual text object to edit.</p>
-        </section>
-        <p>Follow the selected-text flow first. Advanced controls are available below.</p>
+        <pre id="visual-overlay-status" aria-live="polite">Overlay status: waiting for .html/.htm selection.</pre>
         <pre id="editable-inventory" aria-live="polite">3) Editable text candidates: waiting for .html/.htm selection.</pre>
-      <label for="editable-candidate-select">Advanced text candidate selector</label>
+        <label for="editable-candidate-select">Advanced text candidate selector</label>
         <select id="editable-candidate-select" disabled></select>
-        <label for="editable-draft-text">4) Type draft replacement text</label>
-        <textarea id="editable-draft-text" rows="4" disabled></textarea>
         <pre id="editable-draft-status" aria-live="polite">Draft edit: unavailable.</pre>
         <pre id="editable-patch-plan" aria-live="polite">Patch plan: unavailable.</pre>
-        <button id="apply-patch-preview" type="button" disabled>Apply text edit to preview</button>
-        <button id="reset-working-preview" type="button">Reset preview to original (original file unchanged)</button>
         <pre id="patch-apply-status" aria-live="polite">Patch apply status: unavailable.</pre>
         <pre id="patch-collection-status" aria-live="polite">Patch collection: none applied yet (in-memory only; original file unchanged).</pre>
         <pre id="working-preview-status" aria-live="polite">Working preview state: unavailable.</pre>
-        <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches). Export downloads a local edited copy.</pre>
-      </section>
+      </details>
       <section>
         <h2>Session Scope</h2>
         <p>This MVP keeps edits in memory for the current tab only. Recent projects and autosave are not available yet.</p>

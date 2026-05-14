@@ -12,6 +12,9 @@ if (!html.includes('id="file-details"')) throw new Error('shell ui missing selec
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
 if (!html.includes('id="import-report"')) throw new Error('shell ui missing import report region');
 if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing import manifest region');
+
+if (!html.includes('id="advanced-details"')) throw new Error('shell ui missing advanced details container');
+if (html.includes('<details id="advanced-details" open')) throw new Error('advanced details should be collapsed by default');
 if (!html.includes('id="visual-object-inventory"')) throw new Error('shell ui missing visual object inventory region');
 if (!html.includes('id="visual-object-select"')) throw new Error('shell ui missing visual object selector');
 if (!html.includes('id="visual-object-selection-status"')) throw new Error('shell ui missing visual object selection status region');
@@ -50,9 +53,16 @@ if (!html.includes('id="preview-compact-height"')) throw new Error('shell ui mis
 if (!html.includes('id="preview-tall-height"')) throw new Error('shell ui missing preview tall control');
 if (!html.includes('id="preview-reset-layout"')) throw new Error('shell ui missing preview reset control');
 
+
+const exportSectionIndex = html.indexOf('5) Export edited copy');
+const exportButtonIndex = html.indexOf('id="export-edited-html"');
+if (exportSectionIndex === -1 || exportButtonIndex === -1 || exportButtonIndex < exportSectionIndex) throw new Error('shell ui export button should appear in export section');
+
 const step2Index = html.indexOf('2) Review safe preview');
-const step3Index = html.indexOf('Advanced text candidate selector');
-if (step2Index === -1 || step3Index === -1 || step2Index > step3Index) throw new Error('shell ui step order mismatch: safe preview must be before text candidate workflow');
+const stepEditIndex = html.indexOf('3) Edit selected text');
+const stepMoveIndex = html.indexOf('4) Move selected object');
+const stepExportIndex = html.indexOf('5) Export edited copy');
+if (step2Index === -1 || stepEditIndex === -1 || stepMoveIndex === -1 || stepExportIndex === -1 || step2Index > stepEditIndex || stepEditIndex > stepMoveIndex || stepMoveIndex > stepExportIndex) throw new Error('shell ui step order mismatch: expected 2 -> 3 -> 4 -> 5 flow');
 
 if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing preview compact class');
 if (!html.includes('preview-frame--fit')) throw new Error('shell ui missing preview fit class');
