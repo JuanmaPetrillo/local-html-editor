@@ -48,7 +48,7 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
-import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides } from './visual-layout-model.mjs';
+import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag } from './visual-layout-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -244,6 +244,7 @@ if (
   let movePatchCollection = createVisualMovePatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
+  let currentDragSession = null;
   const updateExportUi = () => {
     const textPatchCount = patchCollection.orderedCandidateIds.length;
     const movePatchCount = movePatchCollection.orderedObjectIds.length;
@@ -282,7 +283,19 @@ if (
     if (nudgeUp != null) nudgeUp.disabled = true;
     if (nudgeDown != null) nudgeDown.disabled = true;
     const moveStatus = document.querySelector('#visual-move-status');
-    if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
+    if (moveStatus) moveStatus.textContent = 'Movement blocked: this object cannot be moved safely.';
+  };
+
+  const setMoveStatusText = (text) => {
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (moveStatus) moveStatus.textContent = text;
+  };
+
+  const handleDragCancel = () => {
+    if (!currentDragSession || !currentVisualInventory) return;
+    renderVisualOverlay(currentVisualInventory, currentDragSession.objectId);
+    currentDragSession = null;
+    setMoveStatusText('Drag canceled.');
   };
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
@@ -301,6 +314,66 @@ if (
         visualObjectSelect.value = item.objectId;
         renderVisualObjectSelection(currentVisualInventory);
       });
+      button.addEventListener('pointerdown', (event) => {
+        if (!currentVisualInventory) return;
+        visualObjectSelect.value = item.objectId;
+        const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
+        const selected = state.selectedObject;
+        const existingMovePatch = selected && selected.objectId ? movePatchCollection.movePatchesByObjectId[selected.objectId] : null;
+        const dragSession = createVisualDragSession(selected, event.clientX, event.clientY, existingMovePatch);
+        if (!dragSession || dragSession.applyStatus !== 'planned') {
+          setMoveStatusText('Movement blocked: this object cannot be moved safely.');
+          return;
+        }
+        currentDragSession = dragSession;
+        button.setPointerCapture(event.pointerId);
+        setMoveStatusText('Drag selected object');
+      });
+      button.addEventListener('pointermove', (event) => {
+        if (!currentDragSession || currentDragSession.objectId !== item.objectId) return;
+        currentDragSession = updateVisualDragSession(currentDragSession, event.clientX, event.clientY);
+        if (currentDragSession.applyStatus !== 'planned') return;
+        button.style.cssText = `left:${currentDragSession.currentGeometry.left}px;top:${currentDragSession.currentGeometry.top}px;width:${currentDragSession.currentGeometry.width}px;height:${currentDragSession.currentGeometry.height}px;`;
+      });
+      button.addEventListener('pointerup', async (event) => {
+        if (!currentDragSession || currentDragSession.objectId !== item.objectId || !currentVisualInventory) return;
+        const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
+        const patch = createVisualMovePatchFromDrag(state.selectedObject, currentDragSession);
+        currentDragSession = null;
+        if (!patch || patch.applyStatus !== 'planned') {
+          setMoveStatusText('Movement blocked: this object cannot be moved safely.');
+          renderVisualOverlay(currentVisualInventory, item.objectId);
+          return;
+        }
+        if (patch.deltaX === 0 && patch.deltaY === 0) {
+          renderVisualOverlay(currentVisualInventory, item.objectId);
+          setMoveStatusText('Drag selected object');
+          return;
+        }
+        const previousCollection = movePatchCollection;
+        movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
+        let commitSucceeded = true;
+        if (currentHtmlFile) {
+          const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+          if (patched && patched.previewResult && patched.previewResult.previewDocument) {
+            safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+            safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+          } else {
+            commitSucceeded = false;
+            movePatchCollection = previousCollection;
+            updateExportUi();
+            renderVisualOverlay(currentVisualInventory, item.objectId);
+            setMoveStatusText('Movement blocked: this object cannot be moved safely.');
+            visualObjectSelect.value = item.objectId;
+            return;
+          }
+        }
+        updateExportUi();
+        visualObjectSelect.value = item.objectId;
+        renderVisualObjectSelection(currentVisualInventory);
+        if (commitSucceeded) setMoveStatusText('Moved selected object.');
+      });
+      button.addEventListener('pointercancel', () => { handleDragCancel(); });
       visualOverlayLayer.appendChild(button);
     }
     visualOverlayStatus.textContent = formatOverlayStatusText(overlayState);
@@ -331,7 +404,7 @@ if (
     if (nudgeUp != null) nudgeUp.disabled = !nudgeEnabled;
     if (nudgeDown != null) nudgeDown.disabled = !nudgeEnabled;
     const moveStatus = document.querySelector('#visual-move-status');
-    if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'This object can be moved.' : 'This object cannot be moved safely.';
+    if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'Drag an overlay box or use nudge buttons.' : 'Movement blocked: this object cannot be moved safely.';
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -406,6 +479,9 @@ if (
     if (previewResult) {
       safePreviewFrame.srcdoc = previewResult.previewDocument;
       safePreviewStatus.textContent = formatPreviewStatusText(previewResult.previewStatus);
+    }
+    if (currentVisualInventory) {
+      renderVisualObjectSelection(currentVisualInventory);
     }
   });
 
@@ -562,13 +638,13 @@ if (
     const state = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
     const moveStatus = document.querySelector('#visual-move-status');
     if (!state.selectedObject) {
-      if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
+      if (moveStatus) moveStatus.textContent = 'Movement blocked: this object cannot be moved safely.';
       return;
     }
     const existing = movePatchCollection.movePatchesByObjectId[state.selectedObject.objectId];
     const patch = createVisualMovePatchPlan(state.selectedObject, dx, dy, existing);
     if (!patch || patch.applyStatus !== 'planned') {
-      if (moveStatus) moveStatus.textContent = 'Movement blocked: missing explicit inline geometry.';
+      if (moveStatus) moveStatus.textContent = 'Movement blocked: this object cannot be moved safely.';
       return;
     }
     movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
@@ -587,4 +663,8 @@ if (
   if (nudgeRight != null) nudgeRight.addEventListener('click', () => { void applyNudge(10, 0); });
   if (nudgeUp != null) nudgeUp.addEventListener('click', () => { void applyNudge(0, -10); });
   if (nudgeDown != null) nudgeDown.addEventListener('click', () => { void applyNudge(0, 10); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') handleDragCancel();
+  });
+
 }

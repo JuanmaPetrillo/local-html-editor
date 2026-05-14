@@ -564,3 +564,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No new editing capabilities added; no drag/resize/image replacement/ZIP extraction-listing-export/persistence/dependencies/network/telemetry/iframe internals access or iframe permission changes.
 Next recommended task: Continue with explicitly approved narrow UX follow-up only.
+
+
+### 2026-05-14 (phase 5b constrained trusted-shell drag movement)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 5B constrained trusted-shell drag movement
+Summary: Added constrained drag on trusted-shell overlay boxes for the same movable inline-style objects used by nudge controls. Drag now follows pointer in trusted shell, commits cumulative in-memory move patches on release, refreshes safe preview once per commit, preserves selection, and keeps reset/export/text+move pipelines intact. Added pure drag helpers in visual-layout-model and regression coverage for drag delta rounding, cumulative behavior, blocked cases, and combined patch safety.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-layout-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, docs/ROADMAP.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No resize handles/image replacement/in-place contenteditable editing/ZIP extraction-listing-export/persistence-autosave/dependency additions/network calls/telemetry/iframe internals access/postMessage/iframe permission changes/framework conversion.
+Next recommended task: Keep Phase 5 follow-up limited to resize only with explicit approval.

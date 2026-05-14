@@ -26,6 +26,50 @@ export function createVisualMovePatchPlan(visualObject, deltaX, deltaY, existing
   };
 }
 
+
+
+export function createVisualDragSession(visualObject, pointerStartX, pointerStartY, existingPatch = null) {
+  const movePatch = createVisualMovePatchPlan(visualObject, 0, 0, existingPatch);
+  if (!movePatch || movePatch.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: movePatch && movePatch.warnings ? movePatch.warnings : ['missing-explicit-inline-geometry'] };
+  if (![pointerStartX, pointerStartY].every(Number.isFinite)) return { applyStatus: 'blocked', warnings: ['invalid-pointer-start'] };
+  return {
+    applyStatus: 'planned',
+    warnings: [],
+    objectId: visualObject.objectId,
+    pointerStartX,
+    pointerStartY,
+    baseGeometry: movePatch.nextGeometry,
+    existingPatch: existingPatch || null,
+    deltaX: 0,
+    deltaY: 0,
+    currentGeometry: movePatch.nextGeometry
+  };
+}
+
+export function clampDragDelta(deltaX, deltaY) {
+  return { deltaX: Math.round(Number.isFinite(deltaX) ? deltaX : 0), deltaY: Math.round(Number.isFinite(deltaY) ? deltaY : 0) };
+}
+
+export function updateVisualDragSession(dragSession, pointerX, pointerY) {
+  if (!dragSession || dragSession.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: ['drag-session-unavailable'] };
+  const clamped = clampDragDelta(pointerX - dragSession.pointerStartX, pointerY - dragSession.pointerStartY);
+  return {
+    ...dragSession,
+    deltaX: clamped.deltaX,
+    deltaY: clamped.deltaY,
+    currentGeometry: {
+      left: dragSession.baseGeometry.left + clamped.deltaX,
+      top: dragSession.baseGeometry.top + clamped.deltaY,
+      width: dragSession.baseGeometry.width,
+      height: dragSession.baseGeometry.height
+    }
+  };
+}
+
+export function createVisualMovePatchFromDrag(visualObject, dragSession) {
+  if (!dragSession || dragSession.applyStatus !== 'planned') return { applyStatus: 'blocked', warnings: ['drag-session-unavailable'] };
+  return createVisualMovePatchPlan(visualObject, dragSession.deltaX, dragSession.deltaY, dragSession.existingPatch || null);
+}
 export function addOrUpdateVisualMovePatch(collection, movePatch) {
   const next = collection && Array.isArray(collection.orderedObjectIds) ? { movePatchesByObjectId: { ...collection.movePatchesByObjectId }, orderedObjectIds: [...collection.orderedObjectIds] } : createVisualMovePatchCollectionState();
   if (!movePatch || movePatch.applyStatus !== 'planned' || !movePatch.objectId) return { collection: next, changed: false };
