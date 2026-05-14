@@ -597,5 +597,5 @@ Summary: Added initial local image replacement patch model and importer-owned im
 Files changed: apps/desktop/src/image-replacement-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/exporter.mjs, apps/desktop/src/visual-layout-model.mjs, docs/ROADMAP.md, PROGRESS.md
 Validation run: npm test; npm run lint; npm run typecheck; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
-Known limitations: UI wiring for image replacement controls/status in app-shell is not yet included in this commit; ZIP extraction/listing/export, persistence/autosave, packaging/framework conversion, network calls, telemetry, and iframe internals access remain unchanged and not added.
-Next recommended task: Wire image replacement UI controls/state into trusted shell and add focused tests for eligibility/reset/security in next narrow slice.
+Known limitations: ZIP extraction/listing/export, persistence/autosave, packaging/framework conversion, network calls, telemetry, and iframe internals access remain unchanged and not added.
+Next recommended task: Proceed to Phase 7 ZIP/assets scope only with explicit approval.

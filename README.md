@@ -73,7 +73,7 @@ Active development is currently a **browser-first static prototype**.
 #### Current limitations
 
 - ZIP is preflight-only (no ZIP extraction/listing/export).
-- No image replacement.
+- Local image replacement for selected safe `<img>` objects (PNG/JPEG/JPG/GIF/WebP/AVIF) is supported.
 - No project persistence/autosave/reopen flow.
 - No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
 - No Tauri/React/Vite/TypeScript conversion in this implementation branch.

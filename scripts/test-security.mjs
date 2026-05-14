@@ -8,6 +8,7 @@ const editableModelCode = readFileSync('apps/desktop/src/editable-model.mjs', 'u
 const exporterCode = readFileSync('apps/desktop/src/exporter.mjs', 'utf8');
 const visualObjectModelCode = readFileSync('apps/desktop/src/visual-object-model.mjs', 'utf8');
 const visualLayoutModelCode = readFileSync('apps/desktop/src/visual-layout-model.mjs', 'utf8');
+const imageReplacementModelCode = readFileSync('apps/desktop/src/image-replacement-model.mjs', 'utf8');
 
 function assertForbidden(sourceText, tokens, category) {
   for (const token of tokens) {
@@ -41,6 +42,7 @@ assertForbidden(editableModelCode, ['DOMParser'], 'editable-model');
 assertForbidden(exporterCode, ['DOMParser', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'exporter');
 assertForbidden(visualObjectModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'visual-object-model');
 assertForbidden(visualLayoutModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'visual-layout-model');
+assertForbidden(imageReplacementModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'image-replacement-model');
 
 // network/telemetry forbidden APIs
 assertForbidden(html, ['<script src="http', 'https://'], 'runtime-remote-deps');

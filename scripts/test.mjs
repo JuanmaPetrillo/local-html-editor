@@ -29,7 +29,8 @@ import {
   createPatchedSafePreviewResult,
   createCollectionPatchedSafePreviewResult,
   createEditedHtmlExport,
-  createVisualObjectInventoryForHtmlFile
+  createVisualObjectInventoryForHtmlFile,
+  createReplacementImageAssetFromFile
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -1273,4 +1274,36 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   assert.equal(missingWidth.ok, false);
   const malformedHeight = updateInlineStylePx('<h1 style="left:10px;top:20px;width:100px;height:auto">Title</h1>', { left: 10, top: 20, width: 100, height: 30 });
   assert.equal(malformedHeight.ok, false);
+}
+
+import { createImageReplacementPatchCollectionState, createImageReplacementPatchPlan, addOrUpdateImageReplacementPatch, createImageReplacementApplyOperations } from '../apps/desktop/src/image-replacement-model.mjs';
+
+
+// Phase 6A image replacement regression coverage
+{
+  const col = createImageReplacementPatchCollectionState();
+  assert.equal(Array.isArray(col.orderedObjectIds), true);
+  const html = '<img alt="x" class="a" style="left:1px;top:2px;width:3px;height:4px" width="3" height="4" data-k="v" src="old.png">';
+  const visualImage = { objectId: 'object-100', type: 'image', tagName: 'img', sourceStart: 0, sourceEnd: html.length, locked: false };
+  const asset = { status: 'ready', mimeType: 'image/png', size: 10, dataUrl: 'data:image/png;base64,AAAA' };
+  const patch = createImageReplacementPatchPlan(visualImage, asset);
+  assert.equal(patch.applyStatus, 'planned');
+  assert.equal(createImageReplacementPatchPlan({ ...visualImage, type: 'text' }, asset).applyStatus, 'blocked');
+  assert.equal(createImageReplacementPatchPlan({ ...visualImage, locked: true }, asset).applyStatus, 'blocked');
+  assert.equal(createImageReplacementPatchPlan({ ...visualImage, sourceStart: null }, asset).applyStatus, 'blocked');
+  assert.equal(createImageReplacementPatchPlan(visualImage, { ...asset, dataUrl: 'data:image/jpeg;base64,AAAA' }).applyStatus, 'blocked');
+
+  const added = addOrUpdateImageReplacementPatch(col, patch).collection;
+  const ops = createImageReplacementApplyOperations(html, added);
+  assert.equal(ops.operations.length, 1);
+
+  const fakeFile = (name, type, size=10) => ({ name, type, size, arrayBuffer: async ()=>new Uint8Array([1,2,3]).buffer });
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.png','image/png'))).status, 'ready');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.jpg','image/jpeg'))).status, 'ready');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.webp','image/webp'))).status, 'ready');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.avif','image/avif'))).status, 'ready');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.gif','image/gif'))).status, 'ready');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.svg','image/svg+xml'))).status, 'blocked');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.txt','text/plain'))).status, 'blocked');
+  assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.png','image/png',11*1024*1024))).status, 'blocked');
 }

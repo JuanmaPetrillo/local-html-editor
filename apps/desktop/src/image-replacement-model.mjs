@@ -8,6 +8,10 @@ export function createImageReplacementPatchPlan(visualObject, imageAsset) {
   if (!visualObject || visualObject.type !== 'image' || visualObject.tagName !== 'img' || visualObject.locked) return { applyStatus: 'blocked', warnings: ['not-safely-replaceable'] };
   if (!Number.isInteger(visualObject.sourceStart) || !Number.isInteger(visualObject.sourceEnd) || visualObject.sourceEnd <= visualObject.sourceStart) return { applyStatus: 'blocked', warnings: ['invalid-source-span'] };
   if (!imageAsset || imageAsset.status !== 'ready' || !SAFE_IMAGE_MIME_TYPES.has(String(imageAsset.mimeType || '').toLowerCase())) return { applyStatus: 'blocked', warnings: ['invalid-image-asset'] };
+  const prefix = `data:${String(imageAsset.mimeType || '').toLowerCase()};base64,`;
+  const dataUrl = String(imageAsset.dataUrl || '');
+  if (!dataUrl.startsWith(prefix)) return { applyStatus: 'blocked', warnings: ['invalid-data-url-prefix'] };
+  if (/^data:image\/svg\+xml/i.test(dataUrl) || /^data:text\/html/i.test(dataUrl) || /javascript:/i.test(dataUrl)) return { applyStatus: 'blocked', warnings: ['blocked-data-url-type'] };
   return {
     patchId: `image-patch-${visualObject.objectId}`,
     objectId: visualObject.objectId,
@@ -16,7 +20,7 @@ export function createImageReplacementPatchPlan(visualObject, imageAsset) {
     operation: 'replace-image-src',
     replacementMimeType: imageAsset.mimeType,
     replacementSize: imageAsset.size,
-    replacementDataUrl: imageAsset.dataUrl,
+    replacementDataUrl: dataUrl,
     applyStatus: 'planned',
     warnings: []
   };
