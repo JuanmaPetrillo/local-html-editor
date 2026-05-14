@@ -658,3 +658,14 @@ Result: Passed for existing gate; browser-driven E2E remains blocked pending dep
 Known limitations: No new browser-runtime automation was added because dependency installation is blocked; packaging, ZIP/assets implementation, autosave/localStorage/IndexedDB, telemetry/network calls, iframe internals access, and iframe permission changes were not added.
 Next recommended task: Approve `@playwright/test` (or provide an approved internal mirror/source) and then add one narrow browser smoke test using an available system browser channel.
 
+
+### 2026-05-14 (phase 8b manual pilot packaging docs/scripts)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 8B - manual pilot packaging guide (browser-first)
+Summary: Added a docs/scripts-only manual pilot distribution flow for the browser-first app: build `dist/`, package into a versioned portable folder, and run a practical pilot checklist covering open/edit/move/resize/image replace/save/reopen/export/reset and ZIP preflight-only verification. Added `scripts/package-pilot.mjs` and `npm run package:pilot` to copy/validate `dist/` without adding dependencies or runtime behavior changes.
+Files changed: README.md, docs/MANUAL_PILOT_GUIDE.md, docs/ROADMAP.md, scripts/package-pilot.mjs, package.json, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run package:pilot
+Result: Passed.
+Known limitations: No installer/executable packaging; ZIP remains preflight-only; no autosave/localStorage/IndexedDB; no framework conversion; no runtime behavior changes in app shell.
+Next recommended task: If pilot feedback is positive, define a narrow Phase 8C for repeatable CI artifact publication of portable folders (still no installer), then revisit executable packaging in a separate approved milestone.
