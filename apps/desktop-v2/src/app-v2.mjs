@@ -72,7 +72,7 @@ function parseSlideObjects(slideBody, indexStart, styleRules = new Map()) {
     const g = resolveGeometry(style, className, styleRules, { x: 20, y: 20 + i * 18, w: 300, h: 40 });
 
     if (bg.kind === 'safe' && !textValue) { objects.push({ id: `o${i++}`, type: 'image', src: bg.value, ...g, alt: '', className, dataAttrs: getDataAttrs(tag), lockedReason: '' }); continue; }
-    if (bg.kind === 'blocked' && !textValue) { objects.push({ id: `o${i++}`, type: 'locked', label: 'Blocked remote background image', ...g, lockedReason: 'blocked-remote-background-image' }); continue; }
+    if (bg.kind === 'blocked' && !textValue) { objects.push({ id: `o${i++}`, type: 'locked', label: 'Blocked remote background image', ...g, className, lockedReason: 'blocked-remote-background-image' }); continue; }
 
     if (ALLOWED_TEXT_TAGS.has(tagName)) {
       if (tagName === 'div' && nestedImg && !textValue) continue;
@@ -108,7 +108,7 @@ export function normalizeObject(input, index) {
     if (!checked.safe) return { id: String(input.id || `o${index}`), type: 'locked', label: 'Blocked remote image', ...g, lockedReason: 'blocked-remote-image' };
     return { id: String(input.id || `o${index}`), type: 'image', src: checked.normalizedSrc, ...g, alt: String(input.alt || ''), className: String(input.className || ''), dataAttrs: normalizeDataAttrs(input.dataAttrs), lockedReason: '' };
   }
-  return { id: String(input?.id || `o${index}`), type: 'locked', label: String(input?.label || 'Locked object'), ...g, lockedReason: String(input?.lockedReason || 'unsupported-object') };
+  return { id: String(input?.id || `o${index}`), type: 'locked', label: String(input?.label || 'Locked object'), ...g, className: String(input?.className || ''), lockedReason: String(input?.lockedReason || 'unsupported-object') };
 }
 export function normalizeSlide(input, index) { const objects = Array.isArray(input?.objects) ? input.objects.map((o, i) => normalizeObject(o, i + 1)) : []; return { id: String(input?.id || `s${index + 1}`), name: String(input?.name || `Slide ${index + 1}`), width: Math.max(100, safeNum(input?.width, 960)), height: Math.max(100, safeNum(input?.height, 540)), objects }; }
 export function normalizeModelForUse(inputModel) { const slides = Array.isArray(inputModel?.slides) ? inputModel.slides.map((s, i) => normalizeSlide(s, i)) : [normalizeSlide({}, 0)]; const selectedSlideId = slides.some((s) => s.id === inputModel?.selectedSlideId) ? inputModel.selectedSlideId : slides[0].id; const selectedObjectId = slides.find((s) => s.id === selectedSlideId)?.objects.some((o) => o.id === inputModel?.selectedObjectId) ? inputModel.selectedObjectId : null; const maxId = slides.flatMap((s) => s.objects).reduce((m, o) => Math.max(m, Number(String(o.id).replace(/\D/g, '')) || 0), 0); return { version: 2, slides, selectedSlideId, selectedObjectId, nextId: Math.max(maxId + 1, safeNum(inputModel?.nextId, maxId + 1)) }; }
