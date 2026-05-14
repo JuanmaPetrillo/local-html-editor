@@ -707,3 +707,13 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Import remains regex/style-heuristic based (not full DOM/CSS layout engine); geometry can still be approximate for complex cascade/transform layouts.
 Next recommended task: Expand fixture corpus with additional real deck patterns (SVG-heavy and transform-heavy slides) and tighten parser guardrails incrementally.
+### 2026-05-14 (v2 parser refactor: deterministic slide scanner + real fixture hardening)
+Date: 2026-05-14
+Branch/PR: current branch / PR #53
+Milestone: Phase 8B V2 real-file compatibility
+Summary: Replaced fragile slide-container regex extraction with deterministic tag-token scanning for section/div/article slide containers and balanced same-tag close matching. Reworked V2 object extraction to preserve visible nested text (including button/span text), merged multi-class geometry rules with inline override, safe data background image import, and explicit locked placeholders for unsafe remote background images. Strengthened real-fixture regression coverage for nested div/section slide bodies, wrapper/button text visibility, geometry inheritance, remote URL blocking, and empty-text guards.
+Files changed: apps/desktop-v2/src/app-v2.mjs, tests/fixtures/user-real-copilot-presentation.html, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: Parser remains deterministic string/token heuristic (not full browser CSS cascade/layout engine); transform-heavy or script-rendered layouts can still be approximate/locked.
+Next recommended task: Add another minimized fixture for SVG-heavy deck structure and keep parser changes narrow per pattern.
