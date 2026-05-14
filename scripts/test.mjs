@@ -5,7 +5,8 @@ import {
   detectExtension,
   detectSourceKind,
   renderShellState,
-  canCreateImageReplacementPatchForObject
+  canCreateImageReplacementPatchForObject,
+  createZipMainHtmlSelectionUiState
 } from '../apps/desktop/src/app-shell.mjs';
 import { createPreviewLayoutState } from '../apps/desktop/src/app-shell.mjs';
 import {
@@ -264,9 +265,10 @@ const validZipReport = createImportReportFromStatus(validZipStatus);
 const validZipManifest = createImportManifestFromStatus(validZipStatus, validZipReport);
 assert.equal(validZipStatus.ok, true);
 assert.equal(validZipStatus.sourceKind, 'zip');
-assert.equal(validZipStatus.severity, 'info');
+assert.equal(validZipStatus.severity, 'warning');
 assert.equal(validZipStatus.checks.signatureStatus, 'valid-pk0304');
-assert.equal(validZipReport.overallSeverity, 'info');
+assert.equal(validZipReport.overallSeverity, 'warning');
+assert.equal(validZipStatus.warningLabels.includes('zip-entry-listing-unavailable'), true);
 assert.equal(validZipManifest.sourceKind, 'zip');
 assert.equal(validZipManifest.zipPreflightSummary.signatureStatus, 'valid-pk0304');
 assert.equal(validZipManifest.capabilities.includes('zip-preflight'), true);
@@ -1278,6 +1280,7 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
 }
 
 import { createImageReplacementPatchCollectionState, createImageReplacementPatchPlan, addOrUpdateImageReplacementPatch, createImageReplacementApplyOperations } from '../apps/desktop/src/image-replacement-model.mjs';
+import { normalizeZipEntryPath, createZipEntrySafetyManifest } from '../apps/desktop/src/zip-manifest-model.mjs';
 
 
 // Phase 6A image replacement regression coverage
@@ -1330,3 +1333,58 @@ import { createImageReplacementPatchCollectionState, createImageReplacementPatch
   assert.equal(canCreateImageReplacementPatchForObject({ type: 'image', tagName: 'img', locked: true, sourceStart: 1, sourceEnd: 10 }), false);
   assert.equal(canCreateImageReplacementPatchForObject({ type: 'image', tagName: 'img', locked: false, sourceStart: 5, sourceEnd: 5 }), false);
 }
+
+
+// Phase 7A zip path safety model
+{
+  assert.equal(normalizeZipEntryPath('slides/main.html').ok, true);
+  assert.equal(normalizeZipEntryPath('slides\\main.html').normalizedPath, 'slides/main.html');
+  assert.equal(normalizeZipEntryPath('../evil.html').ok, false);
+  assert.equal(normalizeZipEntryPath('/abs.html').ok, false);
+  assert.equal(normalizeZipEntryPath('\\\\abs.html').ok, false);
+  assert.equal(normalizeZipEntryPath('\\\\abs.html').reason, 'absolute-path');
+  assert.equal(normalizeZipEntryPath('\\\\folder\\\\file.html').ok, false);
+  assert.equal(normalizeZipEntryPath('C:\\evil.html').ok, false);
+  assert.equal(normalizeZipEntryPath('folder/../../evil.html').ok, false);
+  assert.equal(normalizeZipEntryPath('folder\\..\\evil.html').ok, false);
+  assert.equal(normalizeZipEntryPath('bad\u0000name.html').ok, false);
+
+  const manifest = createZipEntrySafetyManifest([
+    'slides/main.html',
+    'slides/./main.html',
+    'deck/intro.html',
+    'assets/logo.png'
+  ]);
+  assert.equal(manifest.safeEntries.length, 3);
+  assert.equal(manifest.blockedEntries.some((x) => x.reason === 'duplicate-normalized-path'), true);
+  assert.equal(manifest.selectionRequired, true);
+
+  const singleHtml = createZipEntrySafetyManifest(['deck/index.html', 'assets/a.png']);
+  assert.equal(singleHtml.autoSelectedMainHtmlPath, 'deck/index.html');
+  assert.equal(singleHtml.selectionRequired, false);
+
+  const noHtml = createZipEntrySafetyManifest(['assets/a.png']);
+  assert.equal(noHtml.hasHtml, false);
+}
+
+  const mixedCase = createZipEntrySafetyManifest(['index.Html', 'deck.HtM', 'asset.HTML', 'image.png']);
+  assert.equal(mixedCase.htmlEntries.length, 3);
+
+  const multiUi = createZipMainHtmlSelectionUiState({
+    htmlEntries: [{ normalizedPath: 'a.html' }, { normalizedPath: 'b.html' }],
+    selectionRequired: true,
+    autoSelectedMainHtmlPath: ''
+  });
+  assert.equal(multiUi.disabled, false);
+  assert.equal(multiUi.selectedPath, '');
+
+  const singleUi = createZipMainHtmlSelectionUiState({
+    htmlEntries: [{ normalizedPath: 'deck/index.html' }],
+    selectionRequired: false,
+    autoSelectedMainHtmlPath: 'deck/index.html'
+  });
+  assert.equal(singleUi.disabled, true);
+  assert.equal(singleUi.selectedPath, 'deck/index.html');
+
+  const noneUi = createZipMainHtmlSelectionUiState({ htmlEntries: [], selectionRequired: false, autoSelectedMainHtmlPath: '' });
+  assert.equal(noneUi.disabled, true);

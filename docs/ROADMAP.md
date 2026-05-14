@@ -42,6 +42,9 @@
 - SVG replacement and non-image replacement remain blocked.
 
 ### Phase 7: ZIP/assets import-export
+
+- Phase 7A started: ZIP path-safety model + main-HTML selection UI scaffold.
+- ZIP entry extraction/listing preview remains blocked pending approved ZIP parsing dependency.
 ### Phase 8: Packaging/non-admin distribution
 ### Phase 9: Pilot hardening
 

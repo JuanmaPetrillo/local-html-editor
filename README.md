@@ -73,7 +73,7 @@ Active development is currently a **browser-first static prototype**.
 
 #### Current limitations
 
-- ZIP is preflight-only (no ZIP extraction/listing/export).
+- ZIP remains preflight-only for extraction/preview in this build; Phase 7A adds ZIP path-safety model and main-HTML selection UI scaffolding, but entry listing/extraction still requires approved ZIP parsing support.
 - No project persistence/autosave/reopen flow.
 - No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
 - No Tauri/React/Vite/TypeScript conversion in this implementation branch.

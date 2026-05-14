@@ -142,6 +142,31 @@ export function createPreviewLayoutState(heightMode, fitWidth) {
   };
 }
 
+
+export function createZipMainHtmlSelectionUiState(zipManifest) {
+  const htmlEntries = zipManifest && Array.isArray(zipManifest.htmlEntries) ? zipManifest.htmlEntries : [];
+  if (htmlEntries.length === 0) {
+    return {
+      disabled: true,
+      selectedPath: '',
+      statusText: 'ZIP main HTML selection: unavailable (entry listing not available in this build).'
+    };
+  }
+  if (zipManifest && zipManifest.selectionRequired) {
+    return {
+      disabled: false,
+      selectedPath: '',
+      statusText: 'ZIP main HTML selection: multiple entries detected; choose one entry.'
+    };
+  }
+  const selectedPath = zipManifest && zipManifest.autoSelectedMainHtmlPath ? zipManifest.autoSelectedMainHtmlPath : htmlEntries[0].normalizedPath;
+  return {
+    disabled: true,
+    selectedPath,
+    statusText: `ZIP main HTML selection: auto-selected ${selectedPath}.`
+  };
+}
+
 /** @param {any} visualObject */
 export function canCreateImageReplacementPatchForObject(visualObject) {
   return !!(
@@ -163,6 +188,8 @@ const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
+const zipMainHtmlSelect = hasDom ? document.querySelector('#zip-main-html-select') : null;
+const zipMainHtmlStatus = hasDom ? document.querySelector('#zip-main-html-status') : null;
 const editableInventory = hasDom ? document.querySelector('#editable-inventory') : null;
 const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
 const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
@@ -205,6 +232,8 @@ if (
   fileScan != null &&
   importReport != null &&
   importManifest != null &&
+  zipMainHtmlSelect instanceof HTMLSelectElement &&
+  zipMainHtmlStatus != null &&
   editableInventory != null &&
   visualObjectInventory != null &&
   visualObjectSelect instanceof HTMLSelectElement &&
@@ -277,6 +306,12 @@ if (
       : `Export status: ready. ${totalPatchCount} patch(es) in memory.`;
   };
 
+  const resetZipMainHtmlSelectionUi = () => {
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
+  };
+
   const resetDraftUi = () => {
     editableCandidateSelect.replaceChildren();
     editableCandidateSelect.disabled = true;
@@ -290,6 +325,7 @@ if (
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
     replacementImageInput.disabled = true;
+    resetZipMainHtmlSelectionUi();
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     updateExportUi();
     draftState = null;
@@ -535,6 +571,7 @@ if (
     applyPatchPreview.disabled = !currentPatchPlan || currentPatchPlan.applyStatus !== 'planned';
   };
 
+  resetZipMainHtmlSelectionUi();
   resetDraftUi();
   resetVisualObjectSelectionUi();
   if (nudgeLeft != null) nudgeLeft.disabled = true;
@@ -596,6 +633,7 @@ if (
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
     replacementImageInput.disabled = true;
+    resetZipMainHtmlSelectionUi();
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
     const previewResult = await createSafeHtmlPreviewResult(currentHtmlFile);
@@ -637,12 +675,14 @@ if (
     patchCollection = createPatchCollectionState();
     movePatchCollection = createVisualMovePatchCollectionState();
     imagePatchCollection = createImageReplacementPatchCollectionState();
+    resetZipMainHtmlSelectionUi();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
     if (selected && project && project.sourceKind === 'html') {
+      resetZipMainHtmlSelectionUi();
       const scanResult = await importHtmlFileScan(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentHtmlFile = selected;
@@ -713,10 +753,31 @@ if (
       visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
       resetVisualObjectSelectionUi();
       editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
+      const zipManifest = status && status.checks ? status.checks.zipManifest : null;
+      zipMainHtmlSelect.replaceChildren();
+      if (zipManifest && Array.isArray(zipManifest.htmlEntries) && zipManifest.htmlEntries.length > 0) {
+        for (const entry of zipManifest.htmlEntries) {
+          const option = document.createElement('option');
+          option.value = entry.normalizedPath;
+          option.textContent = entry.normalizedPath;
+          zipMainHtmlSelect.appendChild(option);
+        }
+        const zipSelectionUiState = createZipMainHtmlSelectionUiState(zipManifest);
+        zipMainHtmlSelect.disabled = zipSelectionUiState.disabled;
+        if (zipSelectionUiState.selectedPath) {
+          zipMainHtmlSelect.value = zipSelectionUiState.selectedPath;
+        }
+        zipMainHtmlStatus.textContent = zipSelectionUiState.statusText;
+      } else {
+        const zipSelectionUiState = createZipMainHtmlSelectionUiState(zipManifest);
+        zipMainHtmlSelect.disabled = zipSelectionUiState.disabled;
+        zipMainHtmlStatus.textContent = zipSelectionUiState.statusText;
+      }
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
 
     if (selected && project && project.sourceKind === 'unknown') {
+      resetZipMainHtmlSelectionUi();
       currentExportSafetySummary = null;
       const unsupportedStatus = {
         sourceKind: 'unknown',

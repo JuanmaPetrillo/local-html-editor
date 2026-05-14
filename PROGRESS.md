@@ -599,3 +599,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: ZIP extraction/listing/export, persistence/autosave, packaging/framework conversion, network calls, telemetry, and iframe internals access remain unchanged and not added.
 Next recommended task: Proceed to Phase 7 ZIP/assets scope only with explicit approval.
+
+
+### 2026-05-14 (phase 7a partial: zip path safety model + main html selector scaffold)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 7A - ZIP safe intake scaffold
+Summary: Added pure ZIP path normalization/safety model with unsafe-path blocking rules and duplicate-normalized-path detection, and added trusted-shell ZIP main-HTML selector/status UI scaffold. ZIP preflight now exposes empty ZIP manifest structure and explicit listing-unavailable warning in this build.
+Files changed: apps/desktop/src/zip-manifest-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/build.mjs, README.md, docs/ROADMAP.md, docs/IMPORT_EXPORT_SPEC.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed
+Known limitations: ZIP entry extraction/listing and ZIP HTML preview are still unavailable without approved ZIP parsing dependency; no ZIP export added.
+Next recommended task: Request dependency approval for JSZip to complete entry listing/extraction and selected ZIP-main HTML preview flow.
