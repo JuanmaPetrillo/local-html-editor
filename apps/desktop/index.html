@@ -102,6 +102,10 @@
       </section>
       <section>
         <h2>5) Export edited copy</h2>
+        <p>Project files may contain embedded replacement images and sensitive edit data.</p>
+        <button id="save-project-file" type="button" disabled>Save project</button>
+        <input id="open-project-file" type="file" accept=".lheproj.json,application/json" />
+        <pre id="project-persistence-status" aria-live="polite">Project persistence: ready. Project files may contain embedded replacement images and sensitive edit data.</pre>
         <p>When ready, export a local edited copy. Your original file remains unchanged.</p>
         <button id="export-edited-html" type="button" disabled>Export edited HTML copy</button>
         <pre id="export-status" aria-live="polite">Export status: blocked (no in-memory patches). Export downloads a local edited copy.</pre>

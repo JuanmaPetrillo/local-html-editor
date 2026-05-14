@@ -37,6 +37,7 @@ const exporterCode = readFileSync('apps/desktop/src/exporter.mjs', 'utf8');
 const visualObjectModelCode = readFileSync('apps/desktop/src/visual-object-model.mjs', 'utf8');
 const visualLayoutModelCode = readFileSync('apps/desktop/src/visual-layout-model.mjs', 'utf8');
 const imageReplacementModelCode = readFileSync('apps/desktop/src/image-replacement-model.mjs', 'utf8');
+const projectPersistenceModelCode = readFileSync('apps/desktop/src/project-persistence-model.mjs', 'utf8');
 
 function assertForbidden(sourceText, tokens, category) {
   for (const token of tokens) {
@@ -121,6 +122,8 @@ assertForbidden(exporterCode, ['DOMParser', 'fetch(', 'XMLHttpRequest', 'WebSock
 assertForbidden(visualObjectModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'visual-object-model');
 assertForbidden(visualLayoutModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'visual-layout-model');
 assertForbidden(imageReplacementModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'image-replacement-model');
+assertForbidden(projectPersistenceModelCode, ['DOMParser', '.text()', '.arrayBuffer()', 'fetch(', 'XMLHttpRequest', 'WebSocket'], 'project-persistence-model');
+assertRequired(importerCode, ['createProjectPayloadFromFile'], 'importer-project-read-owner');
 
 // network/telemetry forbidden APIs
 assertForbidden(html, ['<script src="http', 'https://'], 'runtime-remote-deps');

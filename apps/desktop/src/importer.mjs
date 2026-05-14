@@ -279,6 +279,11 @@ export async function createEditedHtmlExport(file, patchCollection, visualMoveCo
   return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, visualMoveCollection, safetySummary, imagePatchCollection);
 }
 
+export async function createProjectPayloadFromFile(file) {
+  const text = await file.text();
+  return text;
+}
+
 const SAFE_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/avif']);
 const EXT_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif' };
 export async function createReplacementImageAssetFromFile(file) {
