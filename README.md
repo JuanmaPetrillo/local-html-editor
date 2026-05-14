@@ -73,7 +73,7 @@ Active development is currently a **browser-first static prototype**.
 
 - ZIP is preflight-only (no ZIP extraction/listing/export).
 - No image replacement.
-- Button-based nudge movement only; no free drag or resize handles yet (see ROADMAP.md).
+- Constrained drag and resize for supported inline-style objects in the trusted-shell overlay.
 - No project persistence/autosave/reopen flow.
 - No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
 - No Tauri/React/Vite/TypeScript conversion in this implementation branch.

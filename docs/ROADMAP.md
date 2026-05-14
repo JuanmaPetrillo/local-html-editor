@@ -25,13 +25,15 @@
 - Free drag movement remains pending.
 - Resize remains pending.
 
-## Current focus
-
 ### Phase 5B: constrained drag movement and UX cleanup ✓
 
-- Constrained trusted-shell overlay drag movement is complete for safely movable objects while preserving current trust boundary and script-off preview model.
-- Keep advanced controls understandable for non-technical users (including possible panel cleanup/collapse follow-up).
-- Resize remains out of scope for this slice.
+### Phase 5C: constrained resize handles ✓
+
+- Trusted-shell resize handles are complete for selected overlay-ready inline-style objects (bottom-right, right, bottom).
+- Resize commits through the existing controlled layout patch/export pipeline.
+- Image replacement remains pending.
+- ZIP/assets import-export remains pending.
+- Persistence/autosave remains pending.
 
 ## Future phases
 

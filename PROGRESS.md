@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 5A complete (trusted-shell nudge movement clean rebuild on PR #35).
+Current milestone: Phase 5C complete (constrained trusted-shell resize handles).
 
 ## Latest summary
 
@@ -14,7 +14,7 @@ Implementation is through Phase 5A. All earlier milestones (0 through PR 3/P2 ha
 
 Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, selected-text edit panel, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export, and trusted-shell button-based nudge movement for selected overlay-ready inline-style objects with cumulative move patch state, safe preview refresh, overlay geometry projection, and movement-aware export output.
 
-Phase 5A trusted-shell nudge movement is implemented. Free drag and resize are not implemented yet.
+Phase 5A trusted-shell nudge movement, Phase 5B constrained drag movement, and Phase 5C constrained resize handles are implemented.
 
 ZIP remains preflight-only. No image replacement, free drag/resize visual editing, persistence/autosave, or Tauri/React/Vite/TypeScript conversion is implemented in this branch.
 
@@ -576,3 +576,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No resize handles/image replacement/in-place contenteditable editing/ZIP extraction-listing-export/persistence-autosave/dependency additions/network calls/telemetry/iframe internals access/postMessage/iframe permission changes/framework conversion.
 Next recommended task: Keep Phase 5 follow-up limited to resize only with explicit approval.
+
+### 2026-05-14 (phase 5c constrained trusted-shell resize handles)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 5C constrained trusted-shell resize handles
+Summary: Added constrained trusted-shell resize handles for selected overlay-ready inline-style objects (bottom-right, right, bottom). Resize updates overlay geometry during pointer drag, clamps width/height to a minimum 20px, commits once on pointer release into the existing visual layout patch pipeline, refreshes safe preview once per commit, and preserves drag, nudge, text patch, reset, and export workflows.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-layout-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, docs/ROADMAP.md, README.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No image replacement, in-place contenteditable editing, ZIP extraction/listing/export, persistence/autosave, dependency additions, network calls, telemetry, iframe internals access/postMessage, iframe permission changes, or framework conversion.
+Next recommended task: Keep next slice limited to explicitly approved image replacement scope.

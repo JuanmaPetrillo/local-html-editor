@@ -48,7 +48,7 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
-import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag } from './visual-layout-model.mjs';
+import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize } from './visual-layout-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -245,6 +245,7 @@ if (
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   let currentDragSession = null;
+  let currentResizeSession = null;
   const updateExportUi = () => {
     const textPatchCount = patchCollection.orderedCandidateIds.length;
     const movePatchCount = movePatchCollection.orderedObjectIds.length;
@@ -290,12 +291,22 @@ if (
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = text;
   };
+  const setResizeStatusText = (text) => {
+    const resizeStatus = document.querySelector('#visual-resize-status');
+    if (resizeStatus) resizeStatus.textContent = text;
+  };
 
   const handleDragCancel = () => {
     if (!currentDragSession || !currentVisualInventory) return;
     renderVisualOverlay(currentVisualInventory, currentDragSession.objectId);
     currentDragSession = null;
     setMoveStatusText('Drag canceled.');
+  };
+  const handleResizeCancel = () => {
+    if (!currentResizeSession || !currentVisualInventory) return;
+    renderVisualOverlay(currentVisualInventory, currentResizeSession.objectId);
+    currentResizeSession = null;
+    setResizeStatusText('Resize blocked: this object cannot be resized safely.');
   };
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
@@ -315,6 +326,7 @@ if (
         renderVisualObjectSelection(currentVisualInventory);
       });
       button.addEventListener('pointerdown', (event) => {
+        if (event.target && event.target instanceof HTMLElement && event.target.classList.contains('visual-resize-handle')) return;
         if (!currentVisualInventory) return;
         visualObjectSelect.value = item.objectId;
         const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
@@ -374,6 +386,64 @@ if (
         if (commitSucceeded) setMoveStatusText('Moved selected object.');
       });
       button.addEventListener('pointercancel', () => { handleDragCancel(); });
+      if (item.objectId === overlayState.selectedObjectId) {
+        for (const handle of ['bottom-right', 'right', 'bottom']) {
+          const handleButton = document.createElement('button');
+          handleButton.type = 'button';
+          handleButton.className = 'visual-resize-handle';
+          handleButton.dataset.resizeHandle = handle;
+          handleButton.setAttribute('aria-label', `Resize selected object (${handle})`);
+          handleButton.addEventListener('pointerdown', (event) => {
+            if (!currentVisualInventory) return;
+            const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
+            const selected = state.selectedObject;
+            const existingMovePatch = selected && selected.objectId ? movePatchCollection.movePatchesByObjectId[selected.objectId] : null;
+            const resizeSession = createVisualResizeSession(selected, handle, event.clientX, event.clientY, existingMovePatch);
+            if (!resizeSession || resizeSession.applyStatus !== 'planned') {
+              setResizeStatusText('Resize blocked: this object cannot be resized safely.');
+              return;
+            }
+            currentResizeSession = resizeSession;
+            handleButton.setPointerCapture(event.pointerId);
+          });
+          handleButton.addEventListener('pointermove', (event) => {
+            if (!currentResizeSession || currentResizeSession.objectId !== item.objectId || currentResizeSession.handle !== handle) return;
+            currentResizeSession = updateVisualResizeSession(currentResizeSession, event.clientX, event.clientY);
+            if (currentResizeSession.applyStatus !== 'planned') return;
+            button.style.cssText = `left:${currentResizeSession.currentGeometry.left}px;top:${currentResizeSession.currentGeometry.top}px;width:${currentResizeSession.currentGeometry.width}px;height:${currentResizeSession.currentGeometry.height}px;`;
+          });
+          handleButton.addEventListener('pointerup', async () => {
+            if (!currentResizeSession || currentResizeSession.objectId !== item.objectId || !currentVisualInventory) return;
+            const state = createVisualObjectSelectionState(currentVisualInventory, item.objectId);
+            const patch = createVisualMovePatchFromResize(state.selectedObject, currentResizeSession);
+            currentResizeSession = null;
+            if (!patch || patch.applyStatus !== 'planned') {
+              setResizeStatusText('Resize blocked: this object cannot be resized safely.');
+              renderVisualOverlay(currentVisualInventory, item.objectId);
+              return;
+            }
+            const previousCollection = movePatchCollection;
+            movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
+            if (currentHtmlFile) {
+              const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+              if (patched && patched.previewResult && patched.previewResult.previewDocument) {
+                safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+                safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+              } else {
+                movePatchCollection = previousCollection;
+                renderVisualOverlay(currentVisualInventory, item.objectId);
+                return;
+              }
+            }
+            updateExportUi();
+            visualObjectSelect.value = item.objectId;
+            renderVisualObjectSelection(currentVisualInventory);
+            setResizeStatusText('Resized selected object.');
+          });
+          handleButton.addEventListener('pointercancel', () => { handleResizeCancel(); });
+          button.appendChild(handleButton);
+        }
+      }
       visualOverlayLayer.appendChild(button);
     }
     visualOverlayStatus.textContent = formatOverlayStatusText(overlayState);
@@ -405,6 +475,7 @@ if (
     if (nudgeDown != null) nudgeDown.disabled = !nudgeEnabled;
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'Drag an overlay box or use nudge buttons.' : 'Movement blocked: this object cannot be moved safely.';
+    setResizeStatusText(nudgeEnabled ? 'Drag a corner handle to resize.' : 'Resize blocked: this object cannot be resized safely.');
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -665,6 +736,7 @@ if (
   if (nudgeDown != null) nudgeDown.addEventListener('click', () => { void applyNudge(0, 10); });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') handleDragCancel();
+    if (event.key === 'Escape') handleResizeCancel();
   });
 
 }

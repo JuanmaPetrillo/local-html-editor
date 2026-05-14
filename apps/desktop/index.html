@@ -28,6 +28,10 @@
       #visual-overlay-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
       .visual-overlay-box { position: absolute; box-sizing: border-box; border: 2px solid #2563eb; background: rgba(37, 99, 235, 0.12); pointer-events: auto; cursor: pointer; }
       .visual-overlay-box[aria-pressed="true"] { border-color: #b91c1c; background: rgba(185, 28, 28, 0.14); }
+      .visual-resize-handle { position: absolute; width: 12px; height: 12px; border: 1px solid #1e3a8a; background: #ffffff; border-radius: 2px; }
+      .visual-resize-handle[data-resize-handle="bottom-right"] { right: -8px; bottom: -8px; cursor: nwse-resize; }
+      .visual-resize-handle[data-resize-handle="right"] { right: -8px; top: calc(50% - 6px); cursor: ew-resize; }
+      .visual-resize-handle[data-resize-handle="bottom"] { bottom: -8px; left: calc(50% - 6px); cursor: ns-resize; }
       .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
   </head>
@@ -82,6 +86,11 @@
           <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
           <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
           <pre id="visual-move-status" aria-live="polite">Movement blocked: this object cannot be moved safely.</pre>
+        </div>
+        <div id="visual-resize-panel">
+          <p>Resize selected object</p>
+          <p>Drag a corner handle to resize.</p>
+          <pre id="visual-resize-status" aria-live="polite">Resize blocked: this object cannot be resized safely.</pre>
         </div>
       </section>
       <section>
