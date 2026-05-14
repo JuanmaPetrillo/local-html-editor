@@ -19,11 +19,11 @@
 - Visual object selection → text edit bridge with draft prefill and "Apply text edit to preview" workflow.
 - Reset working preview to original; user-initiated local edited HTML export (Blob download).
 
-### Phase 4: Move/resize simple visual elements ✓ (Phase 5A nudge slice complete)
+### Phase 5A: Trusted-shell nudge movement ✓
 
-- Trusted-shell keyboard-equivalent nudge movement via buttons is implemented for selected overlay-ready inline-style objects.
-- Movement patches are cumulative, refresh safe preview after nudge, reflect in trusted-shell overlay geometry, and are applied in export output.
-- Free drag handles and resize handles are still pending.
+- Button-based nudge movement is complete for selected overlay-ready inline-style objects.
+- Free drag movement remains pending.
+- Resize remains pending.
 
 ## Current focus
 
