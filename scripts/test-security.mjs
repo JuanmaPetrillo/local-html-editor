@@ -179,7 +179,7 @@ const importerShellFacingResult = await createCombinedPatchedSafePreviewResult(
 );
 assertNoForbiddenFieldsInObject(importerShellFacingResult.applyState, forbiddenShellFields, 'shell-facing-importer-apply-state');
 
-const exportResult = createEditedHtmlExportFromHtmlText(sampleHtml, 'sample.html', patchCollection, createVisualMovePatchCollectionState(), createImageReplacementPatchCollectionState());
+const exportResult = createEditedHtmlExportFromHtmlText(sampleHtml, 'sample.html', patchCollection, createVisualMovePatchCollectionState(), null, createImageReplacementPatchCollectionState());
 if (!(exportResult.blob instanceof Blob)) throw new Error('[export-blob] expected Blob for local download flow');
 assertNoForbiddenFieldsInObject(
   {
