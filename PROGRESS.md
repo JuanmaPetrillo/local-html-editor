@@ -634,3 +634,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No autosave/localStorage/IndexedDB, no ZIP project persistence support, no dependency additions, no network calls/telemetry, no iframe permission changes or iframe internals access.
 Next recommended task: Keep persistence follow-up narrow (optional mismatch override UX) only with explicit approval.
+
+### 2026-05-14 (phase 8b fixture-driven workflow hardening)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 8B - fixture-driven workflow hardening before packaging
+Summary: Added realistic synthetic HTML fixtures and integration-style workflow tests that exercise current module pipeline (text edit, move/resize, image replacement, combined patching, project save/reopen roundtrip, source mismatch, reset-equivalent, payload guard continuity) without browser automation dependencies.
+Files changed: tests/fixtures/realistic-single-slide-deck.html, tests/fixtures/realistic-multi-section-deck.html, tests/fixtures/realistic-image-deck.html, tests/fixtures/realistic-duplicate-text-image-deck.html, tests/fixtures/project-roundtrip-source.html, scripts/test.mjs, scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No true browser-driven E2E yet; no packaging work started; no ZIP/assets implementation changes; no new dependencies; no autosave/localStorage/IndexedDB; no network calls/telemetry; no iframe permission changes; no iframe internals access.
+Next recommended task: Decide between browser-driven E2E addition later versus packaging readiness decision with current integration-style coverage.

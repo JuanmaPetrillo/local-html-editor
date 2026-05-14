@@ -1429,3 +1429,126 @@ import { normalizeZipEntryPath, createZipEntrySafetyManifest } from '../apps/des
 
   const noneUi = createZipMainHtmlSelectionUiState({ htmlEntries: [], selectionRequired: false, autoSelectedMainHtmlPath: '' });
   assert.equal(noneUi.disabled, true);
+
+const realisticSingleSlideFixture = readFileSync('tests/fixtures/realistic-single-slide-deck.html', 'utf8');
+const realisticMultiSectionFixture = readFileSync('tests/fixtures/realistic-multi-section-deck.html', 'utf8');
+const realisticImageFixture = readFileSync('tests/fixtures/realistic-image-deck.html', 'utf8');
+const realisticDuplicateFixture = readFileSync('tests/fixtures/realistic-duplicate-text-image-deck.html', 'utf8');
+const projectRoundtripFixture = readFileSync('tests/fixtures/project-roundtrip-source.html', 'utf8');
+
+// 1) Text workflow fixture test
+const textInventory = createEditableTextInventory(realisticMultiSectionFixture);
+const revenueCandidates = textInventory.candidates.filter((c) => c.textPreview === 'Revenue grew 10%.');
+assert.equal(revenueCandidates.length, 2);
+const textDraft = createDraftEdit(revenueCandidates[0], 'Revenue grew 12%.');
+const textPlan = createTextPatchPlan(textDraft);
+let textCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), textPlan).collection;
+const textApplied = applyPatchCollectionToWorkingHtml(realisticMultiSectionFixture, textCollection, textInventory);
+assert.equal(textApplied.applyStatus, 'applied-to-working-preview');
+assert.equal((textApplied.workingHtml.match(/Revenue grew 12%\./g) || []).length, 1);
+assert.equal((textApplied.workingHtml.match(/Revenue grew 10%\./g) || []).length, 1);
+assert.equal(textApplied.workingHtml.includes('AT&amp;T budget &lt;baseline&gt; remains.'), true);
+
+const duplicateTextFixture = readFileSync('tests/fixtures/duplicate-text-deck.html', 'utf8');
+const duplicateInventory = createEditableTextInventory(duplicateTextFixture);
+const duplicateCandidates = duplicateInventory.candidates.filter((c) => c.textPreview === 'Revenue grew 10%.');
+assert.equal(duplicateCandidates.length, 2);
+const duplicatePlan = createTextPatchPlan(createDraftEdit(duplicateCandidates[0], 'Revenue grew 11%.'));
+const duplicateApplied = applyPatchCollectionToWorkingHtml(duplicateTextFixture, addOrUpdatePatchInCollection(createPatchCollectionState(), duplicatePlan).collection, duplicateInventory);
+assert.equal(duplicateApplied.applyStatus, 'applied-to-working-preview');
+assert.equal((duplicateApplied.workingHtml.match(/Revenue grew 11%\./g) || []).length, 1);
+assert.equal((duplicateApplied.workingHtml.match(/Revenue grew 10%\./g) || []).length, 1);
+
+// 2) Layout workflow fixture test
+const layoutInventory = createVisualObjectInventory(realisticSingleSlideFixture);
+const overlayObject = layoutInventory.objects.find((obj) => obj.geometry && obj.geometry.overlayReady && obj.tagName === 'h1');
+assert.ok(overlayObject);
+const movePlan = createVisualMovePatchPlan(overlayObject, 10, 20);
+assert.equal(movePlan.applyStatus, 'planned');
+const resizeSession = createVisualResizeSession(overlayObject, 'bottom-right', 0, 0, movePlan);
+const resized = updateVisualResizeSession(resizeSession, 30, 40);
+const resizePlan = createVisualMovePatchFromResize(overlayObject, resized);
+let layoutCollection = addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), resizePlan).collection;
+const layoutApplied = applyCombinedTextAndVisualPatchesToHtml(realisticSingleSlideFixture, createPatchCollectionState(), layoutCollection, createEditableTextInventory(realisticSingleSlideFixture), layoutInventory);
+assert.equal(layoutApplied.applyStatus, 'applied-to-working-preview');
+assert.equal(layoutApplied.workingHtml.includes('left:50px'), true);
+assert.equal(layoutApplied.workingHtml.includes('top:44px'), true);
+assert.equal(layoutApplied.workingHtml.includes('width:650px'), true);
+assert.equal(layoutApplied.workingHtml.includes('height:112px'), true);
+assert.equal(layoutApplied.workingHtml.includes('color:#112244'), true);
+
+// 3) Image workflow fixture test
+const imageInventory = createVisualObjectInventory(realisticImageFixture);
+const imageObject = imageInventory.objects.find((obj) => obj.tagName === 'img' && obj.objectId.includes('hero')) || imageInventory.objects.find((obj) => obj.tagName === 'img');
+assert.ok(imageObject);
+const imageAsset = { status: 'ready', mimeType: 'image/png', size: 16, dataUrl: 'data:image/png;base64,QUJDRA==' };
+const imagePlan = createImageReplacementPatchPlan(imageObject, imageAsset);
+assert.equal(imagePlan.applyStatus, 'planned');
+let imageCollection = addOrUpdateImageReplacementPatch(createImageReplacementPatchCollectionState(), imagePlan).collection;
+const imageApplied = applyCombinedTextAndVisualPatchesToHtml(realisticImageFixture, createPatchCollectionState(), createVisualMovePatchCollectionState(), createEditableTextInventory(realisticImageFixture), imageInventory, imageCollection);
+assert.equal(imageApplied.applyStatus, 'applied-to-working-preview');
+assert.equal((imageApplied.workingHtml.match(/data:image\/png;base64,QUJDRA==/g) || []).length, 1);
+assert.equal((imageApplied.workingHtml.match(/images\/team-photo\.png/g) || []).length, 1);
+assert.equal(imageApplied.workingHtml.includes('alt="Team photo"'), true);
+assert.equal(imageApplied.workingHtml.includes('class="hero-image"'), true);
+assert.equal(imageApplied.workingHtml.includes('data-asset-id="hero"'), true);
+
+// 4) Combined workflow fixture test
+const combinedInventory = createEditableTextInventory(realisticDuplicateFixture);
+const combinedCandidate = combinedInventory.candidates.find((c) => c.textPreview === 'Status: On Track');
+const combinedDraft = createDraftEdit(combinedCandidate, 'Status: Needs Review & Sign-off');
+const combinedPlan = createTextPatchPlan(combinedDraft);
+let combinedTextCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), combinedPlan).collection;
+const combinedVisualInventory = createVisualObjectInventory(realisticDuplicateFixture);
+const combinedMoveObject = combinedVisualInventory.objects.find((obj) => obj.tagName === 'h3');
+let combinedMoveCollection = addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), createVisualMovePatchPlan(combinedMoveObject, 5, 5)).collection;
+const combinedImageObject = combinedVisualInventory.objects.find((obj) => obj.tagName === 'img');
+let combinedImageCollection = addOrUpdateImageReplacementPatch(createImageReplacementPatchCollectionState(), createImageReplacementPatchPlan(combinedImageObject, { status: 'ready', mimeType: 'image/png', size: 10, dataUrl: 'data:image/png;base64,SElKSw==' })).collection;
+const combinedApplied = applyCombinedTextAndVisualPatchesToHtml(realisticDuplicateFixture, combinedTextCollection, combinedMoveCollection, combinedInventory, combinedVisualInventory, combinedImageCollection);
+assert.equal(combinedApplied.applyStatus, 'applied-to-working-preview');
+assert.equal(combinedApplied.workingHtml.includes('Status: Needs Review &amp; Sign-off'), true);
+assert.equal(combinedApplied.workingHtml.includes('left:35px'), true);
+assert.equal(combinedApplied.workingHtml.includes('top:25px'), true);
+assert.equal(combinedApplied.workingHtml.includes('data:image/png;base64,SElKSw=='), true);
+
+// 5) Project save/reopen workflow test
+const roundtripVisualInventory = createVisualObjectInventory(projectRoundtripFixture);
+const roundtripEditableInventory = createEditableTextInventory(projectRoundtripFixture);
+const roundtripTextCandidate = roundtripEditableInventory.candidates.find((c) => c.textPreview === 'Original roundtrip text value.');
+const roundtripTextCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), createTextPatchPlan(createDraftEdit(roundtripTextCandidate, 'Restored roundtrip text value.'))).collection;
+const roundtripMoveObject = roundtripVisualInventory.objects.find((obj) => obj.tagName === 'h1');
+const roundtripMoveCollection = addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), createVisualMovePatchPlan(roundtripMoveObject, 12, 6)).collection;
+const roundtripImageObject = roundtripVisualInventory.objects.find((obj) => obj.tagName === 'img');
+const roundtripImageCollection = addOrUpdateImageReplacementPatch(createImageReplacementPatchCollectionState(), createImageReplacementPatchPlan(roundtripImageObject, { status: 'ready', mimeType: 'image/png', size: 12, dataUrl: 'data:image/png;base64,TE1OTw==' })).collection;
+const beforeSave = createEditedHtmlExportFromHtmlText(projectRoundtripFixture, 'project-roundtrip-source.html', roundtripTextCollection, roundtripMoveCollection, null, roundtripImageCollection);
+assert.equal(beforeSave.exportStatus, 'ready');
+const sourceFingerprint = createSourceFileFingerprint({ name: 'project-roundtrip-source.html', size: projectRoundtripFixture.length, lastModified: 123 });
+const projectPayload = createProjectSavePayload(sourceFingerprint, roundtripTextCollection, roundtripMoveCollection, roundtripImageCollection);
+assert.equal(validateProjectSavePayload(projectPayload).ok, true);
+const parsedRoundtrip = parseProjectSavePayload(JSON.stringify(projectPayload));
+assert.equal(parsedRoundtrip.ok, true);
+const fpMatch = validateSourceFileFingerprint(parsedRoundtrip.payload.sourceFile, sourceFingerprint);
+assert.equal(fpMatch.ok, true);
+const afterRestore = createEditedHtmlExportFromHtmlText(projectRoundtripFixture, 'project-roundtrip-source.html', parsedRoundtrip.payload.patches.textPatchCollection, parsedRoundtrip.payload.patches.visualMoveCollection, null, parsedRoundtrip.payload.patches.imagePatchCollection);
+assert.equal(afterRestore.exportStatus, 'ready');
+assert.equal(await beforeSave.blob.text(), await afterRestore.blob.text());
+
+// 6) Source mismatch test
+const mismatch = validateSourceFileFingerprint(sourceFingerprint, { name: 'different.html', size: projectRoundtripFixture.length, lastModified: 123 });
+assert.equal(mismatch.ok, false);
+assert.equal(mismatch.reason, 'name-mismatch');
+
+// 7) Reset-equivalent test
+const noPatchExport = createEditedHtmlExportFromHtmlText(projectRoundtripFixture, 'project-roundtrip-source.html', createPatchCollectionState(), createVisualMovePatchCollectionState(), null, createImageReplacementPatchCollectionState());
+assert.equal(noPatchExport.exportStatus, 'blocked');
+assert.equal(noPatchExport.warnings.includes('no-patches'), true);
+assert.equal(projectRoundtripFixture.includes('Original roundtrip text value.'), true);
+
+// 8) Security/payload guard continuity
+assert.equal(JSON.stringify(projectPayload).includes('Roundtrip Fixture Title'), false);
+assert.equal(JSON.stringify(projectPayload).includes('previewDocument'), false);
+assert.equal(JSON.stringify(projectPayload).includes('srcdoc'), false);
+assert.equal(JSON.stringify(projectPayload).includes('workingHtml'), false);
+const allowedMarkerPayload = createProjectSavePayload(sourceFingerprint, { patchesByCandidateId: { keep: { replacementText: 'binary Blob srcdoc are literal words' } }, orderedCandidateIds: ['keep'] }, createVisualMovePatchCollectionState(), createImageReplacementPatchCollectionState());
+assert.equal(validateProjectSavePayload(allowedMarkerPayload).ok, true);
+assert.equal(validateProjectSavePayload({ ...projectPayload, srcdoc: '<html></html>' }).ok, false);
