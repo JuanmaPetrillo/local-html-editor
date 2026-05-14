@@ -60,8 +60,9 @@ if (exportSectionIndex === -1 || exportButtonIndex === -1 || exportButtonIndex <
 
 const step2Index = html.indexOf('2) Review safe preview');
 const stepEditIndex = html.indexOf('3) Edit selected text');
+const stepMoveIndex = html.indexOf('4) Move selected object');
 const stepExportIndex = html.indexOf('5) Export edited copy');
-if (step2Index === -1 || stepEditIndex === -1 || stepExportIndex === -1 || step2Index > stepEditIndex || stepEditIndex > stepExportIndex) throw new Error('shell ui step order mismatch: preview must appear before edit and export flow');
+if (step2Index === -1 || stepEditIndex === -1 || stepMoveIndex === -1 || stepExportIndex === -1 || step2Index > stepEditIndex || stepEditIndex > stepMoveIndex || stepMoveIndex > stepExportIndex) throw new Error('shell ui step order mismatch: expected 2 -> 3 -> 4 -> 5 flow');
 
 if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing preview compact class');
 if (!html.includes('preview-frame--fit')) throw new Error('shell ui missing preview fit class');

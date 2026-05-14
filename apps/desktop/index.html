@@ -62,15 +62,6 @@
           </div>
           <div id="visual-overlay-layer" aria-label="Visual overlay layer"></div>
         </div>
-        <div id="visual-move-panel" aria-label="Nudge controls">
-          <h3>4) Move selected object</h3>
-          <p>Use nudge buttons for precise movement.</p>
-          <button id="move-selected-left" type="button" disabled>← Nudge</button>
-          <button id="move-selected-right" type="button" disabled>Nudge →</button>
-          <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
-          <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
-          <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
-        </div>
       </section>
       <section>
         <h2>3) Edit selected text</h2>
@@ -81,6 +72,17 @@
         <textarea id="editable-draft-text" rows="4" disabled></textarea>
         <button id="apply-patch-preview" type="button" disabled>Apply text edit to preview</button>
         <button id="reset-working-preview" type="button">Reset preview to original (original file unchanged)</button>
+      </section>
+      <section>
+        <h2>4) Move selected object</h2>
+        <div id="visual-move-panel" aria-label="Nudge controls">
+          <p>Use nudge buttons for precise movement.</p>
+          <button id="move-selected-left" type="button" disabled>← Nudge</button>
+          <button id="move-selected-right" type="button" disabled>Nudge →</button>
+          <button id="move-selected-up" type="button" disabled>↑ Nudge</button>
+          <button id="move-selected-down" type="button" disabled>Nudge ↓</button>
+          <pre id="visual-move-status" aria-live="polite">This object cannot be moved safely.</pre>
+        </div>
       </section>
       <section>
         <h2>5) Export edited copy</h2>
