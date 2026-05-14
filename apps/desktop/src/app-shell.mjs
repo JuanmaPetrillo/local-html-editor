@@ -322,6 +322,8 @@ if (
     if (nudgeRight != null) nudgeRight.disabled = !nudgeEnabled;
     if (nudgeUp != null) nudgeUp.disabled = !nudgeEnabled;
     if (nudgeDown != null) nudgeDown.disabled = !nudgeEnabled;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'This object can be moved.' : 'This object cannot be moved safely.';
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -547,19 +549,34 @@ if (
     setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     exportStatus.textContent = formatExportStatusText({ ...exportResult, exportStatus: 'exported' });
   });
-}
-  const applyNudge = (dx, dy) => {
+
+  const applyNudge = async (dx, dy) => {
     const state = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
-    if (!state.selectedObject) return;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (!state.selectedObject) {
+      if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
+      return;
+    }
     const existing = movePatchCollection.movePatchesByObjectId[state.selectedObject.objectId];
     const patch = createVisualMovePatchPlan(state.selectedObject, dx, dy, existing);
-    if (!patch) return;
+    if (!patch || patch.applyStatus !== 'planned') {
+      if (moveStatus) moveStatus.textContent = 'Movement blocked: missing explicit inline geometry.';
+      return;
+    }
     movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
-    const moveStatus = document.querySelector('#visual-move-status'); if (moveStatus) moveStatus.textContent = patch.applyStatus === "planned" ? "Moved selected object." : "Movement blocked: missing explicit inline geometry.";
+    if (moveStatus) moveStatus.textContent = 'Moved selected object.';
     updateExportUi();
+    if (currentHtmlFile) {
+      const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+      if (patched && patched.previewResult && patched.previewResult.previewDocument) {
+        safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+        safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+      }
+    }
     renderVisualOverlay(currentVisualInventory, state.selectedObject.objectId);
   };
-  if (nudgeLeft != null) nudgeLeft.addEventListener('click', () => applyNudge(-10, 0));
-  if (nudgeRight != null) nudgeRight.addEventListener('click', () => applyNudge(10, 0));
-  if (nudgeUp != null) nudgeUp.addEventListener('click', () => applyNudge(0, -10));
-  if (nudgeDown != null) nudgeDown.addEventListener('click', () => applyNudge(0, 10));
+  if (nudgeLeft != null) nudgeLeft.addEventListener('click', () => { void applyNudge(-10, 0); });
+  if (nudgeRight != null) nudgeRight.addEventListener('click', () => { void applyNudge(10, 0); });
+  if (nudgeUp != null) nudgeUp.addEventListener('click', () => { void applyNudge(0, -10); });
+  if (nudgeDown != null) nudgeDown.addEventListener('click', () => { void applyNudge(0, 10); });
+}
