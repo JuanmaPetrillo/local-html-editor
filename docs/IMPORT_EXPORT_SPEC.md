@@ -25,3 +25,11 @@ Imported content should be classified as:
 - Export should apply controlled edits to original HTML when possible.
 - Unsupported locked content should remain preserved in exported output.
 - Export must avoid leaking absolute local paths.
+
+## Project persistence (Phase 8A)
+
+- Persistence is explicit and user-controlled via downloadable `.lheproj.json` files.
+- No autosave, no localStorage, no IndexedDB.
+- Persist project metadata + text/layout/image patch collections only.
+- Do not persist raw original HTML, sanitized preview documents, or srcdoc.
+- Image replacement data URLs may be included for safe raster formats only.

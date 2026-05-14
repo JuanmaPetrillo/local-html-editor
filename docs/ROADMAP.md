@@ -59,3 +59,10 @@
 - Unsupported complex content must be preserved and previewed, not destructively rewritten.
 - Final UX target is a local visual editor for non-technical users, not a code editor.
 - Current browser-first MVP remains a foundation/proof of concept.
+
+### Phase 8A: Explicit local project save/reopen ✓
+
+- Added explicit Save project / Open project flow via `.lheproj.json`.
+- No autosave, no localStorage, no IndexedDB.
+- Project files may contain sensitive patch data and embedded replacement images.
+- Raw original HTML is not stored in project files.

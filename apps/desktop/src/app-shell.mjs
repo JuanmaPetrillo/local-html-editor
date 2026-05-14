@@ -13,7 +13,8 @@ import {
   createVisualObjectInventoryForHtmlFile,
   createCombinedPatchedSafePreviewResult,
   createEditedHtmlExport,
-  createReplacementImageAssetFromFile
+  createReplacementImageAssetFromFile,
+  createProjectPayloadFromFile
 } from './importer.mjs';
 import {
   createUnavailablePreviewStatus,
@@ -51,6 +52,7 @@ import {
 } from './visual-object-model.mjs';
 import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize } from './visual-layout-model.mjs';
 import { createImageReplacementPatchCollectionState, createImageReplacementPatchPlan, addOrUpdateImageReplacementPatch } from './image-replacement-model.mjs';
+import { createProjectSavePayload, parseProjectSavePayload, createSourceFileFingerprint, validateSourceFileFingerprint, createProjectFileName, formatProjectPersistenceStatusText } from './project-persistence-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -222,6 +224,9 @@ const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height'
 const previewResetLayout = hasDom ? document.querySelector('#preview-reset-layout') : null;
 const replacementImageInput = hasDom ? document.querySelector('#replacement-image-input') : null;
 const imageReplacementStatus = hasDom ? document.querySelector('#image-replacement-status') : null;
+const saveProjectFile = hasDom ? document.querySelector('#save-project-file') : null;
+const openProjectFile = hasDom ? document.querySelector('#open-project-file') : null;
+const projectPersistenceStatus = hasDom ? document.querySelector('#project-persistence-status') : null;
 
 if (
   hasDom &&
@@ -261,7 +266,10 @@ if (
   previewTallHeight != null &&
   previewResetLayout != null &&
   replacementImageInput instanceof HTMLInputElement &&
-  imageReplacementStatus != null
+  imageReplacementStatus != null &&
+  saveProjectFile != null &&
+  openProjectFile instanceof HTMLInputElement &&
+  projectPersistenceStatus != null
 ) {
   /** @param {{compact: boolean, tall: boolean, fit: boolean}} layout */
   const applyPreviewLayoutState = (layout) => {
@@ -295,12 +303,15 @@ if (
   let currentExportSafetySummary = null;
   let currentDragSession = null;
   let currentResizeSession = null;
+  let pendingProjectPayload = null;
+  projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('neutral');
   const updateExportUi = () => {
     const textPatchCount = patchCollection.orderedCandidateIds.length;
     const movePatchCount = movePatchCollection.orderedObjectIds.length;
     const imagePatchCount = imagePatchCollection.orderedObjectIds.length;
     const totalPatchCount = textPatchCount + movePatchCount + imagePatchCount;
     exportEditedHtml.disabled = !currentHtmlFile || totalPatchCount === 0;
+    saveProjectFile.disabled = !currentHtmlFile || totalPatchCount === 0;
     exportStatus.textContent = totalPatchCount === 0
       ? 'Export status: blocked (no in-memory patches).'
       : `Export status: ready. ${totalPatchCount} patch(es) in memory.`;
@@ -633,6 +644,9 @@ if (
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
     replacementImageInput.disabled = true;
+    pendingProjectPayload = null;
+    openProjectFile.value = '';
+    projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('neutral');
     resetZipMainHtmlSelectionUi();
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
@@ -739,6 +753,28 @@ if (
       safePreviewStatus.textContent = previewResult
         ? formatPreviewStatusText(previewResult.previewStatus)
         : 'Safe static preview: unavailable.';
+      if (pendingProjectPayload && pendingProjectPayload.sourceFile) {
+        const actualFingerprint = createSourceFileFingerprint(selected);
+        const match = validateSourceFileFingerprint(pendingProjectPayload.sourceFile, actualFingerprint);
+        if (!match.ok) {
+          projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('mismatch');
+          patchCollection = createPatchCollectionState();
+          movePatchCollection = createVisualMovePatchCollectionState();
+          imagePatchCollection = createImageReplacementPatchCollectionState();
+          updateExportUi();
+          return;
+        }
+        patchCollection = pendingProjectPayload.patches.textPatchCollection;
+        movePatchCollection = pendingProjectPayload.patches.visualMoveCollection;
+        imagePatchCollection = pendingProjectPayload.patches.imagePatchCollection;
+        patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+        const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
+        if (patched && patched.previewResult && patched.previewResult.previewDocument) {
+          safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+          safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+        }
+        projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('loaded');
+      }
     }
 
     if (selected && project && project.sourceKind === 'zip') {
@@ -862,6 +898,40 @@ if (
     link.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     exportStatus.textContent = formatExportStatusText({ ...exportResult, exportStatus: 'exported' });
+  });
+
+  saveProjectFile.addEventListener('click', () => {
+    if (!currentHtmlFile) return;
+    const payload = createProjectSavePayload(
+      createSourceFileFingerprint(currentHtmlFile),
+      patchCollection,
+      movePatchCollection,
+      imagePatchCollection
+    );
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = createProjectFileName(currentHtmlFile.name);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('saved');
+  });
+
+  openProjectFile.addEventListener('change', async () => {
+    const file = openProjectFile.files && openProjectFile.files[0];
+    if (!file) return;
+    const projectText = await createProjectPayloadFromFile(file);
+    const parsed = parseProjectSavePayload(projectText);
+    if (!parsed.ok || !parsed.payload) {
+      projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('blocked', parsed.reason);
+      pendingProjectPayload = null;
+      return;
+    }
+    pendingProjectPayload = parsed.payload;
+    projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('loaded');
   });
 
   const applyNudge = async (dx, dy) => {

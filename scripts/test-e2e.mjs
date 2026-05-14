@@ -12,6 +12,10 @@ if (!html.includes('accept=".html,.htm,.zip"')) throw new Error('shell file pick
 if (!html.includes('Open HTML/ZIP')) throw new Error('shell ui missing open control');
 if (!html.includes('Save</button>')) throw new Error('shell ui missing save placeholder');
 if (!html.includes('id="export-edited-html"')) throw new Error('shell ui missing edited HTML export button');
+if (!html.includes('id="save-project-file"')) throw new Error('shell ui missing save project button');
+if (!html.includes('id="open-project-file"')) throw new Error('shell ui missing open project input');
+if (!html.includes('id="project-persistence-status"')) throw new Error('shell ui missing project persistence status');
+if (!html.includes('Project files may contain embedded replacement images and sensitive edit data.')) throw new Error('shell ui missing project persistence warning copy');
 if (!html.includes('id="file-status"')) throw new Error('shell ui missing selected-file status region');
 if (!html.includes('id="file-details"')) throw new Error('shell ui missing selected-file metadata region');
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
@@ -46,6 +50,7 @@ if (!html.includes('Replace selected image')) throw new Error('shell ui missing 
 if (!html.includes('Choose a local image file.')) throw new Error('shell ui missing image replacement chooser copy');
 if (!html.includes('Use a local PNG/JPEG/GIF/WebP/AVIF file. SVG is blocked.')) throw new Error('shell ui missing image replacement safety copy');
 if (!shellCode.includes('replacementImageInput.disabled = false')) throw new Error('shell logic missing image replacement input enable path');
+if (shellCode.includes('.text()') || shellCode.includes('.arrayBuffer()')) throw new Error('shell must not read file bytes directly');
 if (!shellCode.includes('const previousImagePatchCollection = imagePatchCollection')) throw new Error('shell logic missing image patch rollback baseline');
 if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) throw new Error('shell logic missing image patch rollback assignment');
 if (!shellCode.includes("'Image replacement could not be applied safely.'")) throw new Error('shell logic missing image replacement failure status copy');

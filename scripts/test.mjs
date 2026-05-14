@@ -8,6 +8,14 @@ import {
   canCreateImageReplacementPatchForObject,
   createZipMainHtmlSelectionUiState
 } from '../apps/desktop/src/app-shell.mjs';
+import {
+  createProjectSavePayload,
+  validateProjectSavePayload,
+  parseProjectSavePayload,
+  createSourceFileFingerprint,
+  validateSourceFileFingerprint,
+  createProjectFileName
+} from '../apps/desktop/src/project-persistence-model.mjs';
 import { createPreviewLayoutState } from '../apps/desktop/src/app-shell.mjs';
 import {
   createImportReportFromStatus,
@@ -32,7 +40,8 @@ import {
   createCollectionPatchedSafePreviewResult,
   createEditedHtmlExport,
   createVisualObjectInventoryForHtmlFile,
-  createReplacementImageAssetFromFile
+  createReplacementImageAssetFromFile,
+  createProjectPayloadFromFile
 } from '../apps/desktop/src/importer.mjs';
 import {
   buildSafePreviewDocument,
@@ -114,6 +123,24 @@ assert.equal(selected.unsupportedLabel, '');
 assert.deepEqual(createPreviewLayoutState('default', true), { compact: false, tall: false, fit: true });
 assert.deepEqual(createPreviewLayoutState('compact', true), { compact: true, tall: false, fit: true });
 assert.deepEqual(createPreviewLayoutState('tall', true), { compact: false, tall: true, fit: true });
+const fp = createSourceFileFingerprint({ name: 'deck.html', size: 42, lastModified: 7 });
+assert.equal(validateSourceFileFingerprint(fp, { name: 'deck.html', size: 42, lastModified: 7 }).ok, true);
+assert.equal(validateSourceFileFingerprint(fp, { name: 'deck2.html', size: 42, lastModified: 7 }).ok, false);
+assert.equal(createProjectFileName('deck final.html'), 'deck-final.html.lheproj.json');
+const payload = createProjectSavePayload(
+  fp,
+  { patchesByCandidateId: {}, orderedCandidateIds: [] },
+  { movePatchesByObjectId: {}, orderedObjectIds: [] },
+  { patchesByObjectId: {}, orderedObjectIds: [] }
+);
+assert.equal(validateProjectSavePayload(payload).ok, true);
+assert.equal(parseProjectSavePayload(JSON.stringify(payload)).ok, true);
+assert.equal(parseProjectSavePayload('{').ok, false);
+assert.equal(validateProjectSavePayload({ schemaVersion: 2 }).ok, false);
+const badPayload = createProjectSavePayload(fp, { patchesByCandidateId: {}, orderedCandidateIds: [] }, { movePatchesByObjectId: {}, orderedObjectIds: [] }, { patchesByObjectId: { a: { replacementDataUrl: 'data:image/svg+xml;base64,AAA' } }, orderedObjectIds: ['a'] });
+assert.equal(validateProjectSavePayload(badPayload).ok, false);
+const fakeProjectText = await createProjectPayloadFromFile({ text: async () => JSON.stringify(payload) });
+assert.equal(typeof fakeProjectText, 'string');
 
 assert.equal(detectHtmlExtension('deck.html'), 'html');
 assert.equal(detectHtmlExtension('deck.htm'), 'htm');
