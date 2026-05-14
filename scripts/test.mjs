@@ -1,5 +1,8 @@
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
 import {
   createProjectFileModel,
   detectExtension,
@@ -1552,3 +1555,34 @@ assert.equal(JSON.stringify(projectPayload).includes('workingHtml'), false);
 const allowedMarkerPayload = createProjectSavePayload(sourceFingerprint, { patchesByCandidateId: { keep: { replacementText: 'binary Blob srcdoc are literal words' } }, orderedCandidateIds: ['keep'] }, createVisualMovePatchCollectionState(), createImageReplacementPatchCollectionState());
 assert.equal(validateProjectSavePayload(allowedMarkerPayload).ok, true);
 assert.equal(validateProjectSavePayload({ ...projectPayload, srcdoc: '<html></html>' }).ok, false);
+
+const manualGuide = readFileSync(new URL('../docs/MANUAL_PILOT_GUIDE.md', import.meta.url), 'utf8');
+assert.equal(manualGuide.includes('START_HERE.bat'), true);
+assert.equal(manualGuide.includes('file://'), true);
+assert.equal(manualGuide.includes('Open `index.html` in a local browser.'), false);
+
+const readmeText = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+assert.equal(readmeText.includes('START_HERE.bat'), true);
+assert.equal(readmeText.includes('http://localhost:8765'), true);
+
+const pilotTestWorkspace = mkdtempSync(path.join(os.tmpdir(), 'pilot-package-workspace-'));
+const pilotTestDistSrc = path.join(pilotTestWorkspace, 'dist', 'src');
+mkdirSync(pilotTestDistSrc, { recursive: true });
+writeFileSync(path.join(pilotTestWorkspace, 'package.json'), JSON.stringify({ version: '0.1.0-test' }), 'utf8');
+writeFileSync(path.join(pilotTestWorkspace, 'dist', 'index.html'), '<!doctype html><html><body>pilot</body></html>', 'utf8');
+writeFileSync(path.join(pilotTestDistSrc, 'app-shell.mjs'), 'export const ok = true;', 'utf8');
+const pilotTestOutRoot = mkdtempSync(path.join(os.tmpdir(), 'pilot-package-test-'));
+execFileSync(process.execPath, [new URL('./package-pilot.mjs', import.meta.url).pathname, '--out-root', pilotTestOutRoot], {
+  cwd: pilotTestWorkspace,
+  stdio: 'pipe'
+});
+const packagedDirs = readdirSync(pilotTestOutRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+assert.equal(packagedDirs.length > 0, true);
+const packagedRoot = path.join(pilotTestOutRoot, packagedDirs[0].name);
+const packagedReadme = readFileSync(path.join(packagedRoot, 'PILOT_README.txt'), 'utf8');
+assert.equal(packagedReadme.includes('START_HERE.bat'), true);
+assert.equal(packagedReadme.includes('http://localhost:8765'), true);
+assert.equal(packagedReadme.includes('file:// URLs'), true);
+const startHereBat = readFileSync(path.join(packagedRoot, 'START_HERE.bat'), 'utf8');
+assert.equal(startHereBat.includes('py -m http.server %PORT%'), true);
+assert.equal(startHereBat.includes('python -m http.server %PORT%'), true);

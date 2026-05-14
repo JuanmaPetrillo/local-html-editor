@@ -44,7 +44,8 @@ What the script does:
 - validates required `dist/` files exist
 - creates a versioned output folder
 - copies `dist/` recursively into that folder
-- writes a small `PILOT_README.txt` with open instructions
+- writes a small `PILOT_README.txt` with reliable launch instructions
+- adds `START_HERE.bat` to run a local server on port `8765`
 
 Optional custom destination root:
 
@@ -85,14 +86,19 @@ Important:
 ## 5) Pilot user instructions
 
 1. Extract/copy the pilot folder to any user-writable location.
-2. Open `index.html` in a local browser.
-3. Use **Open HTML/ZIP** and select a local `.html` or `.htm` file.
+2. Double-click `START_HERE.bat` (recommended).
+3. If the browser does not open automatically, open `http://localhost:8765`.
+4. Use **Open HTML/ZIP** and select a local `.html` or `.htm` file.
+
+Why this is recommended:
+- Some browser/corporate policies block ES module loading from `file://` URLs.
+- This app relies on `src/app-shell.mjs`; if that module is blocked, file selection UI may appear but upload handling will not run.
 
 ## 6) Manual pilot checklist
 
 Run this checklist with at least one synthetic fixture deck:
 
-1. Open app (`index.html`) from portable folder.
+1. Open app through `START_HERE.bat` (`http://localhost:8765`).
 2. Open HTML file.
 3. Edit text and apply draft to preview.
 4. Move one supported object.

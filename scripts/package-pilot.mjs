@@ -53,14 +53,50 @@ writeFileSync(
   [
     'Local HTML Editor - Manual Pilot Package',
     '',
-    'How to open:',
-    '1) Open index.html in a local browser.',
-    '2) Use Open HTML/ZIP to choose a local HTML file.',
+    'Recommended launch (reliable for module loading):',
+    '1) Double-click START_HERE.bat.',
+    '2) The script starts a local server and opens http://localhost:8765.',
+    '3) In the app, use Open HTML/ZIP to choose a local HTML file.',
+    '',
+    'Fallback if needed:',
+    '- If scripts are blocked, run: py -m http.server 8765',
+    '- Or run: python -m http.server 8765',
+    '- Then open: http://localhost:8765',
     '',
     'Notes:',
+    '- Some browsers/policies block type="module" imports from file:// URLs.',
     '- ZIP is preflight-only in this build.',
     '- No installer/executable is included.'
   ].join('\n'),
+  'utf8'
+);
+
+writeFileSync(
+  path.join(outDir, 'START_HERE.bat'),
+  [
+    '@echo off',
+    'setlocal',
+    'set PORT=8765',
+    '',
+    'where py >nul 2>nul',
+    'if %ERRORLEVEL%==0 (',
+    '  start "" "http://localhost:%PORT%/"',
+    '  py -m http.server %PORT%',
+    '  exit /b %ERRORLEVEL%',
+    ')',
+    '',
+    'where python >nul 2>nul',
+    'if %ERRORLEVEL%==0 (',
+    '  start "" "http://localhost:%PORT%/"',
+    '  python -m http.server %PORT%',
+    '  exit /b %ERRORLEVEL%',
+    ')',
+    '',
+    'echo Python was not found.',
+    'echo Install Python or start a local static server for this folder, then open:',
+    'echo http://localhost:%PORT%/',
+    'pause'
+  ].join('\r\n'),
   'utf8'
 );
 
