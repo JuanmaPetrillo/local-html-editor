@@ -277,6 +277,12 @@ if (
     selectedTextEditStatus.textContent = 'Select a visual text object to edit.';
     visualOverlayLayer.replaceChildren();
     visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
+    if (nudgeLeft != null) nudgeLeft.disabled = true;
+    if (nudgeRight != null) nudgeRight.disabled = true;
+    if (nudgeUp != null) nudgeUp.disabled = true;
+    if (nudgeDown != null) nudgeDown.disabled = true;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
   };
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
