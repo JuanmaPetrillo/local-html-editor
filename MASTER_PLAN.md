@@ -8,7 +8,7 @@ The product must support arbitrary HTML as a best-effort input, classify what is
 
 ## Current implementation status
 
-Browser-first MVP foundation is active through Phase 5A. Implemented capabilities:
+Browser-first MVP foundation is active through Phase 6A. Implemented capabilities:
 
 - HTML/HTM intake scan, import report, and import manifest.
 - Sandboxed safe preview (iframe with `sandbox=""`, `referrerpolicy="no-referrer"`, injected CSP).
@@ -21,16 +21,18 @@ Browser-first MVP foundation is active through Phase 5A. Implemented capabilitie
 - Visual object → editable candidate bridge via exact source-span matching; prefills draft textarea for linked text objects.
 - "Apply text edit to preview" UX panel with per-candidate draft prefill memory (no overwrite of user-typed draft).
 - Trusted-shell button-based nudge movement for selected overlay-ready inline-style visual objects.
-- Cumulative in-memory move patch state with safe preview refresh after each nudge and overlay geometry projection from move patch `nextGeometry`.
-- Export pipeline applies movement patches together with text patches while preserving text-only behavior when no move patches are present.
+- Constrained trusted-shell drag movement for selected overlay-ready inline-style visual objects.
+- Constrained trusted-shell resize handles (bottom-right, right, bottom) for selected overlay-ready inline-style visual objects.
+- Local image replacement for selected safe `<img>` objects using local raster image files (PNG/JPEG/JPG/GIF/WebP/AVIF).
+- Combined text + layout + image patch apply/export flow while preserving text-only behavior when no move/image patches are present.
 
 The current implementation is a proof-of-concept foundation, not the final visual-editor UX.
 
 Still not implemented in this branch:
-- Free drag and resize handles (Phase 5B+ pending).
-- Image replacement (Phase 6).
 - ZIP extraction/listing/export (ZIP remains preflight-only).
-- Persistence/autosave.
+- Persistence/autosave/reopen.
+- Packaging/non-admin distribution.
+- Full arbitrary PowerPoint-equivalent editing coverage.
 - Tauri/React/Vite/TypeScript conversion.
 
 ## Core strategy
@@ -57,6 +59,8 @@ Secondary user (temporary fallback): power users who can use DevTools/Notepad he
 Success means users can complete most common micro-edits locally through a visual workflow, while unsupported complex content is clearly preserved/locked and the original presentation fidelity is maintained.
 
 ## Milestones / phased roadmap
+
+Note: historical task logs used older phase numbering; the list below aligns with the current `docs/ROADMAP.md` naming.
 
 ### Phase 1: Prompt training and helper workflow guide
 
