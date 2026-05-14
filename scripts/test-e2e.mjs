@@ -137,4 +137,13 @@ for (const fixturePath of fixtureFiles) {
   if (!fixtureText.includes('<!DOCTYPE html>')) throw new Error(`fixture missing doctype: ${fixturePath}`);
   if (/https?:\/\//i.test(fixtureText)) throw new Error(`fixture must not require external network: ${fixturePath}`);
 }
-if (!readFileSync('scripts/test.mjs', 'utf8').includes('realistic-single-slide-deck.html')) throw new Error('workflow tests must reference fixture set');
+const workflowTests = readFileSync('scripts/test.mjs', 'utf8');
+for (const fixtureName of [
+  'realistic-single-slide-deck.html',
+  'realistic-multi-section-deck.html',
+  'realistic-image-deck.html',
+  'realistic-duplicate-text-image-deck.html',
+  'project-roundtrip-source.html'
+]) {
+  if (!workflowTests.includes(fixtureName)) throw new Error(`workflow tests must reference fixture: ${fixtureName}`);
+}

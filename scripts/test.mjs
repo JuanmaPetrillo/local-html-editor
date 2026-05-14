@@ -1437,17 +1437,27 @@ const realisticDuplicateFixture = readFileSync('tests/fixtures/realistic-duplica
 const projectRoundtripFixture = readFileSync('tests/fixtures/project-roundtrip-source.html', 'utf8');
 
 // 1) Text workflow fixture test
-const duplicateTextFixture = readFileSync('tests/fixtures/duplicate-text-deck.html', 'utf8');
-const textInventory = createEditableTextInventory(duplicateTextFixture);
-const statusCandidates = textInventory.candidates.filter((c) => typeof c.textPreview === 'string' && c.textPreview.includes('Revenue grew 10%'));
-assert.equal(statusCandidates.length >= 1, true);
-const textDraft = createDraftEdit(statusCandidates[0], 'Revenue grew 12%.');
+const textInventory = createEditableTextInventory(realisticMultiSectionFixture);
+const revenueCandidates = textInventory.candidates.filter((c) => c.textPreview === 'Revenue grew 10%.');
+assert.equal(revenueCandidates.length, 2);
+const textDraft = createDraftEdit(revenueCandidates[0], 'Revenue grew 12%.');
 const textPlan = createTextPatchPlan(textDraft);
 let textCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), textPlan).collection;
-const textApplied = applyPatchCollectionToWorkingHtml(duplicateTextFixture, textCollection, textInventory);
+const textApplied = applyPatchCollectionToWorkingHtml(realisticMultiSectionFixture, textCollection, textInventory);
 assert.equal(textApplied.applyStatus, 'applied-to-working-preview');
 assert.equal((textApplied.workingHtml.match(/Revenue grew 12%\./g) || []).length, 1);
 assert.equal((textApplied.workingHtml.match(/Revenue grew 10%\./g) || []).length, 1);
+assert.equal(textApplied.workingHtml.includes('AT&amp;T budget &lt;baseline&gt; remains.'), true);
+
+const duplicateTextFixture = readFileSync('tests/fixtures/duplicate-text-deck.html', 'utf8');
+const duplicateInventory = createEditableTextInventory(duplicateTextFixture);
+const duplicateCandidates = duplicateInventory.candidates.filter((c) => c.textPreview === 'Revenue grew 10%.');
+assert.equal(duplicateCandidates.length, 2);
+const duplicatePlan = createTextPatchPlan(createDraftEdit(duplicateCandidates[0], 'Revenue grew 11%.'));
+const duplicateApplied = applyPatchCollectionToWorkingHtml(duplicateTextFixture, addOrUpdatePatchInCollection(createPatchCollectionState(), duplicatePlan).collection, duplicateInventory);
+assert.equal(duplicateApplied.applyStatus, 'applied-to-working-preview');
+assert.equal((duplicateApplied.workingHtml.match(/Revenue grew 11%\./g) || []).length, 1);
+assert.equal((duplicateApplied.workingHtml.match(/Revenue grew 10%\./g) || []).length, 1);
 
 // 2) Layout workflow fixture test
 const layoutInventory = createVisualObjectInventory(realisticSingleSlideFixture);
