@@ -20,6 +20,14 @@ if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing im
 if (!html.includes('id="zip-main-html-select"')) throw new Error('shell ui missing zip main html selector');
 if (!html.includes('id="zip-main-html-status"')) throw new Error('shell ui missing zip main html status');
 
+const resetVisualStart = shellCode.indexOf('const resetVisualObjectSelectionUi = () => {');
+const resetVisualEnd = shellCode.indexOf('const setMoveStatusText = (text) => {');
+if (resetVisualStart === -1 || resetVisualEnd === -1) throw new Error('shell missing resetVisualObjectSelectionUi boundaries');
+const resetVisualBody = shellCode.slice(resetVisualStart, resetVisualEnd);
+if (resetVisualBody.includes('zipMainHtmlSelect.replaceChildren()')) throw new Error('resetVisualObjectSelectionUi must not reset zip selector');
+if (resetVisualBody.includes('zipMainHtmlStatus.textContent')) throw new Error('resetVisualObjectSelectionUi must not reset zip status');
+if (!shellCode.includes('ZIP main HTML selection: unavailable (entry listing not available in this build).')) throw new Error('shell missing zip listing-unavailable status copy');
+
 if (!html.includes('id="advanced-details"')) throw new Error('shell ui missing advanced details container');
 if (html.includes('<details id="advanced-details" open')) throw new Error('advanced details should be collapsed by default');
 if (!html.includes('id="visual-object-inventory"')) throw new Error('shell ui missing visual object inventory region');

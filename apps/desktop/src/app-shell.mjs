@@ -281,6 +281,12 @@ if (
       : `Export status: ready. ${totalPatchCount} patch(es) in memory.`;
   };
 
+  const resetZipMainHtmlSelectionUi = () => {
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
+  };
+
   const resetDraftUi = () => {
     editableCandidateSelect.replaceChildren();
     editableCandidateSelect.disabled = true;
@@ -293,10 +299,8 @@ if (
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
-    zipMainHtmlSelect.replaceChildren();
-    zipMainHtmlSelect.disabled = true;
-    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     replacementImageInput.disabled = true;
+    resetZipMainHtmlSelectionUi();
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     updateExportUi();
     draftState = null;
@@ -319,9 +323,6 @@ if (
     setResizeStatusText('Resize blocked: this object cannot be resized safely.');
     replacementImageInput.disabled = true;
     replacementImageInput.value = '';
-    zipMainHtmlSelect.replaceChildren();
-    zipMainHtmlSelect.disabled = true;
-    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
   };
 
@@ -532,9 +533,6 @@ if (
     } else {
       replacementImageInput.disabled = true;
       replacementImageInput.value = '';
-    zipMainHtmlSelect.replaceChildren();
-    zipMainHtmlSelect.disabled = true;
-    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     }
   };
@@ -548,6 +546,7 @@ if (
     applyPatchPreview.disabled = !currentPatchPlan || currentPatchPlan.applyStatus !== 'planned';
   };
 
+  resetZipMainHtmlSelectionUi();
   resetDraftUi();
   resetVisualObjectSelectionUi();
   if (nudgeLeft != null) nudgeLeft.disabled = true;
@@ -608,10 +607,8 @@ if (
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
-    zipMainHtmlSelect.replaceChildren();
-    zipMainHtmlSelect.disabled = true;
-    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     replacementImageInput.disabled = true;
+    resetZipMainHtmlSelectionUi();
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
     const previewResult = await createSafeHtmlPreviewResult(currentHtmlFile);
@@ -653,12 +650,14 @@ if (
     patchCollection = createPatchCollectionState();
     movePatchCollection = createVisualMovePatchCollectionState();
     imagePatchCollection = createImageReplacementPatchCollectionState();
+    resetZipMainHtmlSelectionUi();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
       '<!doctype html><html><body><p>Safe preview unavailable for this selection.</p></body></html>';
 
     if (selected && project && project.sourceKind === 'html') {
+      resetZipMainHtmlSelectionUi();
       const scanResult = await importHtmlFileScan(selected);
       if (selectionGeneration !== currentSelectionGeneration) return;
       currentHtmlFile = selected;
@@ -726,8 +725,11 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
-      zipMainHtmlSelect.replaceChildren();
+      visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
+      resetVisualObjectSelectionUi();
+      editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
       const zipManifest = status && status.checks ? status.checks.zipManifest : null;
+      zipMainHtmlSelect.replaceChildren();
       if (zipManifest && Array.isArray(zipManifest.htmlEntries) && zipManifest.htmlEntries.length > 0) {
         for (const entry of zipManifest.htmlEntries) {
           const option = document.createElement('option');
@@ -746,13 +748,11 @@ if (
         zipMainHtmlSelect.disabled = true;
         zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable (entry listing not available in this build).';
       }
-      visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
-      resetVisualObjectSelectionUi();
-      editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
       safePreviewStatus.textContent = formatPreviewStatusText(createUnavailablePreviewStatus('zip', project.name));
     }
 
     if (selected && project && project.sourceKind === 'unknown') {
+      resetZipMainHtmlSelectionUi();
       currentExportSafetySummary = null;
       const unsupportedStatus = {
         sourceKind: 'unknown',
@@ -787,9 +787,6 @@ if (
     if (!canCreateImageReplacementPatchForObject(selected)) {
       replacementImageInput.disabled = true;
       replacementImageInput.value = '';
-    zipMainHtmlSelect.replaceChildren();
-    zipMainHtmlSelect.disabled = true;
-    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
       return;
     }
