@@ -1165,6 +1165,8 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   assert.equal(overlayBefore[0].left, 10);
   const overlayAfter = createOverlayItemsWithMoveOverrides(visualInventory, moves);
   assert.equal(overlayAfter[0].left, 30);
+  const overlayAfterReset = createOverlayItemsWithMoveOverrides(visualInventory, createVisualMovePatchCollectionState());
+  assert.equal(overlayAfterReset[0].left, 10);
 
   const badCollection = { patchesByCandidateId: { missing: { patchId: 'patch-missing', candidateId: 'missing', replacementText: 'x' } }, orderedCandidateIds: ['missing'] };
   const blocked = applyCombinedTextAndVisualPatchesToHtml(html, badCollection, createVisualMovePatchCollectionState(), editableInventory, visualInventory);

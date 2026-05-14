@@ -352,20 +352,26 @@ if (
         }
         const previousCollection = movePatchCollection;
         movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
+        let commitSucceeded = true;
         if (currentHtmlFile) {
           const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
           if (patched && patched.previewResult && patched.previewResult.previewDocument) {
             safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
             safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
           } else {
+            commitSucceeded = false;
             movePatchCollection = previousCollection;
+            updateExportUi();
+            renderVisualOverlay(currentVisualInventory, item.objectId);
             setMoveStatusText('Movement blocked: this object cannot be moved safely.');
+            visualObjectSelect.value = item.objectId;
+            return;
           }
         }
         updateExportUi();
-        renderVisualOverlay(currentVisualInventory, item.objectId);
-        setMoveStatusText('Moved selected object.');
         visualObjectSelect.value = item.objectId;
+        renderVisualObjectSelection(currentVisualInventory);
+        if (commitSucceeded) setMoveStatusText('Moved selected object.');
       });
       button.addEventListener('pointercancel', () => { handleDragCancel(); });
       visualOverlayLayer.appendChild(button);
@@ -473,6 +479,9 @@ if (
     if (previewResult) {
       safePreviewFrame.srcdoc = previewResult.previewDocument;
       safePreviewStatus.textContent = formatPreviewStatusText(previewResult.previewStatus);
+    }
+    if (currentVisualInventory) {
+      renderVisualObjectSelection(currentVisualInventory);
     }
   });
 
