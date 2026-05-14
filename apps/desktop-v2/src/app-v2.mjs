@@ -1,5 +1,5 @@
 const hasDom = typeof document !== 'undefined';
-const ALLOWED_TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'p', 'span', 'div']);
+const ALLOWED_TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'p', 'span', 'div', 'button']);
 
 export function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
 export function escapeAttribute(v) { return String(v || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
@@ -7,26 +7,65 @@ function parsePx(style, key, fallback) { const m = new RegExp(`${key}\\s*:\\s*([
 function getAttr(tag, name) { const m = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i').exec(tag) || new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i').exec(tag); return m ? m[1] : ''; }
 function getDataAttrs(tag) { const out = {}; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*"([^"]*)"/gi)) out[m[1]] = m[2]; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*'([^']*)'/gi)) out[m[1]] = m[2]; return out; }
 function parseTextFromTag(tag) { const m = tag.match(/>([\s\S]*?)<\//); return m ? m[1].replace(/<[^>]+>/g, '') : ''; }
+function parseStyleRules(htmlText) {
+  const rules = new Map();
+  for (const m of String(htmlText).matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    const css = m[1] || '';
+    for (const r of css.matchAll(/\.([a-z0-9_-]+)\s*\{([^}]*)\}/gi)) {
+      const cls = r[1];
+      const body = r[2] || '';
+      const item = rules.get(cls) || {};
+      for (const k of ['left','top','width','height']) {
+        const pm = new RegExp(`${k}\\s*:\\s*([0-9.]+)px`, 'i').exec(body);
+        if (pm) item[k] = Number(pm[1]);
+      }
+      const bm = /background-image\s*:\s*url\(([^)]+)\)/i.exec(body);
+      if (bm) item.backgroundImage = String(bm[1]).replace(/^["']|["']$/g, '');
+      rules.set(cls, item);
+    }
+  }
+  return rules;
+}
+
+function parseBackgroundDataUrl(style, className, styleRules) {
+  const classRule = String(className || '').split(/\s+/).map((c) => styleRules.get(c)).find(Boolean) || {};
+  const source = style || '';
+  const inline = /background-image\s*:\s*url\(([^)]+)\)/i.exec(source);
+  const raw = inline ? inline[1] : classRule.backgroundImage || '';
+  const v = String(raw).trim().replace(/^["']|["']$/g, '');
+  return classifyImageSource(v);
+}
+
 function nextId(model, p = 'o') { return `${p}${model.nextId++}`; }
 function safeNum(v, fallback) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
 function normalizeGeometry(obj) { return { x: Math.max(0, safeNum(obj?.x, 20)), y: Math.max(0, safeNum(obj?.y, 20)), w: Math.max(20, safeNum(obj?.w, 120)), h: Math.max(20, safeNum(obj?.h, 40)) }; }
 function normalizeDataAttrs(raw) { const out = {}; for (const [k, v] of Object.entries(raw || {})) if (/^data-[a-z0-9_-]+$/i.test(k)) out[k] = String(v ?? ''); return out; }
 export function classifyImageSource(src) { const value = String(src || '').trim(); const safe = /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(value); return { safe, normalizedSrc: safe ? value : '' }; }
 
-function parseSlideObjects(slideBody, indexStart) {
+function parseSlideObjects(slideBody, indexStart, styleRules = new Map()) {
   const objects = []; let i = indexStart;
-  const hasNestedSupported = /<(h1|h2|h3|p|span|img)\b/i.test(slideBody);
-  const matches = slideBody.matchAll(/<(h1|h2|h3|p|span)\b[^>]*>[\s\S]*?<\/(h1|h2|h3|p|span)>|<img\b[^>]*>|<(?!\/)([^\s>\/]+)\b[^>]*>/gi);
+  const hasNestedSupported = /<(h1|h2|h3|p|span|img|button)\b/i.test(slideBody);
+  const matches = slideBody.matchAll(/<(h1|h2|h3|p|span|button)\b[^>]*>[\s\S]*?<\/(h1|h2|h3|p|span|button)>|<img\b[^>]*>|<(?!\/)([^\s>\/]+)\b[^>]*>/gi);
   for (const m of matches) {
-    const tag = m[0]; const tagName = (m[1] || m[3] || '').toLowerCase(); const style = getAttr(tag, 'style');
+    const tag = m[0]; const tagName = (m[1] || m[3] || '').toLowerCase(); const style = getAttr(tag, 'style'); const className = getAttr(tag, 'class');
     if (tag.toLowerCase().startsWith('<img')) {
       const source = classifyImageSource(getAttr(tag, 'src'));
-      if (source.safe) objects.push({ id: `o${i++}`, type: 'image', src: source.normalizedSrc, ...normalizeGeometry({ x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 120) }), alt: getAttr(tag, 'alt'), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag), lockedReason: '' });
-      else objects.push({ id: `o${i++}`, type: 'locked', label: 'Blocked remote image', ...normalizeGeometry({ x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 120) }), lockedReason: 'blocked-remote-image' });
+      if (source.safe) objects.push({ id: `o${i++}`, type: 'image', src: source.normalizedSrc, ...normalizeGeometry({ x: parsePx(style, 'left', styleRules.get(className)?.left ?? 20), y: parsePx(style, 'top', styleRules.get(className)?.top ?? 20 + i * 18), w: parsePx(style, 'width', styleRules.get(className)?.width ?? 180), h: parsePx(style, 'height', styleRules.get(className)?.height ?? 120) }), alt: getAttr(tag, 'alt'), className, dataAttrs: getDataAttrs(tag), lockedReason: '' });
+      else objects.push({ id: `o${i++}`, type: 'locked', label: 'Blocked remote image', ...normalizeGeometry({ x: parsePx(style, 'left', styleRules.get(className)?.left ?? 20), y: parsePx(style, 'top', styleRules.get(className)?.top ?? 20 + i * 18), w: parsePx(style, 'width', styleRules.get(className)?.width ?? 180), h: parsePx(style, 'height', styleRules.get(className)?.height ?? 120) }), lockedReason: 'blocked-remote-image' });
     } else if (ALLOWED_TEXT_TAGS.has(tagName)) {
+      const bg = parseBackgroundDataUrl(style, className, styleRules);
+      if (bg.safe && !parseTextFromTag(tag).trim()) {
+        objects.push({ id: `o${i++}`, type: 'image', src: bg.normalizedSrc, ...normalizeGeometry({ x: parsePx(style, 'left', styleRules.get(className)?.left ?? 20), y: parsePx(style, 'top', styleRules.get(className)?.top ?? 20 + i * 18), w: parsePx(style, 'width', styleRules.get(className)?.width ?? 180), h: parsePx(style, 'height', styleRules.get(className)?.height ?? 120) }), alt: '', className, dataAttrs: getDataAttrs(tag), lockedReason: '' });
+        continue;
+      }
       if (tagName === 'div' && hasNestedSupported && /<(h1|h2|h3|p|span|img)\b/i.test(tag)) continue;
-      objects.push({ id: `o${i++}`, type: 'text', tagName, text: parseTextFromTag(tag), ...normalizeGeometry({ x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 300), h: parsePx(style, 'height', 40) }), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag) });
+      objects.push({ id: `o${i++}`, type: 'text', tagName, text: parseTextFromTag(tag), ...normalizeGeometry({ x: parsePx(style, 'left', styleRules.get(className)?.left ?? 20), y: parsePx(style, 'top', styleRules.get(className)?.top ?? 20 + i * 18), w: parsePx(style, 'width', styleRules.get(className)?.width ?? 300), h: parsePx(style, 'height', styleRules.get(className)?.height ?? 40) }), className, dataAttrs: getDataAttrs(tag) });
     } else if (tagName && !['section', 'body', 'html', 'head', 'meta', 'title', 'style', 'script'].includes(tagName)) {
+      const extractedText = parseTextFromTag(tag).trim();
+      if (extractedText) {
+        objects.push({ id: `o${i++}`, type: 'text', tagName: 'div', text: extractedText, ...normalizeGeometry({ x: parsePx(style, 'left', styleRules.get(className)?.left ?? 20), y: parsePx(style, 'top', styleRules.get(className)?.top ?? 20 + i * 18), w: parsePx(style, 'width', styleRules.get(className)?.width ?? 300), h: parsePx(style, 'height', styleRules.get(className)?.height ?? 40) }), className, dataAttrs: getDataAttrs(tag) });
+        continue;
+      }
       objects.push({ id: `o${i++}`, type: 'locked', label: `Locked: <${tagName}>`, ...normalizeGeometry({ x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 60) }), lockedReason: 'unsupported-element' });
     }
   }
@@ -58,10 +97,11 @@ export function normalizeModelForUse(inputModel) {
 }
 
 export function mapHtmlToModel(htmlText) {
-  const slideMatches = [...String(htmlText).matchAll(/<(section\b[^>]*class="slide"[^>]*|section\b[^>]*data-slide-id[^>]*|div\b[^>]*class="slide"[^>]*|[^>]*data-slide-id[^>]*)([^>]*)>([\s\S]*?)<\/\s*(section|div|article)\s*>/gi)];
+  const slideMatches = [...String(htmlText).matchAll(/<(section|div|article)\b([^>]*)>([\s\S]*?)<\/\s*\1\s*>/gi)].filter((m) => /class=\"[^\"]*slide|class='[^']*slide|data-slide-id/i.test(m[2] || ''));
   const slidesRaw = slideMatches.length ? slideMatches.map((m, idx) => ({ id: getAttr(m[0], 'data-slide-id') || `s${idx + 1}`, name: `Slide ${idx + 1}`, width: 960, height: 540, body: m[3] })) : [{ id: 's1', name: 'Slide 1', width: 960, height: 540, body: htmlText }];
+  const styleRules = parseStyleRules(htmlText);
   const slides = []; let i = 0;
-  for (const s of slidesRaw) { const parsed = parseSlideObjects(s.body, i); i = parsed.nextIndex; slides.push({ id: s.id, name: s.name, width: s.width, height: s.height, objects: parsed.objects }); }
+  for (const s of slidesRaw) { const parsed = parseSlideObjects(s.body, i, styleRules); i = parsed.nextIndex; slides.push({ id: s.id, name: s.name, width: s.width, height: s.height, objects: parsed.objects }); }
   return normalizeModelForUse({ version: 2, slides, selectedSlideId: slides[0]?.id || 's1', selectedObjectId: null, nextId: i + 1 });
 }
 
