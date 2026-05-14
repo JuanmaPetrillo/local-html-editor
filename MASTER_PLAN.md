@@ -8,7 +8,7 @@ The product must support arbitrary HTML as a best-effort input, classify what is
 
 ## Current implementation status
 
-Browser-first MVP foundation is active through Phase 4B. Implemented capabilities:
+Browser-first MVP foundation is active through Phase 5A. Implemented capabilities:
 
 - HTML/HTM intake scan, import report, and import manifest.
 - Sandboxed safe preview (iframe with `sandbox=""`, `referrerpolicy="no-referrer"`, injected CSP).
@@ -20,12 +20,15 @@ Browser-first MVP foundation is active through Phase 4B. Implemented capabilitie
 - Visual object selector and selection inspector (trusted-shell only, no iframe internals access).
 - Visual object → editable candidate bridge via exact source-span matching; prefills draft textarea for linked text objects.
 - "Apply text edit to preview" UX panel with per-candidate draft prefill memory (no overwrite of user-typed draft).
+- Trusted-shell button-based nudge movement for selected overlay-ready inline-style visual objects.
+- Cumulative in-memory move patch state with safe preview refresh after each nudge and overlay geometry projection from move patch `nextGeometry`.
+- Export pipeline applies movement patches together with text patches while preserving text-only behavior when no move patches are present.
 
 The current implementation is a proof-of-concept foundation, not the final visual-editor UX.
 
 Still not implemented in this branch:
-- Move/resize/drag (Phase 4 — pending; PR32 attempted but is not merged).
-- Image replacement (Phase 5).
+- Free drag and resize handles (Phase 5B+ pending).
+- Image replacement (Phase 6).
 - ZIP extraction/listing/export (ZIP remains preflight-only).
 - Persistence/autosave.
 - Tauri/React/Vite/TypeScript conversion.
