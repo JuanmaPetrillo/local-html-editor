@@ -285,6 +285,7 @@ if (
     if (nudgeDown != null) nudgeDown.disabled = true;
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = 'Movement blocked: this object cannot be moved safely.';
+    setResizeStatusText('Resize blocked: this object cannot be resized safely.');
   };
 
   const setMoveStatusText = (text) => {

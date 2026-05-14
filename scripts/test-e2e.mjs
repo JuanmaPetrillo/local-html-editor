@@ -37,6 +37,7 @@ if (!html.includes('Drag a corner handle to resize.')) throw new Error('shell ui
 if (!html.includes('id="visual-resize-status"')) throw new Error('shell ui missing resize status');
 if (!html.includes('.visual-resize-handle')) throw new Error('shell ui missing visual resize handle class');
 if (shellCode.includes("const handleButton = document.createElement('button');")) throw new Error('resize handles must not be created as button elements');
+if (!shellCode.includes("setResizeStatusText('Resize blocked: this object cannot be resized safely.');")) throw new Error('resize status reset text missing');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
 if (!html.includes('position: absolute')) throw new Error('shell ui missing absolute positioning style for overlay rendering');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');
