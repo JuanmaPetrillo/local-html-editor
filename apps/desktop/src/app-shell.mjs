@@ -12,7 +12,8 @@ import {
   createEditableInventoryForHtmlFile,
   createVisualObjectInventoryForHtmlFile,
   createCombinedPatchedSafePreviewResult,
-  createEditedHtmlExport
+  createEditedHtmlExport,
+  createReplacementImageAssetFromFile
 } from './importer.mjs';
 import {
   createUnavailablePreviewStatus,
@@ -49,6 +50,7 @@ import {
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
 import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag, createVisualResizeSession, updateVisualResizeSession, createVisualMovePatchFromResize } from './visual-layout-model.mjs';
+import { createImageReplacementPatchCollectionState, createImageReplacementPatchPlan, addOrUpdateImageReplacementPatch } from './image-replacement-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -140,6 +142,19 @@ export function createPreviewLayoutState(heightMode, fitWidth) {
   };
 }
 
+/** @param {any} visualObject */
+export function canCreateImageReplacementPatchForObject(visualObject) {
+  return !!(
+    visualObject &&
+    visualObject.type === 'image' &&
+    visualObject.tagName === 'img' &&
+    !visualObject.locked &&
+    Number.isInteger(visualObject.sourceStart) &&
+    Number.isInteger(visualObject.sourceEnd) &&
+    visualObject.sourceEnd > visualObject.sourceStart
+  );
+}
+
 const hasDom = typeof document !== 'undefined';
 const fileInput = hasDom ? document.querySelector('#file-input') : null;
 const fileStatus = hasDom ? document.querySelector('#file-status') : null;
@@ -178,6 +193,8 @@ const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : 
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
 const previewResetLayout = hasDom ? document.querySelector('#preview-reset-layout') : null;
+const replacementImageInput = hasDom ? document.querySelector('#replacement-image-input') : null;
+const imageReplacementStatus = hasDom ? document.querySelector('#image-replacement-status') : null;
 
 if (
   hasDom &&
@@ -213,7 +230,9 @@ if (
   previewFitWidth != null &&
   previewCompactHeight != null &&
   previewTallHeight != null &&
-  previewResetLayout != null
+  previewResetLayout != null &&
+  replacementImageInput instanceof HTMLInputElement &&
+  imageReplacementStatus != null
 ) {
   /** @param {{compact: boolean, tall: boolean, fit: boolean}} layout */
   const applyPreviewLayoutState = (layout) => {
@@ -242,6 +261,7 @@ if (
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
   let movePatchCollection = createVisualMovePatchCollectionState();
+  let imagePatchCollection = createImageReplacementPatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   let currentDragSession = null;
@@ -249,7 +269,8 @@ if (
   const updateExportUi = () => {
     const textPatchCount = patchCollection.orderedCandidateIds.length;
     const movePatchCount = movePatchCollection.orderedObjectIds.length;
-    const totalPatchCount = textPatchCount + movePatchCount;
+    const imagePatchCount = imagePatchCollection.orderedObjectIds.length;
+    const totalPatchCount = textPatchCount + movePatchCount + imagePatchCount;
     exportEditedHtml.disabled = !currentHtmlFile || totalPatchCount === 0;
     exportStatus.textContent = totalPatchCount === 0
       ? 'Export status: blocked (no in-memory patches).'
@@ -267,6 +288,9 @@ if (
     patchApplyStatus.textContent = 'Patch apply status: unavailable.';
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
+    replacementImageInput.value = '';
+    replacementImageInput.disabled = true;
+    imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     updateExportUi();
     draftState = null;
     currentExportSafetySummary = null;
@@ -286,6 +310,9 @@ if (
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = 'Movement blocked: this object cannot be moved safely.';
     setResizeStatusText('Resize blocked: this object cannot be resized safely.');
+    replacementImageInput.disabled = true;
+    replacementImageInput.value = '';
+    imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
   };
 
   const setMoveStatusText = (text) => {
@@ -367,7 +394,7 @@ if (
         movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
         let commitSucceeded = true;
         if (currentHtmlFile) {
-          const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+          const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
           if (patched && patched.previewResult && patched.previewResult.previewDocument) {
             safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
             safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
@@ -435,7 +462,7 @@ if (
             const previousCollection = movePatchCollection;
             movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
             if (currentHtmlFile) {
-              const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+              const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
               if (patched && patched.previewResult && patched.previewResult.previewDocument) {
                 safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
                 safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
@@ -489,6 +516,14 @@ if (
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'Drag an overlay box or use nudge buttons.' : 'Movement blocked: this object cannot be moved safely.';
     setResizeStatusText(nudgeEnabled ? 'Drag a corner handle to resize.' : 'Resize blocked: this object cannot be resized safely.');
+    if (canCreateImageReplacementPatchForObject(selected)) {
+      replacementImageInput.disabled = false;
+      imageReplacementStatus.textContent = 'Choose a local image file.';
+    } else {
+      replacementImageInput.disabled = true;
+      replacementImageInput.value = '';
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+    }
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -537,7 +572,7 @@ if (
     patchCollection = nextCollection.collection;
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
-    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
       return;
@@ -555,9 +590,13 @@ if (
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
     movePatchCollection = createVisualMovePatchCollectionState();
+    imagePatchCollection = createImageReplacementPatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
+    replacementImageInput.value = '';
+    replacementImageInput.disabled = true;
+    imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
     const previewResult = await createSafeHtmlPreviewResult(currentHtmlFile);
     if (previewResult) {
@@ -597,6 +636,7 @@ if (
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
     movePatchCollection = createVisualMovePatchCollectionState();
+    imagePatchCollection = createImageReplacementPatchCollectionState();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
@@ -702,9 +742,54 @@ if (
     }
   });
 
+  replacementImageInput.addEventListener('change', async () => {
+    if (!currentVisualInventory) return;
+    const file = replacementImageInput.files && replacementImageInput.files[0];
+    if (!file) return;
+    const selectionState = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
+    const selected = selectionState.selectedObject;
+    if (!canCreateImageReplacementPatchForObject(selected)) {
+      replacementImageInput.disabled = true;
+      replacementImageInput.value = '';
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+      return;
+    }
+    const asset = await createReplacementImageAssetFromFile(file);
+    if (asset.status !== 'ready') {
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+      return;
+    }
+    const patch = createImageReplacementPatchPlan(selected, asset);
+    if (patch.applyStatus !== 'planned') {
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+      return;
+    }
+    const previousImagePatchCollection = imagePatchCollection;
+    imagePatchCollection = addOrUpdateImageReplacementPatch(imagePatchCollection, patch).collection;
+    if (currentHtmlFile) {
+      const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
+      if (!patched || !patched.previewResult || !patched.previewResult.previewDocument) {
+        imagePatchCollection = previousImagePatchCollection;
+        updateExportUi();
+        renderVisualObjectSelection(currentVisualInventory);
+        const warnings = patched && patched.applyState && Array.isArray(patched.applyState.warnings) ? patched.applyState.warnings : [];
+        if (warnings.includes('missing-src-attribute') || warnings.includes('empty-src-attribute')) {
+          imageReplacementStatus.textContent = 'Selected image does not have a safely replaceable source.';
+          return;
+        }
+        imageReplacementStatus.textContent = 'Image replacement could not be applied safely.';
+        return;
+      }
+      safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+      safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+      imageReplacementStatus.textContent = 'Image replacement applied to preview.';
+    }
+    updateExportUi();
+  });
+
   exportEditedHtml.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
-    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, movePatchCollection, currentExportSafetySummary);
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, movePatchCollection, currentExportSafetySummary, imagePatchCollection);
     exportStatus.textContent = formatExportStatusText(exportResult);
     if (!exportResult.exported || !exportResult.blob) return;
     const objectUrl = URL.createObjectURL(exportResult.blob);
@@ -735,7 +820,7 @@ if (
     if (moveStatus) moveStatus.textContent = 'Moved selected object.';
     updateExportUi();
     if (currentHtmlFile) {
-      const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+      const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
       if (patched && patched.previewResult && patched.previewResult.previewDocument) {
         safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
         safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);

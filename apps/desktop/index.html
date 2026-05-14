@@ -93,6 +93,13 @@
           <pre id="visual-resize-status" aria-live="polite">Resize blocked: this object cannot be resized safely.</pre>
         </div>
       </section>
+      <section id="image-replacement-panel">
+        <h2>Replace selected image</h2>
+        <p>Choose a local image file.</p>
+        <p>SVG and remote images are not supported.</p>
+        <input id="replacement-image-input" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif" disabled />
+        <pre id="image-replacement-status" aria-live="polite">Selected object is not safely image-replaceable.</pre>
+      </section>
       <section>
         <h2>5) Export edited copy</h2>
         <p>When ready, export a local edited copy. Your original file remains unchanged.</p>

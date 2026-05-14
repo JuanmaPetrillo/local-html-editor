@@ -35,14 +35,19 @@
 
 ## Future phases
 
-### Phase 6: Image replacement
+### Phase 6A: Local image replacement ✓
+
+- Replace selected safe `<img>` objects with user-selected local raster image files (png/jpeg/jpg/gif/webp/avif).
+- Replacement is embedded as a local `data:image/...;base64,...` URL for preview/export.
+- SVG replacement and non-image replacement remain blocked.
+
 ### Phase 7: ZIP/assets import-export
 ### Phase 8: Packaging/non-admin distribution
 ### Phase 9: Pilot hardening
 
 ## Next focus
 
-- Phase 6 image replacement (only with explicit approval).
+- Phase 7 ZIP/assets import-export (only with explicit approval).
 
 ## Strategy guardrails across all phases
 

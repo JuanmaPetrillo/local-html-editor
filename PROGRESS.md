@@ -16,7 +16,7 @@ Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe p
 
 Phase 5A trusted-shell nudge movement, Phase 5B constrained drag movement, and Phase 5C constrained resize handles are implemented.
 
-ZIP remains preflight-only (no extraction/listing/export). No image replacement, no persistence/autosave, no packaging/framework conversion (Tauri/React/Vite/TypeScript), and no arbitrary full PowerPoint-equivalent edit coverage are implemented in this branch.
+ZIP remains preflight-only (no extraction/listing/export). Local image replacement is implemented for selected safe `<img>` objects, while persistence/autosave, packaging/framework conversion (Tauri/React/Vite/TypeScript), and arbitrary full PowerPoint-equivalent edit coverage remain unimplemented in this branch.
 
 Current app files:
 
@@ -585,5 +585,17 @@ Summary: Added constrained trusted-shell resize handles for selected overlay-rea
 Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/visual-layout-model.mjs, scripts/test.mjs, scripts/test-e2e.mjs, docs/ROADMAP.md, README.md, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
 Result: Passed.
-Known limitations: No image replacement, in-place contenteditable editing, ZIP extraction/listing/export, persistence/autosave, dependency additions, network calls, telemetry, iframe internals access/postMessage, iframe permission changes, or framework conversion.
+Known limitations: In-place contenteditable editing, ZIP extraction/listing/export, persistence/autosave, dependency additions, network calls, telemetry, iframe internals access/postMessage, iframe permission changes, or framework conversion are not implemented.
 Next recommended task: Keep next slice limited to explicitly approved image replacement scope.
+
+
+### 2026-05-14 (phase 6a local image replacement)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 6A - local image replacement
+Summary: Added initial local image replacement patch model and importer-owned image asset conversion for safe raster MIME types only (png/jpeg/jpg/gif/webp/avif), including base64 data URL generation and combined text+layout+image patch application support for preview/export pipelines.
+Files changed: apps/desktop/src/image-replacement-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/exporter.mjs, apps/desktop/src/visual-layout-model.mjs, docs/ROADMAP.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: ZIP extraction/listing/export, persistence/autosave, packaging/framework conversion, network calls, telemetry, and iframe internals access remain unchanged and not added.
+Next recommended task: Proceed to Phase 7 ZIP/assets scope only with explicit approval.

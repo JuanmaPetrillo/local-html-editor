@@ -24,6 +24,21 @@ if (!html.includes('id="selected-text-edit-panel"')) throw new Error('shell ui m
 if (!html.includes('id="selected-text-edit-status"')) throw new Error('shell ui missing selected text edit status');
 if (!html.includes('id="visual-overlay-layer"')) throw new Error('shell ui missing visual overlay layer');
 if (!html.includes('id="visual-overlay-status"')) throw new Error('shell ui missing visual overlay status region');
+if (!html.includes('id="image-replacement-panel"')) throw new Error('shell ui missing image replacement panel');
+if (!html.includes('id="replacement-image-input"')) throw new Error('shell ui missing replacement image input');
+if (!html.includes('id="image-replacement-status"')) throw new Error('shell ui missing image replacement status');
+if (!html.includes('accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif"')) throw new Error('shell ui missing safe raster accept list');
+if (!html.includes('Replace selected image')) throw new Error('shell ui missing image replacement copy');
+if (!html.includes('Choose a local image file.')) throw new Error('shell ui missing image replacement chooser copy');
+if (!html.includes('SVG and remote images are not supported.')) throw new Error('shell ui missing image replacement safety copy');
+if (!shellCode.includes('replacementImageInput.disabled = false')) throw new Error('shell logic missing image replacement input enable path');
+if (!shellCode.includes('const previousImagePatchCollection = imagePatchCollection')) throw new Error('shell logic missing image patch rollback baseline');
+if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) throw new Error('shell logic missing image patch rollback assignment');
+if (!shellCode.includes("'Image replacement could not be applied safely.'")) throw new Error('shell logic missing image replacement failure status copy');
+if (!shellCode.includes("'Image replacement applied to preview.'")) throw new Error('shell logic missing image replacement success status copy');
+if (!shellCode.includes("'Choose a local image file.'")) throw new Error('shell logic missing image replacement eligible status copy');
+if (!shellCode.includes("'Selected image does not have a safely replaceable source.'")) throw new Error('shell logic missing image source-specific blocked status copy');
+
 if (!html.includes('id="visual-move-panel"')) throw new Error('shell ui missing visual move panel');
 if (!html.includes('id="move-selected-up"')) throw new Error('shell ui missing move up button');
 if (!html.includes('id="move-selected-down"')) throw new Error('shell ui missing move down button');
