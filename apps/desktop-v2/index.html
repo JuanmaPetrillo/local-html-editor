@@ -1,7 +1,12 @@
 <!doctype html>
 <html lang="en">
-  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Local HTML Editor V2 Proof</title>
-  <style>body{font-family:Segoe UI,Tahoma,sans-serif;margin:0;background:#f3f5f8}main{max-width:1000px;margin:1rem auto;background:#fff;border:1px solid #dbe2ea;border-radius:10px;padding:1rem}.toolbar{display:flex;gap:.5rem;align-items:center}.canvas{position:relative;width:960px;height:540px;border:1px solid #bbb;background:#fff;overflow:hidden;margin-top:1rem}.obj{position:absolute;box-sizing:border-box}.obj.selected{outline:2px solid #2563eb}.text-edit{min-width:20px;min-height:20px;white-space:pre-wrap}.handle{position:absolute;width:10px;height:10px;background:#fff;border:1px solid #1e3a8a;right:-6px;bottom:-6px;cursor:nwse-resize}.status{white-space:pre-wrap;background:#f8fafc;border:1px solid #dbe2ea;padding:.5rem;margin-top:.75rem}</style>
-  </head>
-  <body><main><h1>V2 Proof Canvas</h1><div class="toolbar"><input id="file" type="file" accept=".html,.htm"><button id="add-image">Add image</button><button id="delete" disabled>Delete selected</button><button id="export">Export HTML</button></div><div id="canvas" class="canvas"></div><pre id="status" class="status">Load a simple HTML file.</pre></main><script type="module" src="./src/app-v2.mjs"></script></body>
-</html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Local HTML Editor V2</title>
+<style>body{font-family:Segoe UI,Tahoma,sans-serif;margin:0;background:#eef2f7}.top{display:flex;gap:.4rem;flex-wrap:wrap;padding:.5rem;border-bottom:1px solid #cfd8e3;background:#fff}.wrap{display:grid;grid-template-columns:180px 1fr 240px;gap:.5rem;padding:.5rem}.panel{background:#fff;border:1px solid #cfd8e3;border-radius:8px;padding:.5rem}.canvas{position:relative;width:960px;height:540px;border:1px solid #999;background:#fff;overflow:hidden;margin:auto}.obj{position:absolute;box-sizing:border-box}.obj.selected{outline:2px solid #2563eb}.obj.text{white-space:pre-wrap}.handle{position:absolute;width:10px;height:10px;right:-6px;bottom:-6px;background:#fff;border:1px solid #1d4ed8;cursor:nwse-resize}.blocked{border:1px dashed #888;background:#f3f4f6}.list{display:flex;flex-direction:column;gap:.3rem}.list button.active{background:#dbeafe}.status{padding:.5rem;background:#111827;color:#e5e7eb;font-size:.9rem}</style>
+</head>
+<body>
+<div class="top"><input id="file" type="file" accept=".html,.htm"><button id="add-text">Add Text</button><button id="add-image">Add Image</button><button id="replace-image" disabled>Replace Image</button><button id="delete" disabled>Delete</button><button id="undo">Undo</button><button id="redo">Redo</button><button id="save-project">Save Project</button><button id="open-project">Open Project</button><button id="export">Export HTML</button><input id="open-project-file" type="file" accept=".json" hidden></div>
+<div class="wrap"><aside class="panel"><h3>Slides</h3><div id="slides" class="list"></div></aside><main class="panel"><div id="canvas" class="canvas"></div></main><aside class="panel"><h3>Objects</h3><div id="layers" class="list"></div><p>Tip: double-click text to edit inline.</p></aside></div>
+<div id="status" class="status">Ready.</div>
+<script src="./app-v2.bundle.js"></script>
+</body></html>
