@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Local HTML Editor V2 Proof</title>
+  <style>body{font-family:Segoe UI,Tahoma,sans-serif;margin:0;background:#f3f5f8}main{max-width:1000px;margin:1rem auto;background:#fff;border:1px solid #dbe2ea;border-radius:10px;padding:1rem}.toolbar{display:flex;gap:.5rem;align-items:center}.canvas{position:relative;width:960px;height:540px;border:1px solid #bbb;background:#fff;overflow:hidden;margin-top:1rem}.obj{position:absolute;box-sizing:border-box}.obj.selected{outline:2px solid #2563eb}.text-edit{min-width:20px;min-height:20px;white-space:pre-wrap}.handle{position:absolute;width:10px;height:10px;background:#fff;border:1px solid #1e3a8a;right:-6px;bottom:-6px;cursor:nwse-resize}.status{white-space:pre-wrap;background:#f8fafc;border:1px solid #dbe2ea;padding:.5rem;margin-top:.75rem}</style>
+  </head>
+  <body><main><h1>V2 Proof Canvas</h1><div class="toolbar"><input id="file" type="file" accept=".html,.htm"><button id="add-image">Add image</button><button id="delete" disabled>Delete selected</button><button id="export">Export HTML</button></div><div id="canvas" class="canvas"></div><pre id="status" class="status">Load a simple HTML file.</pre></main><script type="module" src="./src/app-v2.mjs"></script></body>
+</html>
