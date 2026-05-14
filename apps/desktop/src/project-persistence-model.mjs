@@ -22,6 +22,24 @@ function hasSafeImageDataUrl(url) {
   return typeof url === 'string' && SAFE_IMAGE_PREFIXES.some((prefix) => url.startsWith(prefix));
 }
 
+const FORBIDDEN_KEYS = new Set(['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'rawBuffer', 'workingHtml', 'previewDocument', 'srcdoc']);
+
+function hasForbiddenStructure(value, visited = new Set()) {
+  if (value == null) return false;
+  if (value instanceof ArrayBuffer) return true;
+  if (ArrayBuffer.isView(value)) return true;
+  if (typeof Blob !== 'undefined' && value instanceof Blob) return true;
+  if (typeof value !== 'object') return false;
+  if (visited.has(value)) return false;
+  visited.add(value);
+  if (Array.isArray(value)) return value.some((item) => hasForbiddenStructure(item, visited));
+  for (const [key, child] of Object.entries(value)) {
+    if (FORBIDDEN_KEYS.has(key)) return true;
+    if (hasForbiddenStructure(child, visited)) return true;
+  }
+  return false;
+}
+
 export function createProjectSavePayload(sourceFileFingerprint, textPatchCollection, visualMoveCollection, imagePatchCollection) {
   const hasImageData = Array.isArray(imagePatchCollection?.orderedObjectIds) && imagePatchCollection.orderedObjectIds.length > 0;
   return {
@@ -38,9 +56,7 @@ export function validateProjectSavePayload(payload) {
   if (payload.schemaVersion !== SCHEMA_VERSION) return { ok: false, reason: 'invalid-schema-version' };
   if (!payload.sourceFile || typeof payload.sourceFile.name !== 'string' || !Number.isFinite(payload.sourceFile.size)) return { ok: false, reason: 'invalid-source-file' };
   if (!payload.patches || typeof payload.patches !== 'object') return { ok: false, reason: 'invalid-patches' };
-  const forbidden = ['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'ArrayBuffer', 'Blob', 'workingHtml', 'previewDocument', 'srcdoc'];
-  const serialized = JSON.stringify(payload);
-  if (forbidden.some((x) => serialized.includes(x))) return { ok: false, reason: 'forbidden-field-present' };
+  if (hasForbiddenStructure(payload)) return { ok: false, reason: 'forbidden-field-present' };
   const imageCollection = payload.patches.imagePatchCollection;
   if (imageCollection && imageCollection.patchesByObjectId) {
     for (const patch of Object.values(imageCollection.patchesByObjectId)) {

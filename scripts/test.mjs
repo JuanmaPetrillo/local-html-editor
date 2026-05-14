@@ -135,10 +135,24 @@ const payload = createProjectSavePayload(
 );
 assert.equal(validateProjectSavePayload(payload).ok, true);
 assert.equal(parseProjectSavePayload(JSON.stringify(payload)).ok, true);
+const textPayload = createProjectSavePayload(
+  fp,
+  { patchesByCandidateId: { one: { replacementText: 'binary Blob srcdoc' } }, orderedCandidateIds: ['one'] },
+  { movePatchesByObjectId: {}, orderedObjectIds: [] },
+  { patchesByObjectId: {}, orderedObjectIds: [] }
+);
+assert.equal(validateProjectSavePayload(textPayload).ok, true);
 assert.equal(parseProjectSavePayload('{').ok, false);
 assert.equal(validateProjectSavePayload({ schemaVersion: 2 }).ok, false);
+assert.equal(validateProjectSavePayload({ ...payload, rawHtmlText: '<h1>x</h1>' }).ok, false);
+assert.equal(validateProjectSavePayload({ ...payload, workingHtml: '<h1>x</h1>' }).ok, false);
+assert.equal(validateProjectSavePayload({ ...payload, patches: { ...payload.patches, binaryValue: new ArrayBuffer(8) } }).ok, false);
+assert.equal(validateProjectSavePayload({ ...payload, patches: { ...payload.patches, binaryValue: new Uint8Array([1, 2, 3]) } }).ok, false);
+assert.equal(validateProjectSavePayload({ ...payload, patches: { ...payload.patches, binaryValue: new Blob(['x']) } }).ok, false);
 const badPayload = createProjectSavePayload(fp, { patchesByCandidateId: {}, orderedCandidateIds: [] }, { movePatchesByObjectId: {}, orderedObjectIds: [] }, { patchesByObjectId: { a: { replacementDataUrl: 'data:image/svg+xml;base64,AAA' } }, orderedObjectIds: ['a'] });
 assert.equal(validateProjectSavePayload(badPayload).ok, false);
+const safeImagePayload = createProjectSavePayload(fp, { patchesByCandidateId: {}, orderedCandidateIds: [] }, { movePatchesByObjectId: {}, orderedObjectIds: [] }, { patchesByObjectId: { a: { replacementDataUrl: 'data:image/png;base64,AAAA' } }, orderedObjectIds: ['a'] });
+assert.equal(validateProjectSavePayload(safeImagePayload).ok, true);
 const fakeProjectText = await createProjectPayloadFromFile({ text: async () => JSON.stringify(payload) });
 assert.equal(typeof fakeProjectText, 'string');
 
