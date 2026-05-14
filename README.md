@@ -88,7 +88,11 @@ npm ci
 npm run build
 ```
 
-Then open `dist/index.html` in a local browser.
+Then serve `dist/` locally and open `http://localhost:8765` (recommended for reliable ES module loading in managed browsers), for example:
+
+```bash
+py -m http.server 8765
+```
 
 ### Manual pilot packaging (no-admin, docs/scripts only)
 
@@ -100,7 +104,7 @@ npm run build
 npm run package:pilot
 ```
 
-This creates a versioned portable folder under `pilot-dist/` containing `index.html`, `src/*.mjs`, and a short pilot readme.
+This creates a versioned portable folder under `pilot-dist/` containing `index.html`, `src/*.mjs`, `START_HERE.bat`, and a short pilot readme with local-server launch instructions.
 
 You can also build and package a pilot artifact from GitHub Actions (manual-only trigger):
 

@@ -681,4 +681,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Workflow is manual-only and produces portable folder artifacts only (no installer/executable); ZIP remains preflight-only.
 Next recommended task: Continue Phase 7 ZIP/assets implementation only with explicit approval.
+### 2026-05-14 (pilot packaging reliability: localhost launch helper)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 8C pilot packaging reliability follow-up
+Summary: Updated pilot packaging output to include `START_HERE.bat` that launches a local static server (`py -m http.server 8765` fallback `python -m http.server 8765`) and opens `http://localhost:8765`, plus updated pilot readme/manual docs to warn that `file://` can block ES module loading (`src/app-shell.mjs`) in some managed browser environments. Added regression tests to verify package output includes launcher/readme guidance and docs no longer imply double-click `index.html` is always reliable.
+Files changed: scripts/package-pilot.mjs, docs/MANUAL_PILOT_GUIDE.md, README.md, scripts/test.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run package:pilot
+Result: Passed.
+Known limitations: Still no installer/executable; pilot remains browser-first/local-only; ZIP remains preflight-only.
+Next recommended task: Collect pilot feedback on launch reliability before considering any broader packaging changes.
 
