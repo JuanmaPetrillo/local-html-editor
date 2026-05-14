@@ -20,6 +20,12 @@ if (!html.includes('id="selected-text-edit-panel"')) throw new Error('shell ui m
 if (!html.includes('id="selected-text-edit-status"')) throw new Error('shell ui missing selected text edit status');
 if (!html.includes('id="visual-overlay-layer"')) throw new Error('shell ui missing visual overlay layer');
 if (!html.includes('id="visual-overlay-status"')) throw new Error('shell ui missing visual overlay status region');
+if (!html.includes('id="visual-move-panel"')) throw new Error('shell ui missing visual move panel');
+if (!html.includes('id="move-selected-up"')) throw new Error('shell ui missing move up button');
+if (!html.includes('id="move-selected-down"')) throw new Error('shell ui missing move down button');
+if (!html.includes('id="move-selected-left"')) throw new Error('shell ui missing move left button');
+if (!html.includes('id="move-selected-right"')) throw new Error('shell ui missing move right button');
+if (!html.includes('id="visual-move-status"')) throw new Error('shell ui missing visual move status');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
 if (!html.includes('position: absolute')) throw new Error('shell ui missing absolute positioning style for overlay rendering');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');

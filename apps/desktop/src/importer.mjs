@@ -3,6 +3,7 @@ import { buildSafePreviewDocument, buildSafePreviewResult } from './preview-sand
 import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, createEditableTextInventory } from './editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from './exporter.mjs';
 import { createVisualObjectInventory } from './visual-object-model.mjs';
+import { applyCombinedTextAndVisualPatchesToHtml } from './visual-layout-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -225,19 +226,23 @@ export async function createPatchedSafePreviewResult(file, patchPlan) {
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} collection */
-export async function createCollectionPatchedSafePreviewResult(file, collection) {
+export async function createCombinedPatchedSafePreviewResult(file, textPatchCollection, visualMoveCollection) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) return null;
   const htmlText = await file.text();
   const inventory = createEditableTextInventory(htmlText);
-  const applyState = applyPatchCollectionToWorkingHtml(htmlText, collection, inventory);
+  const moveCount = visualMoveCollection && Array.isArray(visualMoveCollection.orderedObjectIds) ? visualMoveCollection.orderedObjectIds.length : 0;
+  const visualInventory = createVisualObjectInventory(htmlText);
+  const applyState = moveCount === 0
+    ? applyPatchCollectionToWorkingHtml(htmlText, textPatchCollection, inventory)
+    : applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, inventory, visualInventory);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview' || !applyState.workingHtml) {
     return {
       applyState: {
         appliedAny: applyState.appliedAny,
         applyStatus: applyState.applyStatus,
         applyResults: applyState.applyResults,
-        collectionCount: applyState.collectionCount,
+        collectionCount: textPatchCollection && textPatchCollection.orderedCandidateIds ? textPatchCollection.orderedCandidateIds.length : 0,
         warnings: Array.isArray(applyState.warnings) ? applyState.warnings : []
       },
       previewResult: null
@@ -251,7 +256,7 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
       appliedAny: applyState.appliedAny,
       applyStatus: applyState.applyStatus,
       applyResults: applyState.applyResults,
-      collectionCount: applyState.collectionCount,
+      collectionCount: textPatchCollection && textPatchCollection.orderedCandidateIds ? textPatchCollection.orderedCandidateIds.length : 0,
       warnings: Array.isArray(applyState.warnings) ? applyState.warnings : []
     },
     previewResult
@@ -259,7 +264,7 @@ export async function createCollectionPatchedSafePreviewResult(file, collection)
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection, safetySummary = null) {
+export async function createEditedHtmlExport(file, patchCollection, visualMoveCollection, safetySummary = null) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) {
     const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
@@ -268,7 +273,7 @@ export async function createEditedHtmlExport(file, patchCollection, safetySummar
     return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
   }
   const htmlText = await file.text();
-  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, safetySummary);
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, visualMoveCollection, safetySummary);
 }
 
 /**
@@ -620,3 +625,5 @@ export function formatImportReportText(report) {
     warningText
   ].join('\n');
 }
+
+export const createCollectionPatchedSafePreviewResult = createCombinedPatchedSafePreviewResult;

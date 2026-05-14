@@ -11,7 +11,7 @@ import {
   createSafeHtmlPreviewResult,
   createEditableInventoryForHtmlFile,
   createVisualObjectInventoryForHtmlFile,
-  createCollectionPatchedSafePreviewResult,
+  createCombinedPatchedSafePreviewResult,
   createEditedHtmlExport
 } from './importer.mjs';
 import {
@@ -36,9 +36,7 @@ import { formatExportStatusText } from './exporter.mjs';
 import {
   createVisualObjectSelectionState,
   createVisualOverlayItems,
-  createMovePatchCollectionState,
-  addOrUpdateMovePatch,
-  createMovePatchFromNudge,
+  
   createVisualOverlaySelectionState,
   formatOverlayStatusText,
   formatVisualObjectInventoryText,
@@ -50,6 +48,7 @@ import {
   createSelectedTextEditStatus,
   formatSelectedTextEditStatus
 } from './visual-object-model.mjs';
+import { createVisualMovePatchCollectionState, addOrUpdateVisualMovePatch, createVisualMovePatchPlan, createOverlayItemsWithMoveOverrides } from './visual-layout-model.mjs';
 
 /** @typedef {'html' | 'zip' | 'unknown'} SourceKind */
 
@@ -171,10 +170,10 @@ const workingPreviewStatus = hasDom ? document.querySelector('#working-preview-s
 const resetWorkingPreview = hasDom ? document.querySelector('#reset-working-preview') : null;
 const exportEditedHtml = hasDom ? document.querySelector('#export-edited-html') : null;
 const exportStatus = hasDom ? document.querySelector('#export-status') : null;
-const nudgeLeft = hasDom ? document.querySelector('#nudge-left') : null;
-const nudgeRight = hasDom ? document.querySelector('#nudge-right') : null;
-const nudgeUp = hasDom ? document.querySelector('#nudge-up') : null;
-const nudgeDown = hasDom ? document.querySelector('#nudge-down') : null;
+const nudgeLeft = hasDom ? document.querySelector('#move-selected-left') : null;
+const nudgeRight = hasDom ? document.querySelector('#move-selected-right') : null;
+const nudgeUp = hasDom ? document.querySelector('#move-selected-up') : null;
+const nudgeDown = hasDom ? document.querySelector('#move-selected-down') : null;
 const previewFitWidth = hasDom ? document.querySelector('#preview-fit-width') : null;
 const previewCompactHeight = hasDom ? document.querySelector('#preview-compact-height') : null;
 const previewTallHeight = hasDom ? document.querySelector('#preview-tall-height') : null;
@@ -242,7 +241,7 @@ if (
   /** @type {any} */
   let currentPatchPlan = null;
   let patchCollection = createPatchCollectionState();
-  let movePatchCollection = createMovePatchCollectionState();
+  let movePatchCollection = createVisualMovePatchCollectionState();
   let currentSelectionGeneration = 0;
   let currentExportSafetySummary = null;
   const updateExportUi = () => {
@@ -278,11 +277,17 @@ if (
     selectedTextEditStatus.textContent = 'Select a visual text object to edit.';
     visualOverlayLayer.replaceChildren();
     visualOverlayStatus.textContent = 'Overlay status: waiting for .html/.htm selection.';
+    if (nudgeLeft != null) nudgeLeft.disabled = true;
+    if (nudgeRight != null) nudgeRight.disabled = true;
+    if (nudgeUp != null) nudgeUp.disabled = true;
+    if (nudgeDown != null) nudgeDown.disabled = true;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
   };
 
   const renderVisualOverlay = (inventory, selectedObjectId) => {
     visualOverlayLayer.replaceChildren();
-    const overlayItems = createVisualOverlayItems(inventory, movePatchCollection);
+    const overlayItems = createOverlayItemsWithMoveOverrides(inventory, movePatchCollection);
     const overlayState = createVisualOverlaySelectionState(overlayItems, selectedObjectId);
     for (const item of overlayState.items) {
       const button = document.createElement('button');
@@ -318,11 +323,15 @@ if (
     }
     renderVisualOverlay(inventory, state.selectedObjectId);
     const selected = state.selectedObject;
-    const nudgeEnabled = !!(selected && selected.geometry && Number.isFinite(selected.geometry.left) && Number.isFinite(selected.geometry.top));
+    const existingMovePatch = selected && selected.objectId ? movePatchCollection.movePatchesByObjectId[selected.objectId] : null;
+    const movePlan = selected ? createVisualMovePatchPlan(selected, 0, 0, existingMovePatch) : null;
+    const nudgeEnabled = !!(movePlan && movePlan.applyStatus === 'planned');
     if (nudgeLeft != null) nudgeLeft.disabled = !nudgeEnabled;
     if (nudgeRight != null) nudgeRight.disabled = !nudgeEnabled;
     if (nudgeUp != null) nudgeUp.disabled = !nudgeEnabled;
     if (nudgeDown != null) nudgeDown.disabled = !nudgeEnabled;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'This object can be moved.' : 'This object cannot be moved safely.';
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -371,7 +380,7 @@ if (
     patchCollection = nextCollection.collection;
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
-    const patched = await createCollectionPatchedSafePreviewResult(currentHtmlFile, patchCollection);
+    const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
     if (!patched) {
       patchApplyStatus.textContent = 'Patch apply status: failed (no HTML preview path).';
       return;
@@ -388,7 +397,7 @@ if (
   resetWorkingPreview.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
     patchCollection = createPatchCollectionState();
-    movePatchCollection = createMovePatchCollectionState();
+    movePatchCollection = createVisualMovePatchCollectionState();
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
@@ -427,7 +436,7 @@ if (
     currentHtmlFile = null;
     currentPatchPlan = null;
     patchCollection = createPatchCollectionState();
-    movePatchCollection = createMovePatchCollectionState();
+    movePatchCollection = createVisualMovePatchCollectionState();
     resetDraftUi();
     updateExportUi();
     safePreviewFrame.srcdoc =
@@ -535,7 +544,7 @@ if (
 
   exportEditedHtml.addEventListener('click', async () => {
     if (!currentHtmlFile) return;
-    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, currentExportSafetySummary);
+    const exportResult = await createEditedHtmlExport(currentHtmlFile, patchCollection, movePatchCollection, currentExportSafetySummary);
     exportStatus.textContent = formatExportStatusText(exportResult);
     if (!exportResult.exported || !exportResult.blob) return;
     const objectUrl = URL.createObjectURL(exportResult.blob);
@@ -548,18 +557,34 @@ if (
     setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     exportStatus.textContent = formatExportStatusText({ ...exportResult, exportStatus: 'exported' });
   });
-}
-  const applyNudge = (dx, dy) => {
+
+  const applyNudge = async (dx, dy) => {
     const state = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
-    if (!state.selectedObject) return;
+    const moveStatus = document.querySelector('#visual-move-status');
+    if (!state.selectedObject) {
+      if (moveStatus) moveStatus.textContent = 'This object cannot be moved safely.';
+      return;
+    }
     const existing = movePatchCollection.movePatchesByObjectId[state.selectedObject.objectId];
-    const patch = createMovePatchFromNudge(state.selectedObject, dx, dy, existing);
-    if (!patch) return;
-    movePatchCollection = addOrUpdateMovePatch(movePatchCollection, patch).collection;
+    const patch = createVisualMovePatchPlan(state.selectedObject, dx, dy, existing);
+    if (!patch || patch.applyStatus !== 'planned') {
+      if (moveStatus) moveStatus.textContent = 'Movement blocked: missing explicit inline geometry.';
+      return;
+    }
+    movePatchCollection = addOrUpdateVisualMovePatch(movePatchCollection, patch).collection;
+    if (moveStatus) moveStatus.textContent = 'Moved selected object.';
     updateExportUi();
+    if (currentHtmlFile) {
+      const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection);
+      if (patched && patched.previewResult && patched.previewResult.previewDocument) {
+        safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+        safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+      }
+    }
     renderVisualOverlay(currentVisualInventory, state.selectedObject.objectId);
   };
-  if (nudgeLeft != null) nudgeLeft.addEventListener('click', () => applyNudge(-10, 0));
-  if (nudgeRight != null) nudgeRight.addEventListener('click', () => applyNudge(10, 0));
-  if (nudgeUp != null) nudgeUp.addEventListener('click', () => applyNudge(0, -10));
-  if (nudgeDown != null) nudgeDown.addEventListener('click', () => applyNudge(0, 10));
+  if (nudgeLeft != null) nudgeLeft.addEventListener('click', () => { void applyNudge(-10, 0); });
+  if (nudgeRight != null) nudgeRight.addEventListener('click', () => { void applyNudge(10, 0); });
+  if (nudgeUp != null) nudgeUp.addEventListener('click', () => { void applyNudge(0, -10); });
+  if (nudgeDown != null) nudgeDown.addEventListener('click', () => { void applyNudge(0, 10); });
+}

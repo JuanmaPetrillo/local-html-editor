@@ -60,6 +60,7 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
+import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml } from '../apps/desktop/src/visual-layout-model.mjs';
 import {
   createGeometryStatus,
   createVisualObjectInventory,
@@ -1142,4 +1143,58 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   // safe content must be preserved
   assert.equal(result.previewDocument.includes('Safe Headline'), true, 'risky fixture: safe headline preserved in srcdoc');
   assert.equal(result.previewDocument.includes('Safe paragraph text.'), true, 'risky fixture: safe paragraph preserved in srcdoc');
+}
+
+
+// Phase 5A regression coverage
+{
+  const html = '<h1 style="left:10px;top:20px;width:100px;height:30px">Title</h1>';
+  const visualInventory = createVisualObjectInventory(html);
+  const editableInventory = createEditableTextInventory(html);
+  const object = visualInventory.objects[0];
+  const move1 = createVisualMovePatchPlan(object, 10, 0, null);
+  const move2 = createVisualMovePatchPlan(object, 10, 0, move1);
+  assert.equal(move2.nextGeometry.left, 30);
+  let moves = createVisualMovePatchCollectionState();
+  moves = addOrUpdateVisualMovePatch(moves, move2).collection;
+  const apply = applyCombinedTextAndVisualPatchesToHtml(html, createPatchCollectionState(), moves, editableInventory, visualInventory);
+  assert.equal(apply.applyStatus, 'applied-to-working-preview');
+  assert.equal(apply.workingHtml, '<h1 style="left:30px;top:20px;width:100px;height:30px">Title</h1>');
+
+  const overlayBefore = createOverlayItemsWithMoveOverrides(visualInventory, createVisualMovePatchCollectionState());
+  assert.equal(overlayBefore[0].left, 10);
+  const overlayAfter = createOverlayItemsWithMoveOverrides(visualInventory, moves);
+  assert.equal(overlayAfter[0].left, 30);
+
+  const badCollection = { patchesByCandidateId: { missing: { patchId: 'patch-missing', candidateId: 'missing', replacementText: 'x' } }, orderedCandidateIds: ['missing'] };
+  const blocked = applyCombinedTextAndVisualPatchesToHtml(html, badCollection, createVisualMovePatchCollectionState(), editableInventory, visualInventory);
+  assert.equal(blocked.applyStatus, 'partial-or-failed');
+  assert.equal(blocked.warnings.includes('candidate-not-found'), true);
+
+  const moveOnlyExport = createEditedHtmlExportFromHtmlText(html, 'deck.html', createPatchCollectionState(), moves);
+  assert.equal(moveOnlyExport.exportStatus, 'ready');
+  assert.equal(moveOnlyExport.textPatchCount, 0);
+  assert.equal(moveOnlyExport.movePatchCount, 1);
+  assert.equal((await moveOnlyExport.blob.text()).includes('left:30px'), true);
+
+  const htmlEscape = '<h1 style="left:10px;top:20px;width:100px;height:30px">Old</h1>';
+  const escInv = createEditableTextInventory(htmlEscape);
+  const escCand = escInv.candidates[0];
+  const escPatchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), createTextPatchPlan(createDraftEdit(escCand, 'A & <B>'))).collection;
+  const escMove = addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), createVisualMovePatchPlan(createVisualObjectInventory(htmlEscape).objects[0], 10, 0, null)).collection;
+  const escCombined = applyCombinedTextAndVisualPatchesToHtml(htmlEscape, escPatchCollection, escMove, escInv, createVisualObjectInventory(htmlEscape));
+  assert.equal(escCombined.workingHtml, '<h1 style="left:20px;top:20px;width:100px;height:30px">A &amp; &lt;B&gt;</h1>');
+  const escExport = createEditedHtmlExportFromHtmlText(htmlEscape, 'deck.html', escPatchCollection, escMove);
+  assert.equal((await escExport.blob.text()), '<h1 style="left:20px;top:20px;width:100px;height:30px">A &amp; &lt;B&gt;</h1>');
+  const maliciousPatchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), createTextPatchPlan(createDraftEdit(escCand, '<script>alert(1)</script>'))).collection;
+  const maliciousExport = createEditedHtmlExportFromHtmlText(htmlEscape, 'deck.html', maliciousPatchCollection, escMove);
+  assert.equal((await maliciousExport.blob.text()).includes('&lt;script&gt;alert(1)&lt;/script&gt;'), true);
+
+  const lockedLike = { ...object, locked: true };
+  assert.equal(createVisualMovePatchPlan(lockedLike, 0, 0, null).applyStatus, 'blocked');
+  const partial = { ...object, geometry: { ...object.geometry, width: null, overlayReady: false } };
+  assert.equal(createVisualMovePatchPlan(partial, 0, 0, null).applyStatus, 'blocked');
+  const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
+  assert.equal(createVisualMovePatchPlan(imageAttr, 0, 0, null).applyStatus, 'blocked');
+
 }

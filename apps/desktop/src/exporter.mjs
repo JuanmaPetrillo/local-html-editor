@@ -1,5 +1,6 @@
-import { applyPatchCollectionToWorkingHtml } from './editable-model.mjs';
-import { createEditableTextInventory } from './editable-model.mjs';
+import { createEditableTextInventory, applyPatchCollectionToWorkingHtml } from './editable-model.mjs';
+import { applyCombinedTextAndVisualPatchesToHtml } from './visual-layout-model.mjs';
+import { createVisualObjectInventory } from './visual-object-model.mjs';
 
 /** @param {string} fileName */
 export function createSuggestedEditedHtmlFileName(fileName) {
@@ -11,17 +12,22 @@ export function createSuggestedEditedHtmlFileName(fileName) {
 }
 
 /** @param {string} htmlText @param {string} fileName @param {any} patchCollection */
-export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection, safetySummary = null) {
-  const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
-    ? patchCollection.orderedCandidateIds.length
-    : 0;
+export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection, visualMoveCollection, safetySummary = null) {
+  const legacySafetySummary = visualMoveCollection && !Array.isArray(visualMoveCollection.orderedObjectIds) && (Object.prototype.hasOwnProperty.call(visualMoveCollection, 'hasScripts') || Object.prototype.hasOwnProperty.call(visualMoveCollection, 'hasRemoteReferences'));
+  const normalizedMoveCollection = legacySafetySummary ? null : visualMoveCollection;
+  const normalizedSafetySummary = legacySafetySummary ? visualMoveCollection : safetySummary;
+  const textPatchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds) ? patchCollection.orderedCandidateIds.length : 0;
+  const movePatchCount = normalizedMoveCollection && Array.isArray(normalizedMoveCollection.orderedObjectIds) ? normalizedMoveCollection.orderedObjectIds.length : 0;
+  const patchCount = textPatchCount + movePatchCount;
   if (patchCount === 0) {
     return { fileName, suggestedFileName: createSuggestedEditedHtmlFileName(fileName), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['no-patches'], message: 'Export blocked: apply at least one in-memory patch first.' };
   }
   const inventory = createEditableTextInventory(htmlText);
-  const applyState = applyPatchCollectionToWorkingHtml(htmlText, patchCollection, inventory);
+  const applyState = movePatchCount === 0
+    ? applyPatchCollectionToWorkingHtml(htmlText, patchCollection, inventory)
+    : applyCombinedTextAndVisualPatchesToHtml(htmlText, patchCollection, normalizedMoveCollection, inventory, createVisualObjectInventory(htmlText));
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview') {
-    const overlapBlocked = applyState.applyStatus === 'blocked-overlapping-patches';
+    const overlapBlocked = applyState.applyStatus === 'blocked-overlapping-patches' || applyState.applyStatus === 'blocked-overlapping-operations';
     return {
       fileName,
       suggestedFileName: createSuggestedEditedHtmlFileName(fileName),
@@ -45,9 +51,11 @@ export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchColl
     exportStatus: 'ready',
     warnings: [],
     message: 'Edited HTML prepared for local download. The app did not save a copy.',
-    disclosureWarning: safetySummary && (safetySummary.hasScripts || safetySummary.hasRemoteReferences)
+    disclosureWarning: normalizedSafetySummary && (normalizedSafetySummary.hasScripts || normalizedSafetySummary.hasRemoteReferences)
       ? 'Exported HTML may contain scripts or remote references that were blocked in safe preview. Review before forwarding.'
       : '',
+    textPatchCount,
+    movePatchCount,
     blob
   };
 }
@@ -60,6 +68,8 @@ export function formatExportStatusText(exportResult) {
     `File: ${exportResult.fileName}`,
     `Suggested download: ${exportResult.suggestedFileName}`,
     `MIME type: ${exportResult.mimeType}`,
+    `Text patch count: ${exportResult.textPatchCount || 0}`,
+    `Move patch count: ${exportResult.movePatchCount || 0}`,
     `Patch count: ${exportResult.patchCount}`,
     exportResult.message,
     exportResult.disclosureWarning || '',

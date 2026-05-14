@@ -424,3 +424,37 @@ export function formatWorkingPreviewStateText(state) {
     'persistence: none (in-memory only)'
   ].join('\n');
 }
+
+export function createPatchCollectionApplyOperations(collection, inventory) {
+  const ids = collection && Array.isArray(collection.orderedCandidateIds) ? collection.orderedCandidateIds : [];
+  const candidates = inventory && Array.isArray(inventory.candidates) ? inventory.candidates : [];
+  const ops = [];
+  for (const candidateId of ids) {
+    const patch = collection.patchesByCandidateId[candidateId];
+    const candidate = candidates.find((item) => item.candidateId === candidateId);
+    if (!patch || !candidate || !Number.isInteger(candidate.sourceStart) || !Number.isInteger(candidate.sourceEnd) || typeof patch.replacementText !== 'string') continue;
+    ops.push({ operationId: patch.patchId || `patch-${candidateId}`, sourceStart: candidate.sourceStart, sourceEnd: candidate.sourceEnd, replacementText: escapeTextForHtml(patch.replacementText) });
+  }
+  return ops;
+}
+
+export function applyCombinedPatchOperationsToHtml(htmlText, operations) {
+  const rawOps = Array.isArray(operations) ? operations : [];
+  const ops = rawOps.filter((op) => Number.isInteger(op.sourceStart) && Number.isInteger(op.sourceEnd) && op.sourceEnd >= op.sourceStart && typeof op.replacementText === 'string');
+  if (rawOps.length > 0 && ops.length !== rawOps.length) {
+    return { applyStatus: 'partial-or-failed', appliedAny: false, warnings: ['invalid-source-span', 'patch-application-failed'] };
+  }
+  const sorted = [...ops].sort((a, b) => (b.sourceStart - a.sourceStart) || (b.sourceEnd - a.sourceEnd));
+  for (let i = 1; i < sorted.length; i += 1) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (curr.sourceEnd > prev.sourceStart) {
+      return { applyStatus: 'blocked-overlapping-patches', appliedAny: false, warnings: ['overlapping-patches'] };
+    }
+  }
+  let workingHtml = String(htmlText || '');
+  for (const op of sorted) {
+    workingHtml = `${workingHtml.slice(0, op.sourceStart)}${op.replacementText}${workingHtml.slice(op.sourceEnd)}`;
+  }
+  return { applyStatus: sorted.length ? 'applied-to-working-preview' : 'blocked-no-operations', appliedAny: sorted.length > 0, workingHtml, warnings: [] };
+}
