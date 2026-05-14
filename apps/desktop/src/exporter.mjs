@@ -12,20 +12,21 @@ export function createSuggestedEditedHtmlFileName(fileName) {
 }
 
 /** @param {string} htmlText @param {string} fileName @param {any} patchCollection */
-export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection, visualMoveCollection, safetySummary = null) {
+export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchCollection, visualMoveCollection, safetySummary = null, imagePatchCollection = null) {
   const legacySafetySummary = visualMoveCollection && !Array.isArray(visualMoveCollection.orderedObjectIds) && (Object.prototype.hasOwnProperty.call(visualMoveCollection, 'hasScripts') || Object.prototype.hasOwnProperty.call(visualMoveCollection, 'hasRemoteReferences'));
   const normalizedMoveCollection = legacySafetySummary ? null : visualMoveCollection;
   const normalizedSafetySummary = legacySafetySummary ? visualMoveCollection : safetySummary;
   const textPatchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds) ? patchCollection.orderedCandidateIds.length : 0;
   const movePatchCount = normalizedMoveCollection && Array.isArray(normalizedMoveCollection.orderedObjectIds) ? normalizedMoveCollection.orderedObjectIds.length : 0;
-  const patchCount = textPatchCount + movePatchCount;
+  const imagePatchCount = imagePatchCollection && Array.isArray(imagePatchCollection.orderedObjectIds) ? imagePatchCollection.orderedObjectIds.length : 0;
+  const patchCount = textPatchCount + movePatchCount + imagePatchCount;
   if (patchCount === 0) {
     return { fileName, suggestedFileName: createSuggestedEditedHtmlFileName(fileName), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['no-patches'], message: 'Export blocked: apply at least one in-memory patch first.' };
   }
   const inventory = createEditableTextInventory(htmlText);
-  const applyState = movePatchCount === 0
+  const applyState = movePatchCount === 0 && imagePatchCount === 0
     ? applyPatchCollectionToWorkingHtml(htmlText, patchCollection, inventory)
-    : applyCombinedTextAndVisualPatchesToHtml(htmlText, patchCollection, normalizedMoveCollection, inventory, createVisualObjectInventory(htmlText));
+    : applyCombinedTextAndVisualPatchesToHtml(htmlText, patchCollection, normalizedMoveCollection, inventory, createVisualObjectInventory(htmlText), imagePatchCollection);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview') {
     const overlapBlocked = applyState.applyStatus === 'blocked-overlapping-patches' || applyState.applyStatus === 'blocked-overlapping-operations';
     return {
@@ -56,6 +57,7 @@ export function createEditedHtmlExportFromHtmlText(htmlText, fileName, patchColl
       : '',
     textPatchCount,
     movePatchCount,
+    imagePatchCount,
     blob
   };
 }
@@ -70,6 +72,7 @@ export function formatExportStatusText(exportResult) {
     `MIME type: ${exportResult.mimeType}`,
     `Text patch count: ${exportResult.textPatchCount || 0}`,
     `Move patch count: ${exportResult.movePatchCount || 0}`,
+    `Image patch count: ${exportResult.imagePatchCount || 0}`,
     `Patch count: ${exportResult.patchCount}`,
     exportResult.message,
     exportResult.disclosureWarning || '',

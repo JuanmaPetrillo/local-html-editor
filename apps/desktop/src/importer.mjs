@@ -4,6 +4,7 @@ import { applyPatchCollectionToWorkingHtml, applyPlannedTextPatchToWorkingHtml, 
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName } from './exporter.mjs';
 import { createVisualObjectInventory } from './visual-object-model.mjs';
 import { applyCombinedTextAndVisualPatchesToHtml } from './visual-layout-model.mjs';
+import { createImageReplacementPatchCollectionState } from './image-replacement-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -226,16 +227,17 @@ export async function createPatchedSafePreviewResult(file, patchPlan) {
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} collection */
-export async function createCombinedPatchedSafePreviewResult(file, textPatchCollection, visualMoveCollection) {
+export async function createCombinedPatchedSafePreviewResult(file, textPatchCollection, visualMoveCollection, imagePatchCollection = createImageReplacementPatchCollectionState()) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) return null;
   const htmlText = await file.text();
   const inventory = createEditableTextInventory(htmlText);
   const moveCount = visualMoveCollection && Array.isArray(visualMoveCollection.orderedObjectIds) ? visualMoveCollection.orderedObjectIds.length : 0;
   const visualInventory = createVisualObjectInventory(htmlText);
-  const applyState = moveCount === 0
+  const imageCount = imagePatchCollection && Array.isArray(imagePatchCollection.orderedObjectIds) ? imagePatchCollection.orderedObjectIds.length : 0;
+  const applyState = moveCount === 0 && imageCount === 0
     ? applyPatchCollectionToWorkingHtml(htmlText, textPatchCollection, inventory)
-    : applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, inventory, visualInventory);
+    : applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, inventory, visualInventory, imagePatchCollection);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview' || !applyState.workingHtml) {
     return {
       applyState: {
@@ -264,7 +266,7 @@ export async function createCombinedPatchedSafePreviewResult(file, textPatchColl
 }
 
 /** @param {{name: string, text: () => Promise<string>}} file @param {any} patchCollection */
-export async function createEditedHtmlExport(file, patchCollection, visualMoveCollection, safetySummary = null) {
+export async function createEditedHtmlExport(file, patchCollection, visualMoveCollection, safetySummary = null, imagePatchCollection = createImageReplacementPatchCollectionState()) {
   const extension = detectHtmlExtension(file.name);
   if (!extension) {
     const patchCount = patchCollection && Array.isArray(patchCollection.orderedCandidateIds)
@@ -273,7 +275,21 @@ export async function createEditedHtmlExport(file, patchCollection, visualMoveCo
     return { fileName: file.name, suggestedFileName: createSuggestedEditedHtmlFileName(file.name), mimeType: 'text/html', patchCount, exported: false, exportStatus: 'blocked', warnings: ['unsupported-extension'], message: 'Export blocked: only .html/.htm files are supported.' };
   }
   const htmlText = await file.text();
-  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, visualMoveCollection, safetySummary);
+  return createEditedHtmlExportFromHtmlText(htmlText, file.name, patchCollection, visualMoveCollection, safetySummary, imagePatchCollection);
+}
+
+const SAFE_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/avif']);
+const EXT_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif' };
+export async function createReplacementImageAssetFromFile(file) {
+  const ext = (file.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+  const mimeType = String(file.type || EXT_MIME[ext] || '').toLowerCase();
+  if (!SAFE_IMAGE_MIME.has(mimeType)) return { fileName: file.name, mimeType, size: file.size, status: 'blocked', warnings: ['unsupported-image-type'] };
+  if (file.size > 10 * 1024 * 1024) return { fileName: file.name, mimeType, size: file.size, status: 'blocked', warnings: ['file-too-large'] };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  for (const value of bytes) binary += String.fromCharCode(value);
+  const dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
+  return { fileName: file.name, mimeType, size: file.size, dataUrl, status: 'ready', warnings: file.size > 5 * 1024 * 1024 ? ['large-file-warning'] : [] };
 }
 
 /**

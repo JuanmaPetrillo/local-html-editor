@@ -1,4 +1,5 @@
 import { createPatchCollectionApplyOperations, applyCombinedPatchOperationsToHtml } from './editable-model.mjs';
+import { createImageReplacementApplyOperations } from './image-replacement-model.mjs';
 
 export function createVisualMovePatchCollectionState() {
   return { movePatchesByObjectId: {}, orderedObjectIds: [] };
@@ -136,7 +137,7 @@ export function applyVisualMovePatchesToHtml(htmlText, visualMoveCollection, vis
   return applyCombinedTextAndVisualPatchesToHtml(htmlText, { patchesByCandidateId: {}, orderedCandidateIds: [] }, visualMoveCollection, { candidates: [] }, visualInventory);
 }
 
-export function applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, editableInventory, visualInventory) {
+export function applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, editableInventory, visualInventory, imagePatchCollection = null) {
   const textPatchIds = textPatchCollection && Array.isArray(textPatchCollection.orderedCandidateIds) ? textPatchCollection.orderedCandidateIds : [];
   const textOperations = createPatchCollectionApplyOperations(textPatchCollection, editableInventory);
   if (textPatchIds.length > 0 && textOperations.length !== textPatchIds.length) {
@@ -154,7 +155,12 @@ export function applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchColle
     if (!updated.ok) return { applyStatus: 'blocked-invalid-operations', appliedAny: false, warnings: [updated.warning] };
     moveOps.push({ operationId: `move-${objectId}`, sourceStart: movePatch.sourceStart, sourceEnd: movePatch.sourceEnd, replacementText: updated.tagSource });
   }
-  return applyCombinedPatchOperationsToHtml(htmlText, [...textOperations, ...moveOps]);
+  const imageOpsResult = createImageReplacementApplyOperations(htmlText, imagePatchCollection);
+  const imageIds = imagePatchCollection && Array.isArray(imagePatchCollection.orderedObjectIds) ? imagePatchCollection.orderedObjectIds : [];
+  if (imageIds.length > 0 && imageOpsResult.operations.length !== imageIds.length) {
+    return { applyStatus: 'blocked-invalid-operations', appliedAny: false, warnings: imageOpsResult.warnings };
+  }
+  return applyCombinedPatchOperationsToHtml(htmlText, [...textOperations, ...moveOps, ...imageOpsResult.operations]);
 }
 
 export function formatVisualMoveStatusText(state) {
