@@ -439,13 +439,17 @@ export function createPatchCollectionApplyOperations(collection, inventory) {
 }
 
 export function applyCombinedPatchOperationsToHtml(htmlText, operations) {
-  const ops = Array.isArray(operations) ? operations.filter((op) => Number.isInteger(op.sourceStart) && Number.isInteger(op.sourceEnd) && op.sourceEnd >= op.sourceStart && typeof op.replacementText === 'string') : [];
+  const rawOps = Array.isArray(operations) ? operations : [];
+  const ops = rawOps.filter((op) => Number.isInteger(op.sourceStart) && Number.isInteger(op.sourceEnd) && op.sourceEnd >= op.sourceStart && typeof op.replacementText === 'string');
+  if (rawOps.length > 0 && ops.length !== rawOps.length) {
+    return { applyStatus: 'partial-or-failed', appliedAny: false, warnings: ['invalid-source-span', 'patch-application-failed'] };
+  }
   const sorted = [...ops].sort((a, b) => (b.sourceStart - a.sourceStart) || (b.sourceEnd - a.sourceEnd));
   for (let i = 1; i < sorted.length; i += 1) {
     const prev = sorted[i - 1];
     const curr = sorted[i];
     if (curr.sourceEnd > prev.sourceStart) {
-      return { applyStatus: 'blocked-overlapping-operations', appliedAny: false, warnings: ['overlapping-operations'] };
+      return { applyStatus: 'blocked-overlapping-patches', appliedAny: false, warnings: ['overlapping-patches'] };
     }
   }
   let workingHtml = String(htmlText || '');

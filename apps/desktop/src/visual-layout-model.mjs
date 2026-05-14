@@ -61,7 +61,11 @@ export function applyVisualMovePatchesToHtml(htmlText, visualMoveCollection, vis
 }
 
 export function applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, editableInventory, visualInventory) {
+  const textPatchIds = textPatchCollection && Array.isArray(textPatchCollection.orderedCandidateIds) ? textPatchCollection.orderedCandidateIds : [];
   const textOperations = createPatchCollectionApplyOperations(textPatchCollection, editableInventory);
+  if (textPatchIds.length > 0 && textOperations.length !== textPatchIds.length) {
+    return { applyStatus: 'partial-or-failed', appliedAny: false, warnings: ['candidate-not-found', 'patch-application-failed'] };
+  }
   const visualObjects = visualInventory && Array.isArray(visualInventory.objects) ? visualInventory.objects : [];
   const moveOps = [];
   const moveIds = visualMoveCollection && Array.isArray(visualMoveCollection.orderedObjectIds) ? visualMoveCollection.orderedObjectIds : [];

@@ -231,9 +231,11 @@ export async function createCombinedPatchedSafePreviewResult(file, textPatchColl
   if (!extension) return null;
   const htmlText = await file.text();
   const inventory = createEditableTextInventory(htmlText);
+  const moveCount = visualMoveCollection && Array.isArray(visualMoveCollection.orderedObjectIds) ? visualMoveCollection.orderedObjectIds.length : 0;
   const visualInventory = createVisualObjectInventory(htmlText);
-  const applyState = applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, inventory, visualInventory);
-  if (applyState.applyStatus === 'blocked-overlapping-operations') applyState.applyStatus = 'blocked-overlapping-patches';
+  const applyState = moveCount === 0
+    ? applyPatchCollectionToWorkingHtml(htmlText, textPatchCollection, inventory)
+    : applyCombinedTextAndVisualPatchesToHtml(htmlText, textPatchCollection, visualMoveCollection, inventory, visualInventory);
   if (!applyState.appliedAny || applyState.applyStatus !== 'applied-to-working-preview' || !applyState.workingHtml) {
     return {
       applyState: {

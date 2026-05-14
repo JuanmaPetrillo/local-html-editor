@@ -541,3 +541,14 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Move patch export serialization into edited HTML is not implemented in this slice; nudge state currently affects trusted-shell overlay and export readiness state only.
 Next recommended task: Add explicit move patch serialization/application in export pipeline with exact-output tests, still without drag/resize.
+
+### 2026-05-14 (phase 5a clean rebuild: trusted-shell nudge movement)
+Date: 2026-05-14
+Branch/PR: current branch / PR #35
+Milestone: Phase 5A clean rebuild
+Summary: Implemented trusted-shell button-based nudge movement for overlay-ready inline-style visual objects with cumulative in-memory move patch state. Integrated combined text+move patch application for safe preview and export using descending source-order operations, while preserving legacy text-only apply/export behavior when no move patches are present. Overlay rendering now reflects moved geometry via move-patch `nextGeometry`, and move-only export readiness/status is supported through total patch counting.
+Files changed: apps/desktop/index.html, apps/desktop/src/app-shell.mjs, apps/desktop/src/editable-model.mjs, apps/desktop/src/exporter.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/visual-layout-model.mjs, scripts/build.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: No free drag/resize/image replacement/ZIP extraction-listing-export/persistence-autosave/dependency additions/network calls/telemetry/iframe internals access or permission changes.
+Next recommended task: Proceed only with explicit approval for the next narrow milestone.
