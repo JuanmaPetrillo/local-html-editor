@@ -611,3 +611,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed
 Known limitations: ZIP entry extraction/listing and ZIP HTML preview are still unavailable without approved ZIP parsing dependency; no ZIP export added.
 Next recommended task: Request dependency approval for JSZip to complete entry listing/extraction and selected ZIP-main HTML preview flow.
+
+
+### 2026-05-14 (dependency request: jszip approval for phase 7b)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 7B unblock request
+Summary: Added a dependency approval request document for JSZip covering why the dependency is needed, the current npm registry E403 blocker, required security constraints that remain unchanged, and fallback behavior if approval is denied.
+Files changed: docs/DEPENDENCY_APPROVAL_JSZIP.md, PROGRESS.md
+Validation run: none (documentation-only change)
+Result: Not applicable.
+Known limitations: Phase 7B ZIP entry listing/extraction/re-export remains blocked until JSZip (or approved internal mirror/source) is available.
+Next recommended task: Obtain dependency approval or approved mirror access, then implement ZIP entry listing/extraction with focused tests.
