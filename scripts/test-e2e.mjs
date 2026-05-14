@@ -29,6 +29,8 @@ if (!html.includes('id="move-selected-down"')) throw new Error('shell ui missing
 if (!html.includes('id="move-selected-left"')) throw new Error('shell ui missing move left button');
 if (!html.includes('id="move-selected-right"')) throw new Error('shell ui missing move right button');
 if (!html.includes('id="visual-move-status"')) throw new Error('shell ui missing visual move status');
+if (!html.includes('Drag an overlay box or use nudge buttons.')) throw new Error('shell ui missing drag guidance copy');
+if (!html.includes('Movement blocked: this object cannot be moved safely.')) throw new Error('shell ui missing blocked movement copy');
 if (!html.includes('.visual-overlay-box')) throw new Error('shell ui missing visual overlay box css class');
 if (!html.includes('position: absolute')) throw new Error('shell ui missing absolute positioning style for overlay rendering');
 if (!html.includes('id="editable-inventory"')) throw new Error('shell ui missing editable inventory region');

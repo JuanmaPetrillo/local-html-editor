@@ -27,9 +27,9 @@
 
 ## Current focus
 
-### Phase 5B: constrained drag movement and UX cleanup (pending)
+### Phase 5B: constrained drag movement and UX cleanup ✓
 
-- Add constrained drag movement for safely movable objects while preserving current trust boundary and script-off preview model.
+- Constrained trusted-shell overlay drag movement is complete for safely movable objects while preserving current trust boundary and script-off preview model.
 - Keep advanced controls understandable for non-technical users (including possible panel cleanup/collapse follow-up).
 - Resize remains out of scope for this slice.
 

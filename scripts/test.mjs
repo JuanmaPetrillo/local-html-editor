@@ -60,7 +60,7 @@ import {
   formatWorkingPreviewStateText
 } from '../apps/desktop/src/editable-model.mjs';
 import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName, formatExportStatusText } from '../apps/desktop/src/exporter.mjs';
-import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml } from '../apps/desktop/src/visual-layout-model.mjs';
+import { createVisualMovePatchCollectionState, createVisualMovePatchPlan, addOrUpdateVisualMovePatch, createOverlayItemsWithMoveOverrides, applyCombinedTextAndVisualPatchesToHtml, createVisualDragSession, updateVisualDragSession, createVisualMovePatchFromDrag } from '../apps/desktop/src/visual-layout-model.mjs';
 import {
   createGeometryStatus,
   createVisualObjectInventory,
@@ -1197,4 +1197,37 @@ assert.equal(Object.prototype.hasOwnProperty.call(visualSelectionState, 'working
   const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
   assert.equal(createVisualMovePatchPlan(imageAttr, 0, 0, null).applyStatus, 'blocked');
 
+}
+
+
+// Phase 5B drag regression coverage
+{
+  const html = '<h1 style="left:10px;top:20px;width:100px;height:30px">Title</h1>';
+  const visualInventory = createVisualObjectInventory(html);
+  const object = visualInventory.objects[0];
+  const dragStart = createVisualDragSession(object, 100, 100, null);
+  assert.equal(dragStart.applyStatus, 'planned');
+  const dragMove = updateVisualDragSession(dragStart, 111.6, 90.4);
+  assert.equal(dragMove.deltaX, 12);
+  assert.equal(dragMove.deltaY, -10);
+  const dragPatch = createVisualMovePatchFromDrag(object, dragMove);
+  assert.equal(dragPatch.nextGeometry.left, 22);
+  assert.equal(dragPatch.nextGeometry.top, 10);
+
+  const existing = createVisualMovePatchPlan(object, 10, 0, null);
+  const dragWithExisting = createVisualDragSession(object, 0, 0, existing);
+  const dragWithExistingMoved = updateVisualDragSession(dragWithExisting, 5, 5);
+  const dragWithExistingPatch = createVisualMovePatchFromDrag(object, dragWithExistingMoved);
+  assert.equal(dragWithExistingPatch.nextGeometry.left, 25);
+  assert.equal(dragWithExistingPatch.nextGeometry.top, 25);
+
+  const moved = applyCombinedTextAndVisualPatchesToHtml(html, createPatchCollectionState(), addOrUpdateVisualMovePatch(createVisualMovePatchCollectionState(), dragPatch).collection, createEditableTextInventory(html), visualInventory);
+  assert.equal(moved.workingHtml.includes('width:100px;height:30px'), true);
+
+  const lockedLike = { ...object, locked: true };
+  assert.equal(createVisualDragSession(lockedLike, 0, 0, null).applyStatus, 'blocked');
+  const partial = { ...object, geometry: { ...object.geometry, width: null, overlayReady: false } };
+  assert.equal(createVisualDragSession(partial, 0, 0, null).applyStatus, 'blocked');
+  const imageAttr = { ...object, geometry: { ...object.geometry, source: 'image-attributes', overlayReady: false } };
+  assert.equal(createVisualDragSession(imageAttr, 0, 0, null).applyStatus, 'blocked');
 }
