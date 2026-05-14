@@ -1,120 +1,124 @@
 const hasDom = typeof document !== 'undefined';
 
 export function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
-export function escapeAttribute(value) { return String(value || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+export function escapeAttribute(v) { return String(v || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function parsePx(style, key, fallback) { const m = new RegExp(`${key}\\s*:\\s*([0-9.]+)px`, 'i').exec(style || ''); return m ? Number(m[1]) : fallback; }
 function getAttr(tag, name) { const m = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i').exec(tag) || new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i').exec(tag); return m ? m[1] : ''; }
 function getDataAttrs(tag) { const out = {}; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*"([^"]*)"/gi)) out[m[1]] = m[2]; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*'([^']*)'/gi)) out[m[1]] = m[2]; return out; }
 function parseTextFromTag(tag) { const m = tag.match(/>([\s\S]*?)<\//); return m ? m[1].replace(/<[^>]+>/g, '') : ''; }
-function nextId(model) { return `o${model.nextId++}`; }
+function nextId(model, p='o') { return `${p}${model.nextId++}`; }
 
-export function classifyImageSource(src) {
-  const value = String(src || '').trim();
-  const safe = /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(value);
-  return { safe, normalizedSrc: safe ? value : '' };
+export function classifyImageSource(src) { const value = String(src || '').trim(); const safe = /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(value); return { safe, normalizedSrc: safe ? value : '' }; }
+
+function parseSlideObjects(slideBody, indexStart) {
+  const objects = []; let i = indexStart;
+  const matches = slideBody.matchAll(/<(h1|h2|h3|p|span|div)\b[^>]*>[\s\S]*?<\/(h1|h2|h3|p|span|div)>|<img\b[^>]*>|<(?!\/)([^\s>\/]+)\b[^>]*>/gi);
+  for (const m of matches) {
+    const tag = m[0]; const name = (m[1] || '').toLowerCase(); const style = getAttr(tag, 'style');
+    if (tag.toLowerCase().startsWith('<img')) {
+      const source = classifyImageSource(getAttr(tag, 'src'));
+      objects.push({ id: `o${i++}`, type: source.safe ? 'image' : 'locked', src: source.normalizedSrc, label: source.safe ? '' : 'Blocked remote image', x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 120), alt: getAttr(tag, 'alt'), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag), lockedReason: source.safe ? '' : 'blocked-remote-image' });
+    } else if (['h1','h2','h3','p','span','div'].includes(name)) {
+      objects.push({ id: `o${i++}`, type: 'text', tagName: name, text: parseTextFromTag(tag), x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 300), h: parsePx(style, 'height', 40), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag) });
+    } else if (name && !['section','body','html','head','meta','title','style','script'].includes(name)) {
+      objects.push({ id: `o${i++}`, type: 'locked', label: `Locked: <${name}>`, x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + i * 18), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 60), lockedReason: 'unsupported-element' });
+    }
+  }
+  return { objects, nextIndex: i };
 }
 
 export function mapHtmlToModel(htmlText) {
-  const slideMatches = [...String(htmlText).matchAll(/<(section\s+class="slide"|section\s+[^>]*data-slide-id[^>]*|div\s+class="slide")[^>]*>([\s\S]*?)<\/\s*(section|div)\s*>/gi)];
-  const slides = slideMatches.length ? slideMatches.map((m, i) => ({ id: `s${i + 1}`, name: `Slide ${i + 1}`, raw: m[0], body: m[2] })) : [{ id: 's1', name: 'Slide 1', raw: htmlText, body: htmlText }];
-  const outSlides = [];
-  let globalIndex = 0;
-  for (const s of slides) {
-    const objects = [];
-    const matches = s.body.matchAll(/<(h1|h2|h3|p|span|div)\b[^>]*>[\s\S]*?<\/(h1|h2|h3|p|span|div)>|<img\b[^>]*>/gi);
-    for (const m of matches) {
-      const tag = m[0];
-      const name = (m[1] || 'img').toLowerCase();
-      const style = getAttr(tag, 'style');
-      if (name === 'img') {
-        const source = classifyImageSource(getAttr(tag, 'src'));
-        objects.push({ id: `o${globalIndex++}`, type: 'image', x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + globalIndex * 20), w: parsePx(style, 'width', 180), h: parsePx(style, 'height', 120), src: source.normalizedSrc, blockedSource: source.safe ? '' : getAttr(tag, 'src'), lockedReason: source.safe ? '' : 'blocked-remote-image', alt: getAttr(tag, 'alt'), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag) });
-      } else {
-        objects.push({ id: `o${globalIndex++}`, type: 'text', tagName: name, x: parsePx(style, 'left', 20), y: parsePx(style, 'top', 20 + globalIndex * 20), w: parsePx(style, 'width', 300), h: parsePx(style, 'height', 40), text: parseTextFromTag(tag), className: getAttr(tag, 'class'), dataAttrs: getDataAttrs(tag) });
-      }
-    }
-    outSlides.push({ id: s.id, name: s.name, objects });
-  }
-  return { version: 2, width: 960, height: 540, slides: outSlides, currentSlideId: outSlides[0]?.id || 's1', nextId: globalIndex + 1 };
+  const slideMatches = [...String(htmlText).matchAll(/<(section\b[^>]*class="slide"[^>]*|section\b[^>]*data-slide-id[^>]*|div\b[^>]*class="slide"[^>]*|[^>]*data-slide-id[^>]*)([^>]*)>([\s\S]*?)<\/\s*(section|div|article)\s*>/gi)];
+  const slidesRaw = slideMatches.length ? slideMatches.map((m, idx) => ({ id: getAttr(m[0], 'data-slide-id') || `s${idx + 1}`, name: `Slide ${idx + 1}`, width: 960, height: 540, body: m[3] })) : [{ id: 's1', name: 'Slide 1', width: 960, height: 540, body: htmlText }];
+  const slides = []; let i = 0;
+  for (const s of slidesRaw) { const parsed = parseSlideObjects(s.body, i); i = parsed.nextIndex; slides.push({ id: s.id, name: s.name, width: s.width, height: s.height, objects: parsed.objects }); }
+  return { version: 2, slides, selectedSlideId: slides[0]?.id || 's1', selectedObjectId: null, nextId: i + 1 };
+}
+
+function objectToHtml(o) {
+  if (o.type === 'text') { const attrs = `${o.className ? ` class="${escapeAttribute(o.className)}"` : ''}${Object.entries(o.dataAttrs || {}).map(([k,v]) => ` ${k}="${escapeAttribute(v)}"`).join('')}`; return `<${o.tagName || 'div'}${attrs} style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;">${escapeHtml(o.text || '')}</${o.tagName || 'div'}>`; }
+  if (o.type === 'image' && o.src) { const attrs = `${o.className ? ` class="${escapeAttribute(o.className)}"` : ''} alt="${escapeAttribute(o.alt || '')}"${Object.entries(o.dataAttrs || {}).map(([k,v]) => ` ${k}="${escapeAttribute(v)}"`).join('')}`; return `<img src="${escapeAttribute(o.src)}"${attrs} style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;"/>`; }
+  return `<div style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;border:1px dashed #999;background:#f3f4f6;color:#374151;">${escapeHtml(o.label || 'Locked object')}</div>`;
 }
 
 export function exportModelToHtml(model) {
-  const slides = model.slides.map((slide) => {
-    const body = slide.objects.map((o) => {
-      if (o.type === 'text') {
-        const attrs = `${o.className ? ` class="${escapeAttribute(o.className)}"` : ''}${Object.entries(o.dataAttrs || {}).map(([k, v]) => ` ${k}="${escapeAttribute(v)}"`).join('')}`;
-        return `<${o.tagName || 'div'}${attrs} style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;">${escapeHtml(o.text)}</${o.tagName || 'div'}>`;
-      }
-      if (o.src) {
-        const attrs = `${o.className ? ` class="${escapeAttribute(o.className)}"` : ''} alt="${escapeAttribute(o.alt || '')}"${Object.entries(o.dataAttrs || {}).map(([k, v]) => ` ${k}="${escapeAttribute(v)}"`).join('')}`;
-        return `<img src="${escapeAttribute(o.src)}"${attrs} style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;"/>`;
-      }
-      return `<div style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;border:1px dashed #999;background:#f3f4f6;">Blocked remote image</div>`;
-    }).join('\n');
-    return `<section class="slide" data-slide-id="${escapeAttribute(slide.id)}" style="position:relative;width:${model.width}px;height:${model.height}px;overflow:hidden;">${body}</section>`;
-  }).join('\n');
-  return `<!doctype html><html><head><meta charset="UTF-8"><title>Edited Presentation</title></head><body>${slides}</body></html>`;
+  const css = '.slide{position:relative;margin:12px auto;border:1px solid #ddd;background:#fff;}';
+  const slides = model.slides.map((s, idx) => `<section class="slide" data-slide-id="${escapeAttribute(s.id)}" data-slide-index="${idx}" style="width:${s.width}px;height:${s.height}px;">${s.objects.map(objectToHtml).join('\n')}</section>`).join('\n');
+  return `<!doctype html><html><head><meta charset="UTF-8"><title>Edited Presentation</title><style>${css}</style></head><body>${slides}</body></html>`;
 }
 
+export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model }; }
+export function restoreProjectPayload(payload) { return payload && payload.schema === 'lheproj-v2' && payload.version === 2 ? payload.model : null; }
 export function createHistory() { return { undo: [], redo: [] }; }
 export function snapshot(model) { return JSON.parse(JSON.stringify(model)); }
-export function pushHistory(history, model) { history.undo.push(snapshot(model)); if (history.undo.length > 50) history.undo.shift(); history.redo = []; }
+export function pushHistory(history, model) { history.undo.push(snapshot(model)); if (history.undo.length > 100) history.undo.shift(); history.redo = []; }
 export function undo(history, model) { if (!history.undo.length) return model; history.redo.push(snapshot(model)); return history.undo.pop(); }
 export function redo(history, model) { if (!history.redo.length) return model; history.undo.push(snapshot(model)); return history.redo.pop(); }
-
+export function canUndo(history) { return history.undo.length > 0; }
+export function canRedo(history) { return history.redo.length > 0; }
+export function selectSlide(model, id) { model.selectedSlideId = id; model.selectedObjectId = null; }
+export function findSelectedObject(model) { const s = model.slides.find((x) => x.id === model.selectedSlideId); return s?.objects.find((o) => o.id === model.selectedObjectId) || null; }
 export function updateObject(model, id, patch) { for (const s of model.slides) { const o = s.objects.find((x) => x.id === id); if (o) Object.assign(o, patch); } }
-export function deleteObject(model, id) { for (const s of model.slides) s.objects = s.objects.filter((o) => o.id !== id); }
-export function addTextObject(model, slideId) { const s = model.slides.find((x) => x.id === slideId) || model.slides[0]; const obj = { id: nextId(model), type: 'text', tagName: 'p', x: 60, y: 60, w: 260, h: 40, text: 'New text', className: '', dataAttrs: {} }; s.objects.push(obj); return obj; }
-export function addImageObject(model, slideId, src) { const s = model.slides.find((x) => x.id === slideId) || model.slides[0]; const obj = { id: nextId(model), type: 'image', x: 80, y: 80, w: 240, h: 140, src: classifyImageSource(src).normalizedSrc, blockedSource: '', lockedReason: '', alt: '', className: '', dataAttrs: {} }; s.objects.push(obj); return obj; }
+export function deleteSelectedObject(model) { for (const s of model.slides) s.objects = s.objects.filter((o) => o.id !== model.selectedObjectId); model.selectedObjectId = null; }
+export function addTextObject(model) { const s = model.slides.find((x) => x.id === model.selectedSlideId) || model.slides[0]; const o = { id: nextId(model), type: 'text', tagName: 'p', text: 'New text', x: 80, y: 80, w: 260, h: 40, className: '', dataAttrs: {} }; s.objects.push(o); model.selectedObjectId = o.id; return o; }
+export function addImageObject(model, src) { const s = model.slides.find((x) => x.id === model.selectedSlideId) || model.slides[0]; const img = classifyImageSource(src); const o = { id: nextId(model), type: img.safe ? 'image' : 'locked', src: img.normalizedSrc, label: img.safe ? '' : 'Blocked image', x: 80, y: 80, w: 240, h: 140, alt: '', className: '', dataAttrs: {}, lockedReason: img.safe ? '' : 'blocked-image' }; s.objects.push(o); model.selectedObjectId = o.id; return o; }
 
 if (hasDom) {
-  const qs = (sel) => document.querySelector(sel);
-  const canvas = qs('#canvas'); const status = qs('#status'); const slidesEl = qs('#slides'); const layersEl = qs('#layers');
-  const fileInput = qs('#file'); const openProjectInput = qs('#open-project-file'); const addTextBtn = qs('#add-text'); const addImageBtn = qs('#add-image'); const replaceImageBtn = qs('#replace-image'); const delBtn = qs('#delete'); const undoBtn = qs('#undo'); const redoBtn = qs('#redo'); const saveBtn = qs('#save-project'); const openProjectBtn = qs('#open-project'); const exportBtn = qs('#export');
-  let model = { version: 2, width: 960, height: 540, slides: [{ id: 's1', name: 'Slide 1', objects: [] }], currentSlideId: 's1', nextId: 1 };
-  let selectedId = null; let editingId = null; let drag = null; let resize = null; const history = createHistory();
-  const selected = () => model.slides.flatMap((s) => s.objects).find((o) => o.id === selectedId);
-  const currentSlide = () => model.slides.find((s) => s.id === model.currentSlideId) || model.slides[0];
+  const q = (s) => document.querySelector(s);
+  const canvas = q('#canvas'); const status = q('#status'); const slidesList = q('#slides'); const layersList = q('#layers');
+  const fileInput = q('#file'); const openProjectInput = q('#open-project-file'); const addTextBtn = q('#add-text'); const addImageBtn = q('#add-image'); const delBtn = q('#delete'); const undoBtn = q('#undo'); const redoBtn = q('#redo'); const saveBtn = q('#save-project'); const openProjectBtn = q('#open-project'); const exportBtn = q('#export');
+  const insType = q('#ins-type'); const insX = q('#ins-x'); const insY = q('#ins-y'); const insW = q('#ins-w'); const insH = q('#ins-h'); const insText = q('#ins-text'); const insAlt = q('#ins-alt');
+  let model = mapHtmlToModel(''); let drag = null; let resize = null; let editingId = null; const history = createHistory();
+  const currentSlide = () => model.slides.find((s) => s.id === model.selectedSlideId) || model.slides[0];
   const setStatus = (t) => { status.textContent = t; };
-  const select = (id) => { selectedId = id; delBtn.disabled = !id; replaceImageBtn.disabled = !(selected() && selected().type === 'image'); render(); };
-  const commit = (msg) => { pushHistory(history, model); setStatus(msg); };
+  const refreshButtons = () => { undoBtn.disabled = !canUndo(history); redoBtn.disabled = !canRedo(history); delBtn.disabled = !model.selectedObjectId; };
+
+  function renderInspector() {
+    const o = findSelectedObject(model); insType.textContent = o ? o.type : 'none';
+    [insX,insY,insW,insH,insText,insAlt].forEach((el)=>{ el.disabled = !o; });
+    if (!o) { insX.value = ''; insY.value = ''; insW.value = ''; insH.value = ''; insText.value = ''; insAlt.value = ''; return; }
+    insX.value = o.x; insY.value = o.y; insW.value = o.w; insH.value = o.h; insText.value = o.type === 'text' ? o.text : ''; insAlt.value = o.type === 'image' ? (o.alt || '') : '';
+    insText.disabled = o.type !== 'text'; insAlt.disabled = o.type !== 'image';
+  }
 
   function render() {
-    slidesEl.textContent = ''; model.slides.forEach((s) => { const b = document.createElement('button'); b.textContent = s.name; b.className = s.id === model.currentSlideId ? 'active' : ''; b.onclick = () => { model.currentSlideId = s.id; selectedId = null; render(); }; slidesEl.appendChild(b); });
-    layersEl.textContent = ''; currentSlide().objects.forEach((o) => { const b = document.createElement('button'); b.textContent = `${o.type === 'text' ? 'Text' : 'Image'} ${o.id}`; b.className = o.id === selectedId ? 'active' : ''; b.onclick = () => select(o.id); layersEl.appendChild(b); });
-    canvas.textContent = '';
+    slidesList.textContent = ''; model.slides.forEach((s) => { const b = document.createElement('button'); b.textContent = s.name; b.className = s.id === model.selectedSlideId ? 'active' : ''; b.onclick = () => { pushHistory(history, model); selectSlide(model, s.id); render(); }; slidesList.appendChild(b); });
+    layersList.textContent = ''; currentSlide().objects.forEach((o) => { const b = document.createElement('button'); b.textContent = `${o.type} ${o.id}`; b.className = o.id === model.selectedObjectId ? 'active' : ''; b.onclick = () => { model.selectedObjectId = o.id; render(); }; layersList.appendChild(b); });
+    canvas.style.width = `${currentSlide().width}px`; canvas.style.height = `${currentSlide().height}px`; canvas.textContent = '';
     currentSlide().objects.forEach((o) => {
-      const blocked = o.type === 'image' && !o.src;
-      const el = document.createElement(o.type === 'image' && !blocked ? 'img' : 'div');
-      el.className = `obj ${o.id === selectedId ? 'selected' : ''}`; el.style.left = `${o.x}px`; el.style.top = `${o.y}px`; el.style.width = `${o.w}px`; el.style.height = `${o.h}px`; el.dataset.id = o.id;
+      const el = document.createElement(o.type === 'image' ? 'img' : 'div'); el.className = `obj ${o.id === model.selectedObjectId ? 'selected' : ''}`;
+      el.style.left = `${o.x}px`; el.style.top = `${o.y}px`; el.style.width = `${o.w}px`; el.style.height = `${o.h}px`; el.dataset.id = o.id;
       if (o.type === 'text') { el.classList.add('text'); el.textContent = o.text; }
-      else if (blocked) { el.textContent = 'Blocked remote image'; el.classList.add('blocked'); }
-      else { el.src = o.src; }
-      el.onclick = (e) => { e.stopPropagation(); select(o.id); };
+      else if (o.type === 'image') el.src = o.src;
+      else { el.classList.add('locked'); el.textContent = o.label || 'Locked object'; }
+      el.onclick = (e) => { e.stopPropagation(); model.selectedObjectId = o.id; render(); };
       el.ondblclick = () => { if (o.type !== 'text') return; editingId = o.id; el.contentEditable = 'true'; el.focus(); };
       el.onkeydown = (e) => { if (e.key === 'Enter' && editingId === o.id) { e.preventDefault(); el.blur(); } if (e.key === 'Escape' && editingId === o.id) { e.preventDefault(); el.textContent = o.text; el.blur(); } };
-      el.onblur = () => { if (editingId === o.id) { commit(`Edited text ${o.id}`); o.text = el.textContent || ''; editingId = null; el.contentEditable = 'false'; render(); } };
-      el.onpointerdown = (e) => { if (e.target.classList.contains('handle')) return; select(o.id); drag = { id: o.id, sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y }; };
-      if (o.id === selectedId) { const h = document.createElement('div'); h.className = 'handle'; h.onpointerdown = (e) => { e.stopPropagation(); resize = { id: o.id, sx: e.clientX, sy: e.clientY, ow: o.w, oh: o.h }; }; el.appendChild(h); }
+      el.onblur = () => { if (editingId === o.id) { pushHistory(history, model); o.text = el.textContent || ''; editingId = null; el.contentEditable = 'false'; render(); } };
+      el.onpointerdown = (e) => { if (e.target.classList.contains('handle') || o.type === 'locked') return; model.selectedObjectId = o.id; drag = { id: o.id, sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y }; render(); };
+      if (o.id === model.selectedObjectId && o.type !== 'locked') { const h = document.createElement('div'); h.className = 'handle'; h.onpointerdown = (e) => { e.stopPropagation(); resize = { id: o.id, sx: e.clientX, sy: e.clientY, ow: o.w, oh: o.h }; }; el.appendChild(h); }
       canvas.appendChild(el);
     });
+    renderInspector(); refreshButtons();
   }
 
   window.onpointermove = (e) => { if (drag) { updateObject(model, drag.id, { x: Math.max(0, Math.round(drag.ox + e.clientX - drag.sx)), y: Math.max(0, Math.round(drag.oy + e.clientY - drag.sy)) }); render(); } if (resize) { updateObject(model, resize.id, { w: Math.max(20, Math.round(resize.ow + e.clientX - resize.sx)), h: Math.max(20, Math.round(resize.oh + e.clientY - resize.sy)) }); render(); } };
-  window.onpointerup = () => { if (drag) commit(`Moved ${drag.id}`); if (resize) commit(`Resized ${resize.id}`); drag = null; resize = null; };
-  window.onkeydown = (e) => { if (!selectedId) return; const d = e.shiftKey ? 10 : 1; if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete'].includes(e.key)) e.preventDefault(); if (e.key === 'Delete') { commit(`Deleted ${selectedId}`); deleteObject(model, selectedId); selectedId = null; render(); return; } const o = selected(); if (!o) return; if (e.key === 'ArrowLeft') { commit(`Nudged ${o.id}`); o.x = Math.max(0, o.x - d); } if (e.key === 'ArrowRight') { commit(`Nudged ${o.id}`); o.x += d; } if (e.key === 'ArrowUp') { commit(`Nudged ${o.id}`); o.y = Math.max(0, o.y - d); } if (e.key === 'ArrowDown') { commit(`Nudged ${o.id}`); o.y += d; } render(); };
+  window.onpointerup = () => { if (drag || resize) pushHistory(history, model); drag = null; resize = null; refreshButtons(); };
+  window.onkeydown = (e) => { if (e.key === 'Escape') { editingId = null; model.selectedObjectId = null; render(); return; } const o = findSelectedObject(model); if (!o) return; const step = e.shiftKey ? 10 : 1; if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete'].includes(e.key)) e.preventDefault(); if (e.key === 'Delete') { pushHistory(history, model); deleteSelectedObject(model); render(); return; } if (e.key === 'ArrowLeft') { pushHistory(history, model); o.x = Math.max(0, o.x - step); } if (e.key === 'ArrowRight') { pushHistory(history, model); o.x += step; } if (e.key === 'ArrowUp') { pushHistory(history, model); o.y = Math.max(0, o.y - step); } if (e.key === 'ArrowDown') { pushHistory(history, model); o.y += step; } render(); };
+  canvas.onclick = () => { model.selectedObjectId = null; render(); };
 
-  fileInput.onchange = async () => { const f = fileInput.files?.[0]; if (!f) return; model = mapHtmlToModel(await f.text()); history.undo = []; history.redo = []; selectedId = null; render(); setStatus(`Opened ${f.name}`); };
-  addTextBtn.onclick = () => { commit('Added text'); const o = addTextObject(model, model.currentSlideId); select(o.id); };
-  addImageBtn.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); commit('Added image'); const o = addImageObject(model, model.currentSlideId, data); select(o.id); }; i.click(); };
-  replaceImageBtn.onclick = () => { const t = selected(); if (!t || t.type !== 'image') return; const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); commit('Replaced image'); t.src = classifyImageSource(data).normalizedSrc; render(); }; i.click(); };
-  delBtn.onclick = () => { if (!selectedId) return; commit(`Deleted ${selectedId}`); deleteObject(model, selectedId); selectedId = null; render(); };
-  undoBtn.onclick = () => { model = undo(history, model); render(); setStatus('Undo'); };
-  redoBtn.onclick = () => { model = redo(history, model); render(); setStatus('Redo'); };
-  saveBtn.onclick = () => { const text = JSON.stringify({ version: 2, model }, null, 2); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'project.lheproj.json'; a.click(); URL.revokeObjectURL(a.href); setStatus('Project saved (may contain data image content).'); };
+  const applyInspector = () => { const o = findSelectedObject(model); if (!o) return; pushHistory(history, model); o.x = Number(insX.value) || 0; o.y = Number(insY.value) || 0; o.w = Math.max(20, Number(insW.value) || 20); o.h = Math.max(20, Number(insH.value) || 20); if (o.type === 'text') o.text = insText.value; if (o.type === 'image') o.alt = insAlt.value; render(); };
+  [insX,insY,insW,insH,insText,insAlt].forEach((el) => el.onchange = applyInspector);
+
+  fileInput.onchange = async () => { const f = fileInput.files?.[0]; if (!f) return; model = mapHtmlToModel(await f.text()); history.undo = []; history.redo = []; render(); setStatus(`Opened HTML: ${f.name}`); };
+  addTextBtn.onclick = () => { pushHistory(history, model); addTextObject(model); render(); setStatus('Text added'); };
+  addImageBtn.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); pushHistory(history, model); addImageObject(model, data); render(); setStatus('Image added'); }; i.click(); };
+  delBtn.onclick = () => { if (!model.selectedObjectId) return; pushHistory(history, model); deleteSelectedObject(model); render(); };
+  undoBtn.onclick = () => { model = undo(history, model); render(); };
+  redoBtn.onclick = () => { model = redo(history, model); render(); };
+  saveBtn.onclick = () => { const text = JSON.stringify(createProjectPayload(model), null, 2); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'project.lheproj-v2.json'; a.click(); URL.revokeObjectURL(a.href); setStatus('Project saved (can include image data URLs).'); };
   openProjectBtn.onclick = () => openProjectInput.click();
-  openProjectInput.onchange = async () => { const f = openProjectInput.files?.[0]; if (!f) return; const payload = JSON.parse(await f.text()); if (!payload.model || payload.version !== 2) return; model = payload.model; selectedId = null; history.undo = []; history.redo = []; render(); setStatus(`Opened project ${f.name}`); };
-  exportBtn.onclick = () => { const html = exportModelToHtml(model); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' })); a.download = 'edited-v2.html'; a.click(); URL.revokeObjectURL(a.href); setStatus('Exported HTML'); };
-  canvas.onclick = () => select(null);
-  render(); setStatus('Open HTML, click objects, double-click text to edit inline, drag, resize, save, and export.');
+  openProjectInput.onchange = async () => { const f = openProjectInput.files?.[0]; if (!f) return; const restored = restoreProjectPayload(JSON.parse(await f.text())); if (!restored) return; model = restored; history.undo = []; history.redo = []; render(); setStatus(`Project opened: ${f.name}`); };
+  exportBtn.onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' })); a.download = 'edited-v2.html'; a.click(); URL.revokeObjectURL(a.href); setStatus('Exported HTML'); };
+  render(); setStatus('Open HTML and edit directly on the canvas.');
 }

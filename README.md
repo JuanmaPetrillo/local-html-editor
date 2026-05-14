@@ -238,3 +238,5 @@ The MVP is successful when a normal user can:
 ## V2 MVP pilot (current default)
 
 V2 in `apps/desktop-v2` is now the primary pilot: canvas-first direct manipulation with inline text edit, drag/resize handles, add/delete, undo/redo, project save/open, and HTML export. Legacy `apps/desktop` remains reference only.
+
+V2 now includes slide navigator, inspector/layers panel, undo/redo state controls, and explicit `.lheproj-v2.json` save/open.
