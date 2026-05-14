@@ -124,3 +124,17 @@ if (!progress.includes('Local image replacement is implemented for selected safe
 if (!readme.includes('Local image replacement for selected safe `<img>` objects')) throw new Error('readme missing image replacement capability marker');
 
 console.log('e2e smoke placeholder passed');
+
+const fixtureFiles = [
+  'tests/fixtures/realistic-single-slide-deck.html',
+  'tests/fixtures/realistic-multi-section-deck.html',
+  'tests/fixtures/realistic-image-deck.html',
+  'tests/fixtures/realistic-duplicate-text-image-deck.html',
+  'tests/fixtures/project-roundtrip-source.html'
+];
+for (const fixturePath of fixtureFiles) {
+  const fixtureText = readFileSync(fixturePath, 'utf8');
+  if (!fixtureText.includes('<!DOCTYPE html>')) throw new Error(`fixture missing doctype: ${fixturePath}`);
+  if (/https?:\/\//i.test(fixtureText)) throw new Error(`fixture must not require external network: ${fixturePath}`);
+}
+if (!readFileSync('scripts/test.mjs', 'utf8').includes('realistic-single-slide-deck.html')) throw new Error('workflow tests must reference fixture set');
