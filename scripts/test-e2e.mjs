@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('apps/desktop/index.html', 'utf8');
 const shellCode = readFileSync('apps/desktop/src/app-shell.mjs', 'utf8');
+const masterPlan = readFileSync('MASTER_PLAN.md', 'utf8');
+const roadmap = readFileSync('docs/ROADMAP.md', 'utf8');
+const progress = readFileSync('PROGRESS.md', 'utf8');
+const readme = readFileSync('README.md', 'utf8');
 
 if (!html.includes('<input id="file-input"')) throw new Error('shell ui missing local file picker');
 if (!html.includes('accept=".html,.htm,.zip"')) throw new Error('shell file picker missing accept hint');
@@ -30,7 +34,7 @@ if (!html.includes('id="image-replacement-status"')) throw new Error('shell ui m
 if (!html.includes('accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif"')) throw new Error('shell ui missing safe raster accept list');
 if (!html.includes('Replace selected image')) throw new Error('shell ui missing image replacement copy');
 if (!html.includes('Choose a local image file.')) throw new Error('shell ui missing image replacement chooser copy');
-if (!html.includes('SVG and remote images are not supported.')) throw new Error('shell ui missing image replacement safety copy');
+if (!html.includes('Use a local PNG/JPEG/GIF/WebP/AVIF file. SVG is blocked.')) throw new Error('shell ui missing image replacement safety copy');
 if (!shellCode.includes('replacementImageInput.disabled = false')) throw new Error('shell logic missing image replacement input enable path');
 if (!shellCode.includes('const previousImagePatchCollection = imagePatchCollection')) throw new Error('shell logic missing image patch rollback baseline');
 if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) throw new Error('shell logic missing image patch rollback assignment');
@@ -92,5 +96,13 @@ if (!html.includes('preview-frame--compact')) throw new Error('shell ui missing 
 if (!html.includes('preview-frame--fit')) throw new Error('shell ui missing preview fit class');
 if (!html.includes('preview-frame--tall')) throw new Error('shell ui missing preview tall class');
 if (!html.includes('src="./src/app-shell.mjs"')) throw new Error('shell ui not using canonical app-shell path');
+
+if (masterPlan.includes('through Phase 5A')) throw new Error('master plan stale phase marker detected');
+if (masterPlan.includes('Image replacement (Phase 6).')) throw new Error('master plan stale image replacement limitation detected');
+if (masterPlan.includes('Free drag and resize handles (Phase 5B+ pending).')) throw new Error('master plan stale drag/resize limitation detected');
+if (!masterPlan.includes('through Phase 6A')) throw new Error('master plan missing phase 6A status');
+if (!roadmap.includes('### Phase 6A: Local image replacement ✓')) throw new Error('roadmap missing phase 6A completion marker');
+if (!progress.includes('Local image replacement is implemented for selected safe `<img>` objects')) throw new Error('progress missing image replacement implementation marker');
+if (!readme.includes('Local image replacement for selected safe `<img>` objects')) throw new Error('readme missing image replacement capability marker');
 
 console.log('e2e smoke placeholder passed');

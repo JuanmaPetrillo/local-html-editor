@@ -1,5 +1,33 @@
 import { readFileSync } from 'node:fs';
 import { buildSafePreviewDocument } from '../apps/desktop/src/preview-sandbox.mjs';
+import {
+  createImportStatusFromHtmlScan,
+  createImportManifestFromStatus,
+  createImportReportFromStatus,
+  formatImportStatusSummary,
+  formatImportManifestText,
+  formatImportReportText,
+  createCombinedPatchedSafePreviewResult
+} from '../apps/desktop/src/importer.mjs';
+import {
+  createEditableTextInventory,
+  createDraftEdit,
+  createTextPatchPlan,
+  createPatchCollectionState,
+  addOrUpdatePatchInCollection,
+  applyPatchCollectionToWorkingHtml
+} from '../apps/desktop/src/editable-model.mjs';
+import {
+  createVisualObjectInventory,
+  createVisualObjectSelectionState,
+  createVisualTextEditBridgeState
+} from '../apps/desktop/src/visual-object-model.mjs';
+import {
+  createVisualMovePatchCollectionState,
+  applyCombinedTextAndVisualPatchesToHtml
+} from '../apps/desktop/src/visual-layout-model.mjs';
+import { createImageReplacementPatchCollectionState } from '../apps/desktop/src/image-replacement-model.mjs';
+import { createEditedHtmlExportFromHtmlText } from '../apps/desktop/src/exporter.mjs';
 
 const html = readFileSync('apps/desktop/index.html', 'utf8');
 const shellCode = readFileSync('apps/desktop/src/app-shell.mjs', 'utf8');
@@ -19,6 +47,19 @@ function assertForbidden(sourceText, tokens, category) {
 function assertRequired(sourceText, tokens, category) {
   for (const token of tokens) {
     if (!sourceText.includes(token)) throw new Error(`[${category}] required token missing: ${token}`);
+  }
+}
+
+function assertNoForbiddenFieldsInObject(value, forbiddenFields, category) {
+  if (value == null) return;
+  if (Array.isArray(value)) {
+    for (const item of value) assertNoForbiddenFieldsInObject(item, forbiddenFields, category);
+    return;
+  }
+  if (typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    if (forbiddenFields.includes(key)) throw new Error(`[${category}] forbidden field detected: ${key}`);
+    assertNoForbiddenFieldsInObject(child, forbiddenFields, category);
   }
 }
 
@@ -54,5 +95,104 @@ const hardenedPreviewDoc = buildSafePreviewDocument(
 );
 assertForbidden(hardenedPreviewDoc, ['mailto:', 'ftp://', 'file:///', 'tel:+', 'custom:', 'https://example.test', '//example.test'], 'preview-scheme-hardening');
 if (hardenedPreviewDoc.toLowerCase().includes('vbscript:')) throw new Error('[preview-scheme-hardening] forbidden token detected: vbscript:');
+
+const forbiddenShellFields = ['rawHtmlText', 'htmlText', 'rawBytes', 'binary', 'ArrayBuffer', 'Blob', 'workingHtml'];
+const secretMarker = 'SECRET_DO_NOT_LEAK_12345';
+const sampleHtml = `<h1>${secretMarker}</h1><p>Hello</p>`;
+const scan = {
+  scriptTagCount: 0,
+  inlineEventHandlerCount: 0,
+  remoteUrlCount: 0,
+  embeddedContentTagCount: 0,
+  hasRiskMarkers: false
+};
+const referenceScan = {
+  totalCount: 0,
+  byType: { 'local-relative': 0, remote: 0, 'data-uri': 0, anchor: 0, unknown: 0 }
+};
+const status = createImportStatusFromHtmlScan({
+  ok: true,
+  fileName: 'sample.html',
+  extension: 'html',
+  size: sampleHtml.length,
+  type: 'text/html',
+  scan,
+  referenceScan
+});
+const report = createImportReportFromStatus(status);
+const manifest = createImportManifestFromStatus(status, report);
+assertNoForbiddenFieldsInObject(status, forbiddenShellFields, 'shell-facing-status');
+assertNoForbiddenFieldsInObject(report, forbiddenShellFields, 'shell-facing-report');
+assertNoForbiddenFieldsInObject(manifest, forbiddenShellFields, 'shell-facing-manifest');
+const statusSummary = formatImportStatusSummary(status);
+const reportText = formatImportReportText(report);
+const manifestText = formatImportManifestText(manifest);
+if (statusSummary.includes(secretMarker)) throw new Error('[shell-facing-status-text] secret marker leaked');
+if (reportText.includes(secretMarker)) throw new Error('[shell-facing-report-text] secret marker leaked');
+if (manifestText.includes(secretMarker)) throw new Error('[shell-facing-manifest-text] secret marker leaked');
+
+const editableInventory = createEditableTextInventory(sampleHtml);
+assertNoForbiddenFieldsInObject(editableInventory, forbiddenShellFields, 'shell-facing-editable-inventory');
+const firstCandidate = editableInventory.candidates[0];
+const draftEdit = createDraftEdit(firstCandidate, 'Updated');
+const patchPlan = createTextPatchPlan(draftEdit);
+assertNoForbiddenFieldsInObject(draftEdit, forbiddenShellFields, 'shell-facing-draft-edit');
+assertNoForbiddenFieldsInObject(patchPlan, forbiddenShellFields, 'shell-facing-patch-plan');
+const patchCollection = addOrUpdatePatchInCollection(createPatchCollectionState(), patchPlan).collection;
+const textApplyState = applyPatchCollectionToWorkingHtml(sampleHtml, patchCollection, editableInventory);
+const shellFacingTextApplyState = {
+  appliedAny: textApplyState.appliedAny,
+  applyStatus: textApplyState.applyStatus,
+  applyResults: textApplyState.applyResults,
+  collectionCount: patchCollection.orderedCandidateIds.length,
+  warnings: textApplyState.warnings
+};
+assertNoForbiddenFieldsInObject(shellFacingTextApplyState, forbiddenShellFields, 'shell-facing-text-apply-state');
+
+const visualInventory = createVisualObjectInventory(sampleHtml);
+assertNoForbiddenFieldsInObject(visualInventory, forbiddenShellFields, 'shell-facing-visual-inventory');
+const visualSelection = createVisualObjectSelectionState(visualInventory, visualInventory.objects[0].objectId);
+assertNoForbiddenFieldsInObject(visualSelection, forbiddenShellFields, 'shell-facing-visual-selection-state');
+const visualBridge = createVisualTextEditBridgeState(visualSelection.selectedObject, editableInventory);
+assertNoForbiddenFieldsInObject(visualBridge, forbiddenShellFields, 'shell-facing-visual-bridge-state');
+const combinedApplyState = applyCombinedTextAndVisualPatchesToHtml(
+  sampleHtml,
+  patchCollection,
+  createVisualMovePatchCollectionState(),
+  editableInventory,
+  visualInventory,
+  createImageReplacementPatchCollectionState()
+);
+const shellFacingCombinedApplyState = {
+  appliedAny: combinedApplyState.appliedAny,
+  applyStatus: combinedApplyState.applyStatus,
+  applyResults: combinedApplyState.applyResults,
+  collectionCount: patchCollection.orderedCandidateIds.length,
+  warnings: combinedApplyState.warnings
+};
+assertNoForbiddenFieldsInObject(shellFacingCombinedApplyState, forbiddenShellFields, 'shell-facing-combined-apply-state');
+const importerShellFacingResult = await createCombinedPatchedSafePreviewResult(
+  { name: 'sample.html', text: async () => sampleHtml },
+  patchCollection,
+  createVisualMovePatchCollectionState(),
+  createImageReplacementPatchCollectionState()
+);
+assertNoForbiddenFieldsInObject(importerShellFacingResult.applyState, forbiddenShellFields, 'shell-facing-importer-apply-state');
+
+const exportResult = createEditedHtmlExportFromHtmlText(sampleHtml, 'sample.html', patchCollection, createVisualMovePatchCollectionState(), createImageReplacementPatchCollectionState());
+if (!(exportResult.blob instanceof Blob)) throw new Error('[export-blob] expected Blob for local download flow');
+assertNoForbiddenFieldsInObject(
+  {
+    exportStatus: exportResult.exportStatus,
+    fileName: exportResult.fileName,
+    patchCount: exportResult.patchCount,
+    textPatchCount: exportResult.textPatchCount,
+    movePatchCount: exportResult.movePatchCount,
+    imagePatchCount: exportResult.imagePatchCount,
+    warnings: exportResult.warnings
+  },
+  forbiddenShellFields,
+  'shell-facing-export-metadata'
+);
 
 console.log('security checks passed');
