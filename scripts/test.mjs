@@ -4,7 +4,8 @@ import {
   createProjectFileModel,
   detectExtension,
   detectSourceKind,
-  renderShellState
+  renderShellState,
+  canCreateImageReplacementPatchForObject
 } from '../apps/desktop/src/app-shell.mjs';
 import { createPreviewLayoutState } from '../apps/desktop/src/app-shell.mjs';
 import {
@@ -1306,4 +1307,13 @@ import { createImageReplacementPatchCollectionState, createImageReplacementPatch
   assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.svg','image/svg+xml'))).status, 'blocked');
   assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.txt','text/plain'))).status, 'blocked');
   assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.png','image/png',11*1024*1024))).status, 'blocked');
+}
+
+
+// Image replacement eligibility helper
+{
+  assert.equal(canCreateImageReplacementPatchForObject({ type: 'image', tagName: 'img', locked: false, sourceStart: 1, sourceEnd: 10 }), true);
+  assert.equal(canCreateImageReplacementPatchForObject({ type: 'text', tagName: 'p', locked: false, sourceStart: 1, sourceEnd: 10 }), false);
+  assert.equal(canCreateImageReplacementPatchForObject({ type: 'image', tagName: 'img', locked: true, sourceStart: 1, sourceEnd: 10 }), false);
+  assert.equal(canCreateImageReplacementPatchForObject({ type: 'image', tagName: 'img', locked: false, sourceStart: 5, sourceEnd: 5 }), false);
 }

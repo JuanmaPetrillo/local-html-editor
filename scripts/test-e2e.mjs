@@ -31,6 +31,9 @@ if (!html.includes('accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,
 if (!html.includes('Replace selected image')) throw new Error('shell ui missing image replacement copy');
 if (!html.includes('Choose a local image file.')) throw new Error('shell ui missing image replacement chooser copy');
 if (!html.includes('SVG and remote images are not supported.')) throw new Error('shell ui missing image replacement safety copy');
+if (!shellCode.includes('replacementImageInput.disabled = false')) throw new Error('shell logic missing image replacement input enable path');
+if (!shellCode.includes('const previousImagePatchCollection = imagePatchCollection')) throw new Error('shell logic missing image patch rollback baseline');
+if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) throw new Error('shell logic missing image patch rollback assignment');
 
 if (!html.includes('id="visual-move-panel"')) throw new Error('shell ui missing visual move panel');
 if (!html.includes('id="move-selected-up"')) throw new Error('shell ui missing move up button');

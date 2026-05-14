@@ -103,7 +103,7 @@ Then open `dist/index.html` in a local browser.
 
 - Exported HTML is built from the original imported HTML text plus in-memory text patches (not from sanitized preview `srcdoc`).
 - No persistence/autosave exists in this slice.
-- No image replacement or drag/resize editing exists in this slice.
+- Local image replacement is available for selected safe `<img>` objects using local raster files; ZIP extraction/listing/export and persistence remain pending.
 
 
 ### Manual smoke checklist (current browser-first MVP)

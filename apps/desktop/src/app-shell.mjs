@@ -142,6 +142,19 @@ export function createPreviewLayoutState(heightMode, fitWidth) {
   };
 }
 
+/** @param {any} visualObject */
+export function canCreateImageReplacementPatchForObject(visualObject) {
+  return !!(
+    visualObject &&
+    visualObject.type === 'image' &&
+    visualObject.tagName === 'img' &&
+    !visualObject.locked &&
+    Number.isInteger(visualObject.sourceStart) &&
+    Number.isInteger(visualObject.sourceEnd) &&
+    visualObject.sourceEnd > visualObject.sourceStart
+  );
+}
+
 const hasDom = typeof document !== 'undefined';
 const fileInput = hasDom ? document.querySelector('#file-input') : null;
 const fileStatus = hasDom ? document.querySelector('#file-status') : null;
@@ -503,6 +516,14 @@ if (
     const moveStatus = document.querySelector('#visual-move-status');
     if (moveStatus) moveStatus.textContent = nudgeEnabled ? 'Drag an overlay box or use nudge buttons.' : 'Movement blocked: this object cannot be moved safely.';
     setResizeStatusText(nudgeEnabled ? 'Drag a corner handle to resize.' : 'Resize blocked: this object cannot be resized safely.');
+    if (canCreateImageReplacementPatchForObject(selected)) {
+      replacementImageInput.disabled = false;
+      imageReplacementStatus.textContent = 'Choose a local image file.';
+    } else {
+      replacementImageInput.disabled = true;
+      replacementImageInput.value = '';
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+    }
   };
 
   const renderDraftFromSelection = (inventory) => {
@@ -727,6 +748,12 @@ if (
     if (!file) return;
     const selectionState = createVisualObjectSelectionState(currentVisualInventory, visualObjectSelect.value);
     const selected = selectionState.selectedObject;
+    if (!canCreateImageReplacementPatchForObject(selected)) {
+      replacementImageInput.disabled = true;
+      replacementImageInput.value = '';
+      imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
+      return;
+    }
     const asset = await createReplacementImageAssetFromFile(file);
     if (asset.status !== 'ready') {
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
@@ -737,15 +764,20 @@ if (
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
       return;
     }
+    const previousImagePatchCollection = imagePatchCollection;
     imagePatchCollection = addOrUpdateImageReplacementPatch(imagePatchCollection, patch).collection;
-    imageReplacementStatus.textContent = 'Replacement image ready.';
     if (currentHtmlFile) {
       const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
-      if (patched && patched.previewResult) {
-        safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
-        safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
-        imageReplacementStatus.textContent = 'Image replacement applied to preview.';
+      if (!patched || !patched.previewResult || !patched.previewResult.previewDocument) {
+        imagePatchCollection = previousImagePatchCollection;
+        updateExportUi();
+        renderVisualObjectSelection(currentVisualInventory);
+        imageReplacementStatus.textContent = 'Image replacement could not be applied safely.';
+        return;
       }
+      safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
+      safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+      imageReplacementStatus.textContent = 'Image replacement applied to preview.';
     }
     updateExportUi();
   });
