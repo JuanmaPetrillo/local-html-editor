@@ -645,3 +645,16 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: No true browser-driven E2E yet; no packaging work started; no ZIP/assets implementation changes; no new dependencies; no autosave/localStorage/IndexedDB; no network calls/telemetry; no iframe permission changes; no iframe internals access.
 Next recommended task: Decide between browser-driven E2E addition later versus packaging readiness decision with current integration-style coverage.
+
+
+### 2026-05-14 (browser-driven E2E readiness attempt: Playwright blocked)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Browser-driven E2E readiness pre-packaging
+Summary: Attempted to add true browser-runtime E2E coverage using Playwright before packaging/pilot hardening. Installation of `@playwright/test` is blocked in this environment by npm registry/security policy (`E403`). Added dependency approval request documentation with exact failure details and scoped proposed smoke coverage once approved.
+Files changed: docs/DEPENDENCY_APPROVAL_PLAYWRIGHT.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed for existing gate; browser-driven E2E remains blocked pending dependency approval.
+Known limitations: No new browser-runtime automation was added because dependency installation is blocked; packaging, ZIP/assets implementation, autosave/localStorage/IndexedDB, telemetry/network calls, iframe internals access, and iframe permission changes were not added.
+Next recommended task: Approve `@playwright/test` (or provide an approved internal mirror/source) and then add one narrow browser smoke test using an available system browser channel.
+
