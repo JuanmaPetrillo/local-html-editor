@@ -102,6 +102,21 @@ npm run package:pilot
 
 This creates a versioned portable folder under `pilot-dist/` containing `index.html`, `src/*.mjs`, and a short pilot readme.
 
+You can also build and package a pilot artifact from GitHub Actions (manual-only trigger):
+
+1. Open **Actions** in GitHub.
+2. Select **Build Pilot Package**.
+3. Click **Run workflow**.
+4. After it finishes, open the run and download the artifact named `local-html-editor-pilot`.
+
+Artifact retention is 7 days. Because this repository is public, standard GitHub-hosted runner usage is free for this manual workflow.
+
+Local fallback remains:
+
+```bash
+npm run package:pilot
+```
+
 See `docs/MANUAL_PILOT_GUIDE.md` for the full checklist and limitations.
 
 #### How to test the MVP flow

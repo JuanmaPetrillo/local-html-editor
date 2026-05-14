@@ -52,7 +52,28 @@ Optional custom destination root:
 node scripts/package-pilot.mjs --out-root ./my-pilot-output
 ```
 
-## 3) Optional zip step (manual)
+
+## 3) GitHub Actions option (manual-only)
+
+If you prefer not to package locally, you can use the manual GitHub Actions workflow:
+
+1. Open **Actions** in the repository.
+2. Select **Build Pilot Package**.
+3. Click **Run workflow**.
+4. Wait for the run to complete.
+5. Open the run summary and download the artifact named `local-html-editor-pilot`.
+
+Artifact retention is 7 days.
+
+Because this repository is public, standard GitHub-hosted runner usage is free. The workflow is manual-only to avoid waste.
+
+Local fallback is still available:
+
+```bash
+npm run package:pilot
+```
+
+## 4) Optional zip step (manual)
 
 If pilot users prefer one file, zip the created portable folder manually using built-in OS tools or approved internal tooling.
 
@@ -61,13 +82,13 @@ Important:
 - The app remains browser-first (`index.html` + local modules).
 - No installer/executable is produced by this process.
 
-## 4) Pilot user instructions
+## 5) Pilot user instructions
 
 1. Extract/copy the pilot folder to any user-writable location.
 2. Open `index.html` in a local browser.
 3. Use **Open HTML/ZIP** and select a local `.html` or `.htm` file.
 
-## 5) Manual pilot checklist
+## 6) Manual pilot checklist
 
 Run this checklist with at least one synthetic fixture deck:
 
@@ -84,7 +105,7 @@ Run this checklist with at least one synthetic fixture deck:
 11. Reset and verify preview returns to imported original.
 12. ZIP preflight-only behavior: open `.zip` and confirm preflight status/warnings appear and extraction/listing remains unavailable in this build.
 
-## 6) Current known limitations (pilot)
+## 7) Current known limitations (pilot)
 
 - ZIP remains preflight-only (no extraction/listing/export).
 - No autosave/localStorage/IndexedDB.
