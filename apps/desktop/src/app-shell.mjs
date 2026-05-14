@@ -163,6 +163,8 @@ const fileWarning = hasDom ? document.querySelector('#file-warning') : null;
 const fileScan = hasDom ? document.querySelector('#file-scan') : null;
 const importReport = hasDom ? document.querySelector('#import-report') : null;
 const importManifest = hasDom ? document.querySelector('#import-manifest') : null;
+const zipMainHtmlSelect = hasDom ? document.querySelector('#zip-main-html-select') : null;
+const zipMainHtmlStatus = hasDom ? document.querySelector('#zip-main-html-status') : null;
 const editableInventory = hasDom ? document.querySelector('#editable-inventory') : null;
 const visualObjectInventory = hasDom ? document.querySelector('#visual-object-inventory') : null;
 const visualObjectSelect = hasDom ? document.querySelector('#visual-object-select') : null;
@@ -205,6 +207,8 @@ if (
   fileScan != null &&
   importReport != null &&
   importManifest != null &&
+  zipMainHtmlSelect instanceof HTMLSelectElement &&
+  zipMainHtmlStatus != null &&
   editableInventory != null &&
   visualObjectInventory != null &&
   visualObjectSelect instanceof HTMLSelectElement &&
@@ -289,6 +293,9 @@ if (
     patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     replacementImageInput.disabled = true;
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     updateExportUi();
@@ -312,6 +319,9 @@ if (
     setResizeStatusText('Resize blocked: this object cannot be resized safely.');
     replacementImageInput.disabled = true;
     replacementImageInput.value = '';
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
   };
 
@@ -522,6 +532,9 @@ if (
     } else {
       replacementImageInput.disabled = true;
       replacementImageInput.value = '';
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     }
   };
@@ -595,6 +608,9 @@ if (
     updateExportUi();
     workingPreviewStatus.textContent = formatWorkingPreviewStateText(resetWorkingPreviewState());
     replacementImageInput.value = '';
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
     replacementImageInput.disabled = true;
     imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
     patchApplyStatus.textContent = 'Patch apply status: reset to original preview.';
@@ -710,6 +726,26 @@ if (
       fileScan.textContent = formatImportStatusSummary(status);
       importReport.textContent = formatImportReportText(report);
       importManifest.textContent = formatImportManifestText(createImportManifestFromStatus(status, report));
+      zipMainHtmlSelect.replaceChildren();
+      const zipManifest = status && status.checks ? status.checks.zipManifest : null;
+      if (zipManifest && Array.isArray(zipManifest.htmlEntries) && zipManifest.htmlEntries.length > 0) {
+        for (const entry of zipManifest.htmlEntries) {
+          const option = document.createElement('option');
+          option.value = entry.normalizedPath;
+          option.textContent = entry.normalizedPath;
+          zipMainHtmlSelect.appendChild(option);
+        }
+        zipMainHtmlSelect.disabled = zipManifest.selectionRequired;
+        if (zipManifest.autoSelectedMainHtmlPath) {
+          zipMainHtmlSelect.value = zipManifest.autoSelectedMainHtmlPath;
+        }
+        zipMainHtmlStatus.textContent = zipManifest.selectionRequired
+          ? 'ZIP main HTML selection: multiple entries detected; selection required once listing is available.'
+          : `ZIP main HTML selection: auto-selected ${zipManifest.autoSelectedMainHtmlPath}.`;
+      } else {
+        zipMainHtmlSelect.disabled = true;
+        zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable (entry listing not available in this build).';
+      }
       visualObjectInventory.textContent = 'Visual object discovery: unavailable for ZIP selection.';
       resetVisualObjectSelectionUi();
       editableInventory.textContent = 'Editable text candidates: unavailable for ZIP selection.';
@@ -751,6 +787,9 @@ if (
     if (!canCreateImageReplacementPatchForObject(selected)) {
       replacementImageInput.disabled = true;
       replacementImageInput.value = '';
+    zipMainHtmlSelect.replaceChildren();
+    zipMainHtmlSelect.disabled = true;
+    zipMainHtmlStatus.textContent = 'ZIP main HTML selection: unavailable.';
       imageReplacementStatus.textContent = 'Selected object is not safely image-replaceable.';
       return;
     }

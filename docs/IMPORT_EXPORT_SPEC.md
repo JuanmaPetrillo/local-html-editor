@@ -6,6 +6,12 @@
 - The importer must preserve original source and avoid destructive rewrites.
 - Unsupported complex content is preserved/locked and still previewed when safe.
 
+## ZIP safety (Phase 7A)
+
+- ZIP entry names are untrusted input.
+- Reject unsafe ZIP paths (traversal, absolute, drive-path, control chars, duplicate normalized paths).
+- Normalize safe paths to forward-slash form.
+
 ## Import outcomes
 
 Imported content should be classified as:

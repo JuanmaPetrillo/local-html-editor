@@ -17,6 +17,8 @@ if (!html.includes('id="file-details"')) throw new Error('shell ui missing selec
 if (!html.includes('id="file-scan"')) throw new Error('shell ui missing scan summary region');
 if (!html.includes('id="import-report"')) throw new Error('shell ui missing import report region');
 if (!html.includes('id="import-manifest"')) throw new Error('shell ui missing import manifest region');
+if (!html.includes('id="zip-main-html-select"')) throw new Error('shell ui missing zip main html selector');
+if (!html.includes('id="zip-main-html-status"')) throw new Error('shell ui missing zip main html status');
 
 if (!html.includes('id="advanced-details"')) throw new Error('shell ui missing advanced details container');
 if (html.includes('<details id="advanced-details" open')) throw new Error('advanced details should be collapsed by default');

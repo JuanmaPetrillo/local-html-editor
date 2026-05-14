@@ -5,6 +5,7 @@ import { createEditedHtmlExportFromHtmlText, createSuggestedEditedHtmlFileName }
 import { createVisualObjectInventory } from './visual-object-model.mjs';
 import { applyCombinedTextAndVisualPatchesToHtml } from './visual-layout-model.mjs';
 import { createImageReplacementPatchCollectionState } from './image-replacement-model.mjs';
+import { createZipEntrySafetyManifest } from './zip-manifest-model.mjs';
 
 /** @param {string} fileName */
 export function detectHtmlExtension(fileName) {
@@ -378,6 +379,8 @@ export function createImportStatusFromHtmlScan(scanResult) {
 
 /** @param {Awaited<ReturnType<typeof importZipFilePreflight>>} preflightResult */
 export function createImportStatusFromZipPreflight(preflightResult) {
+  const zipManifest = createZipEntrySafetyManifest([]);
+  const warningLabels = [...preflightResult.warningLabels, 'zip-entry-listing-unavailable'];
   return {
     sourceKind: preflightResult.sourceKind,
     fileName: preflightResult.fileName,
@@ -385,12 +388,13 @@ export function createImportStatusFromZipPreflight(preflightResult) {
     type: preflightResult.type,
     extension: preflightResult.extension,
     ok: preflightResult.ok,
-    severity: preflightResult.ok ? 'info' : 'error',
-    statusLabel: preflightResult.ok ? 'ZIP preflight complete.' : 'ZIP preflight failed.',
-    summaryLabel: `ZIP preflight: signature=${preflightResult.signatureStatus}, warnings=${preflightResult.warningLabels.length ? preflightResult.warningLabels.join('|') : 'none'}.`,
-    warningLabels: preflightResult.warningLabels,
+    severity: preflightResult.ok ? 'warning' : 'error',
+    statusLabel: preflightResult.ok ? 'ZIP preflight complete (entry listing unavailable).' : 'ZIP preflight failed.',
+    summaryLabel: `ZIP preflight: signature=${preflightResult.signatureStatus}, warnings=${warningLabels.length ? warningLabels.join('|') : 'none'}.`,
+    warningLabels,
     checks: {
-      signatureStatus: preflightResult.signatureStatus
+      signatureStatus: preflightResult.signatureStatus,
+      zipManifest
     }
   };
 }
@@ -471,7 +475,7 @@ export function createImportManifestFromStatus(status, report) {
       : null,
     zipPreflightSummary:
       status.sourceKind === 'zip' && status.checks?.signatureStatus
-        ? { signatureStatus: status.checks.signatureStatus }
+        ? { signatureStatus: status.checks.signatureStatus, htmlEntryCount: status.checks.zipManifest ? status.checks.zipManifest.htmlEntries.length : 0 }
         : null,
     capabilities,
     nextAvailableActions,
@@ -485,7 +489,7 @@ export function formatImportManifestText(manifest) {
     ? `local=${manifest.referenceSummary.byType['local-relative']}, remote=${manifest.referenceSummary.byType.remote}, data=${manifest.referenceSummary.byType['data-uri']}, anchor=${manifest.referenceSummary.byType.anchor}, unknown=${manifest.referenceSummary.byType.unknown}, total=${manifest.referenceSummary.totalCount}`
     : 'none';
   const zipSummary = manifest.zipPreflightSummary
-    ? `signature=${manifest.zipPreflightSummary.signatureStatus}`
+    ? `signature=${manifest.zipPreflightSummary.signatureStatus}, html-entry-count=${manifest.zipPreflightSummary.htmlEntryCount}`
     : 'none';
 
   return [
@@ -552,6 +556,12 @@ export function createImportWarning(code) {
       title: 'Data URIs detected',
       message: 'Inline data URI references were detected.',
       recommendedAction: 'Review inline assets to confirm they are expected.'
+    },
+    'zip-entry-listing-unavailable': {
+      severity: 'warning',
+      title: 'ZIP entry listing unavailable',
+      message: 'ZIP preflight succeeded, but this build cannot list ZIP entries yet.',
+      recommendedAction: 'Continue with HTML files, or add approved ZIP parsing dependency in a later slice.'
     },
     'invalid-zip-signature': {
       severity: 'error',
