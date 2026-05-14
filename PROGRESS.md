@@ -6,17 +6,17 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 4B complete (visual text edit UX bridge). Stabilization pass in progress (docs accuracy, fixture files, regression tests, TAG_PATTERN correctness fix).
+Current milestone: Phase 5A complete (trusted-shell nudge movement clean rebuild on PR #35).
 
 ## Latest summary
 
-Implementation is through Phase 4B. All earlier milestones (0 through PR 3/P2 hardening, and visual object discovery, overlay MVP, Phase 3A selection scaffold, Phase 4A/4B visual text edit bridge) are complete.
+Implementation is through Phase 5A. All earlier milestones (0 through PR 3/P2 hardening, visual object discovery, overlay MVP, Phase 3A selection scaffold, Phase 4A/4B visual text edit bridge, and Phase 5A nudge movement) are complete.
 
-Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export.
+Implemented capabilities: HTML/HTM import scan/report/manifest, sandboxed safe preview, editable text candidate discovery with source-span tracking, visual object discovery with editability classification, trusted-shell overlay rendering, visual object → editable candidate bridge, selected-text edit panel, in-memory text patch collection (overlap detection, descending-offset multi-patch), reset-to-original preview, user-initiated local edited HTML export, and trusted-shell button-based nudge movement for selected overlay-ready inline-style objects with cumulative move patch state, safe preview refresh, overlay geometry projection, and movement-aware export output.
 
-**Phase 4 (move/resize) is not implemented.** PR32 on GitHub attempted a Phase 5A movement spike but is not merged into `main` and is not trustworthy for integration without a confirmed diff review against security invariants. Do not merge PR32 without that review.
+Phase 5A trusted-shell nudge movement is implemented. Free drag and resize are not implemented yet.
 
-ZIP remains preflight-only. No image replacement, drag/resize visual editing, persistence/autosave, or Tauri/React/Vite conversion is implemented in this branch.
+ZIP remains preflight-only. No image replacement, free drag/resize visual editing, persistence/autosave, or Tauri/React/Vite/TypeScript conversion is implemented in this branch.
 
 Current app files:
 
@@ -27,6 +27,7 @@ Current app files:
 - `apps/desktop/src/editable-model.mjs`
 - `apps/desktop/src/exporter.mjs`
 - `apps/desktop/src/visual-object-model.mjs`
+- `apps/desktop/src/visual-layout-model.mjs`
 
 Tauri/React/Vite/TypeScript app code is not installed in the current implementation.
 

@@ -65,14 +65,15 @@ Active development is currently a **browser-first static prototype**.
 - Render a trusted-shell overlay of positioned boxes over the safe preview stage for geometry-ready objects.
 - Select a visual object and bridge to the text-edit workflow via exact source-span matching.
 - Draft and apply multiple in-memory text replacements to a working preview copy (overlap detection, descending-offset application).
+- Move selected overlay-ready inline-style objects using trusted-shell nudge buttons with cumulative in-memory move patch state.
 - Reset the working preview back to the original imported content.
-- Export a user-initiated edited HTML copy locally (download), without mutating the original import.
+- Export a user-initiated edited HTML copy locally (download), without mutating the original import, including movement patches when present.
 
 #### Current limitations
 
 - ZIP is preflight-only (no ZIP extraction/listing/export).
 - No image replacement.
-- No drag/resize or move of visual elements (Phase 4 — pending; see ROADMAP.md).
+- Button-based nudge movement only; no free drag or resize handles yet (see ROADMAP.md).
 - No project persistence/autosave/reopen flow.
 - No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
 - No Tauri/React/Vite/TypeScript conversion in this implementation branch.

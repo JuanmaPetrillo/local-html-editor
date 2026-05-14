@@ -19,20 +19,26 @@
 - Visual object selection → text edit bridge with draft prefill and "Apply text edit to preview" workflow.
 - Reset working preview to original; user-initiated local edited HTML export (Blob download).
 
+### Phase 5A: Trusted-shell nudge movement ✓
+
+- Button-based nudge movement is complete for selected overlay-ready inline-style objects.
+- Free drag movement remains pending.
+- Resize remains pending.
+
 ## Current focus
 
-### Phase 4: Move/resize simple visual elements (pending)
+### Phase 5B: constrained drag movement and UX cleanup (pending)
 
-- Drag handles and keyboard nudging for simple positioned elements.
-- Constrained, reversible geometry edits applied to in-memory working HTML.
-- **Status**: not implemented. PR32 (unmerged) attempted a Phase 5A movement spike but is not merged into main and is not trustworthy for integration as-is. Do not merge PR32 without a full review of the actual diff against confirmed security invariants.
+- Add constrained drag movement for safely movable objects while preserving current trust boundary and script-off preview model.
+- Keep advanced controls understandable for non-technical users (including possible panel cleanup/collapse follow-up).
+- Resize remains out of scope for this slice.
 
 ## Future phases
 
-### Phase 5: Image replacement
-### Phase 6: ZIP/assets import-export
-### Phase 7: Packaging/non-admin distribution
-### Phase 8: Pilot hardening
+### Phase 6: Image replacement
+### Phase 7: ZIP/assets import-export
+### Phase 8: Packaging/non-admin distribution
+### Phase 9: Pilot hardening
 
 ## Strategy guardrails across all phases
 
