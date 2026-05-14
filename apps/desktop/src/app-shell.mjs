@@ -768,10 +768,12 @@ if (
         movePatchCollection = pendingProjectPayload.patches.visualMoveCollection;
         imagePatchCollection = pendingProjectPayload.patches.imagePatchCollection;
         patchCollectionStatus.textContent = formatPatchCollectionText(patchCollection);
+        updateExportUi();
         const patched = await createCombinedPatchedSafePreviewResult(currentHtmlFile, patchCollection, movePatchCollection, imagePatchCollection);
         if (patched && patched.previewResult && patched.previewResult.previewDocument) {
           safePreviewFrame.srcdoc = patched.previewResult.previewDocument;
           safePreviewStatus.textContent = formatPreviewStatusText(patched.previewResult.previewStatus);
+          workingPreviewStatus.textContent = formatWorkingPreviewStateText(patched.applyState);
         }
         projectPersistenceStatus.textContent = formatProjectPersistenceStatusText('loaded');
       }

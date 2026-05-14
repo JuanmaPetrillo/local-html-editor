@@ -631,6 +631,6 @@ Milestone: Phase 8A - explicit local project persistence
 Summary: Added explicit user-controlled `.lheproj.json` save/open flow for HTML projects with pure project persistence model, importer-owned project file reads, source fingerprint validation (name/size/lastModified), and blocked-on-mismatch restore behavior. Persisted text/layout/image patch metadata and project metadata only; raw original HTML and preview srcdoc are not stored.
 Files changed: apps/desktop/src/project-persistence-model.mjs, apps/desktop/src/importer.mjs, apps/desktop/src/app-shell.mjs, apps/desktop/index.html, scripts/test.mjs, scripts/test-e2e.mjs, scripts/test-security.mjs, docs/ROADMAP.md, docs/IMPORT_EXPORT_SPEC.md, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
-Result: Pending in this task.
+Result: Passed.
 Known limitations: No autosave/localStorage/IndexedDB, no ZIP project persistence support, no dependency additions, no network calls/telemetry, no iframe permission changes or iframe internals access.
 Next recommended task: Keep persistence follow-up narrow (optional mismatch override UX) only with explicit approval.

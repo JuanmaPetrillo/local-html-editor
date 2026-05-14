@@ -51,6 +51,9 @@ if (!html.includes('Choose a local image file.')) throw new Error('shell ui miss
 if (!html.includes('Use a local PNG/JPEG/GIF/WebP/AVIF file. SVG is blocked.')) throw new Error('shell ui missing image replacement safety copy');
 if (!shellCode.includes('replacementImageInput.disabled = false')) throw new Error('shell logic missing image replacement input enable path');
 if (shellCode.includes('.text()') || shellCode.includes('.arrayBuffer()')) throw new Error('shell must not read file bytes directly');
+const restoreAssignIndex = shellCode.indexOf('imagePatchCollection = pendingProjectPayload.patches.imagePatchCollection;');
+const restoreUpdateExportIndex = shellCode.indexOf('updateExportUi();', restoreAssignIndex);
+if (restoreAssignIndex === -1 || restoreUpdateExportIndex === -1 || restoreUpdateExportIndex < restoreAssignIndex) throw new Error('restore path missing updateExportUi after project patch restore');
 if (!shellCode.includes('const previousImagePatchCollection = imagePatchCollection')) throw new Error('shell logic missing image patch rollback baseline');
 if (!shellCode.includes('imagePatchCollection = previousImagePatchCollection')) throw new Error('shell logic missing image patch rollback assignment');
 if (!shellCode.includes("'Image replacement could not be applied safely.'")) throw new Error('shell logic missing image replacement failure status copy');
