@@ -41,11 +41,21 @@ export function createImageReplacementApplyOperations(htmlText, imagePatchCollec
     const patch = imagePatchCollection.patchesByObjectId[objectId];
     if (!patch) return { operations: [], warnings: ['missing-image-patch'] };
     const tagSource = htmlText.slice(patch.sourceStart, patch.sourceEnd);
+    if (!/^<\s*img\b/i.test(tagSource)) return { operations: [], warnings: ['non-img-opening-tag'] };
+    const mimeType = String(patch.replacementMimeType || '').toLowerCase();
+    const replacementDataUrl = String(patch.replacementDataUrl || '');
+    if (!SAFE_IMAGE_MIME_TYPES.has(mimeType)) return { operations: [], warnings: ['invalid-image-mime-type'] };
+    if (!replacementDataUrl.startsWith(`data:${mimeType};base64,`)) return { operations: [], warnings: ['invalid-data-url-prefix'] };
+    if (/^data:image\/svg\+xml/i.test(replacementDataUrl) || /^data:text\/html/i.test(replacementDataUrl) || /javascript:/i.test(replacementDataUrl)) return { operations: [], warnings: ['blocked-data-url-type'] };
     const match = /\bsrc\s*=\s*(["'])(.*?)\1/i.exec(tagSource);
     if (!match || typeof match.index !== 'number') return { operations: [], warnings: ['missing-src-attribute'] };
-    const valueStart = patch.sourceStart + match.index + match[0].indexOf(match[2]);
+    if (match[2].length === 0) return { operations: [], warnings: ['empty-src-attribute'] };
+    const quotedValue = `${match[1]}${match[2]}${match[1]}`;
+    const quotedValueStart = match[0].indexOf(quotedValue);
+    if (quotedValueStart < 0) return { operations: [], warnings: ['invalid-src-attribute'] };
+    const valueStart = patch.sourceStart + match.index + quotedValueStart + 1;
     const valueEnd = valueStart + match[2].length;
-    ops.push({ operationId: `image-${objectId}`, sourceStart: valueStart, sourceEnd: valueEnd, replacementText: patch.replacementDataUrl });
+    ops.push({ operationId: `image-${objectId}`, sourceStart: valueStart, sourceEnd: valueEnd, replacementText: replacementDataUrl });
   }
   return { operations: ops, warnings: [] };
 }

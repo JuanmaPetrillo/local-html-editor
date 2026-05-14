@@ -1297,6 +1297,19 @@ import { createImageReplacementPatchCollectionState, createImageReplacementPatch
   const added = addOrUpdateImageReplacementPatch(col, patch).collection;
   const ops = createImageReplacementApplyOperations(html, added);
   assert.equal(ops.operations.length, 1);
+  assert.equal(ops.warnings.length, 0);
+  assert.equal(createImageReplacementApplyOperations('<img src="">', { patchesByObjectId: { 'object-100': { ...patch, sourceEnd: 12 } }, orderedObjectIds: ['object-100'] }).warnings.includes('empty-src-attribute'), true);
+  assert.equal(createImageReplacementApplyOperations('<img alt=\"x\">', { patchesByObjectId: { 'object-100': { ...patch, sourceEnd: 13 } }, orderedObjectIds: ['object-100'] }).warnings.includes('missing-src-attribute'), true);
+  assert.equal(createImageReplacementApplyOperations(html, { patchesByObjectId: { 'object-100': { ...patch, replacementMimeType: 'image/png', replacementDataUrl: 'data:text/html;base64,AAAA' } }, orderedObjectIds: ['object-100'] }).warnings.includes('invalid-data-url-prefix'), true);
+  assert.equal(createImageReplacementApplyOperations('<div src=\"x\"></div>', { patchesByObjectId: { 'object-100': { ...patch, sourceEnd: 18 } }, orderedObjectIds: ['object-100'] }).warnings.includes('non-img-opening-tag'), true);
+
+  const two = '<img alt=\"a\" src=\"dup.png\"><img alt=\"b\" src=\"dup.png\">';
+  const p2 = { ...patch, sourceStart: 0, sourceEnd: two.indexOf('>') + 1 };
+  const opsTwo = createImageReplacementApplyOperations(two, { patchesByObjectId: { 'object-100': p2 }, orderedObjectIds: ['object-100'] });
+  assert.equal(opsTwo.operations.length, 1);
+  const replacedTwo = two.slice(0, opsTwo.operations[0].sourceStart) + opsTwo.operations[0].replacementText + two.slice(opsTwo.operations[0].sourceEnd);
+  assert.equal(replacedTwo.includes('alt=\"a\" src=\"data:image/png;base64,AAAA\"'), true);
+  assert.equal(replacedTwo.includes('alt=\"b\" src=\"dup.png\"'), true);
 
   const fakeFile = (name, type, size=10) => ({ name, type, size, arrayBuffer: async ()=>new Uint8Array([1,2,3]).buffer });
   assert.equal((await createReplacementImageAssetFromFile(fakeFile('a.png','image/png'))).status, 'ready');
