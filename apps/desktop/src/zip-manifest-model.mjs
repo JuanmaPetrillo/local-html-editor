@@ -11,7 +11,7 @@ export function normalizeZipEntryPath(entryName) {
   if (!raw) return { ok: false, reason: 'empty-path', normalizedPath: '' };
   if (hasControlChars(raw)) return { ok: false, reason: 'control-char', normalizedPath: '' };
   if (/^[a-zA-Z]:[\\/]/.test(raw)) return { ok: false, reason: 'windows-drive-path', normalizedPath: '' };
-  if (raw.startsWith('/')) return { ok: false, reason: 'absolute-path', normalizedPath: '' };
+  if (raw.startsWith('/') || raw.startsWith('\\')) return { ok: false, reason: 'absolute-path', normalizedPath: '' };
 
   const slashPath = raw.replace(/\\/g, '/');
   const parts = slashPath.split('/');

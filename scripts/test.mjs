@@ -1341,8 +1341,12 @@ import { normalizeZipEntryPath, createZipEntrySafetyManifest } from '../apps/des
   assert.equal(normalizeZipEntryPath('slides\\main.html').normalizedPath, 'slides/main.html');
   assert.equal(normalizeZipEntryPath('../evil.html').ok, false);
   assert.equal(normalizeZipEntryPath('/abs.html').ok, false);
+  assert.equal(normalizeZipEntryPath('\\\\abs.html').ok, false);
+  assert.equal(normalizeZipEntryPath('\\\\abs.html').reason, 'absolute-path');
+  assert.equal(normalizeZipEntryPath('\\\\folder\\\\file.html').ok, false);
   assert.equal(normalizeZipEntryPath('C:\\evil.html').ok, false);
   assert.equal(normalizeZipEntryPath('folder/../../evil.html').ok, false);
+  assert.equal(normalizeZipEntryPath('folder\\..\\evil.html').ok, false);
   assert.equal(normalizeZipEntryPath('bad\u0000name.html').ok, false);
 
   const manifest = createZipEntrySafetyManifest([
