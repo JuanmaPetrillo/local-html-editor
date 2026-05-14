@@ -18,6 +18,7 @@ function getAttr(tag, name) { const m = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 
 function getDataAttrs(tag) { const out = {}; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*"([^"]*)"/gi)) out[m[1]] = m[2]; for (const m of tag.matchAll(/\s(data-[a-z0-9_-]+)\s*=\s*'([^']*)'/gi)) out[m[1]] = m[2]; return out; }
 function parseTextFromTag(tag) { const m = tag.match(/>([\s\S]*?)<\//); return m ? m[1].replace(/<[^>]+>/g, '') : ''; }
 export function escapeHtml(s) { return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
+export function escapeAttribute(value) { return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 
 export function classifyImageSource(src) {
   const value = String(src || '').trim();
@@ -25,7 +26,7 @@ export function classifyImageSource(src) {
   return { safe: ok, normalizedSrc: ok ? value : '' };
 }
 
-function encodeAttrs(attrs) { return Object.entries(attrs).map(([k, v]) => ` ${k}="${escapeHtml(String(v))}"`).join(''); }
+function encodeAttrs(attrs) { return Object.entries(attrs).map(([k, v]) => ` ${k}="${escapeAttribute(v)}"`).join(''); }
 
 export function mapHtmlToModel(htmlText) {
   const matches = htmlText.matchAll(/<(h1|h2|h3|p|span)\b[^>]*>[\s\S]*?<\/(h1|h2|h3|p|span)>|<img\b[^>]*>/gi);
@@ -69,7 +70,7 @@ export function exportModelToHtml(current) {
     }
     if (o.src) {
       const attrs = { ...(o.className ? { class: o.className } : {}), ...(o.alt ? { alt: o.alt } : { alt: '' }), ...(o.dataAttrs || {}) };
-      return `<img src="${o.src}" style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;"${encodeAttrs(attrs)}/>`;
+      return `<img src="${escapeAttribute(o.src)}" style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;"${encodeAttrs(attrs)}/>`;
     }
     return `<div style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;border:1px dashed #999;background:#f3f4f6;color:#374151;">Blocked remote image</div>`;
   }).join('\n');
