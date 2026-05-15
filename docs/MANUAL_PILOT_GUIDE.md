@@ -95,20 +95,26 @@ Why this is recommended:
 
 ## 6) Manual pilot checklist
 
-Run this checklist with at least one synthetic fixture deck:
+Run this checklist with at least one synthetic fixture deck (e.g. `tests/fixtures/v2-overlay-interaction.html`):
 
 1. Open app through `START_HERE.bat` (`http://localhost:8765`).
-2. Open HTML file.
-3. Edit text and apply draft to preview.
-4. Move one supported object.
-5. Drag and resize one supported object.
-6. Replace one image with a local file.
-7. Save project (`.lheproj.json`).
-8. Reopen project and verify patches restore.
-9. Export edited HTML.
-10. Open exported HTML locally and verify expected edits.
-11. Reset and verify preview returns to imported original.
-12. ZIP preflight-only behavior: open `.zip` and confirm preflight status/warnings appear and extraction/listing remains unavailable in this build.
+2. Open HTML file — slide list should populate.
+3. **Hover** over elements — dashed hover box should follow cursor.
+4. **Click** a button — selection box appears, button does NOT activate.
+5. **Click** a heading — selection box moves to heading, inspector populates.
+6. **Double-click** a heading — cursor appears, type text, press Enter — text updates.
+7. **Escape** during text edit — text reverts, no extra undo entry.
+8. **Ctrl+Click** a link — follows the link without selecting a new element.
+9. **Drag** an absolute-positioned element — moves smoothly, selection box tracks.
+10. **Drag a resize handle** (corner or edge) — element resizes, selection box tracks.
+11. **Click a normal-flow element then try to drag** — status bar shows lock message, no move.
+12. **Inspector X/Y/W/H fields** — update live on positioned element.
+13. **Undo** after drag/resize — position/size reverts.
+14. **Switch to Preview** — full presentation renders, buttons and scripts work.
+15. **Switch back to Edit** — selection cleared, overlay active again.
+16. **Save project** (`.lheproj-v2.json`) — open JSON, confirm no `originalHtml` key.
+17. **Export HTML** — open in browser, text/style changes visible, no scripts.
+18. ZIP preflight-only behavior: open `.zip` and confirm preflight status/warnings appear and extraction/listing remains unavailable in this build.
 
 ## 7) Current known limitations (pilot)
 

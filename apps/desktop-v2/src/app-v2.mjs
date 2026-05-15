@@ -155,11 +155,23 @@ if (hasDom) {
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
 
+  const HANDLE_DIRS = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
+  const HANDLE_CURSORS = { nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', w: 'ew-resize', e: 'ew-resize', sw: 'nesw-resize', s: 'ns-resize', se: 'nwse-resize' };
+  const HANDLE_PX = 8;
+  const handles = {};
+  for (const dir of HANDLE_DIRS) {
+    const h = document.createElement('div');
+    h.style.cssText = `position:absolute;width:${HANDLE_PX}px;height:${HANDLE_PX}px;background:#2563eb;border:1px solid #fff;box-sizing:border-box;cursor:${HANDLE_CURSORS[dir]};display:none;z-index:4;`;
+    editStage.appendChild(h);
+    handles[dir] = h;
+  }
+
   let model = mapHtmlToModel('');
   const history = createHistory();
   let selectedEl = null;
   let activeEditingEl = null;
   let selectionId = '';
+  let resizeState = null;
 
   const setStatus = (t) => { status.textContent = t; };
 
@@ -310,6 +322,7 @@ if (hasDom) {
     el.dataset.lheOriginalText = el.textContent || '';
     el.setAttribute('contenteditable', 'true');
     editOverlay.style.pointerEvents = 'none';
+    hideResizeHandles();
     el.focus();
     describeSelected(el);
     setStatus('Text editing. Press Enter or click away to commit. Escape to cancel.');
@@ -332,11 +345,76 @@ if (hasDom) {
     selectionBox.style.width = r.width + 'px';
     selectionBox.style.height = r.height + 'px';
     selectionBox.style.display = 'block';
+    updateResizeHandles(el);
   }
 
   function clearSelectionBox() {
     selectionBox.style.display = 'none';
     hoverBox.style.display = 'none';
+    hideResizeHandles();
+  }
+
+  function updateResizeHandles(el) {
+    if (!el || !isMovableByPosition(el)) { hideResizeHandles(); return; }
+    const r = el.getBoundingClientRect();
+    const hs = HANDLE_PX / 2;
+    const pts = {
+      nw: [r.left, r.top], n: [r.left + r.width / 2, r.top], ne: [r.right, r.top],
+      w: [r.left, r.top + r.height / 2], e: [r.right, r.top + r.height / 2],
+      sw: [r.left, r.bottom], s: [r.left + r.width / 2, r.bottom], se: [r.right, r.bottom],
+    };
+    for (const dir of HANDLE_DIRS) {
+      const [x, y] = pts[dir];
+      handles[dir].style.left = (x - hs) + 'px';
+      handles[dir].style.top = (y - hs) + 'px';
+      handles[dir].style.display = 'block';
+    }
+  }
+
+  function hideResizeHandles() {
+    for (const h of Object.values(handles)) h.style.display = 'none';
+  }
+
+  for (const dir of HANDLE_DIRS) {
+    handles[dir].onpointerdown = (e) => {
+      e.stopPropagation();
+      if (!selectedEl || !isMovableByPosition(selectedEl)) return;
+      const r = selectedEl.getBoundingClientRect();
+      resizeState = {
+        dir, el: selectedEl, startX: e.clientX, startY: e.clientY,
+        origLeft: getPx(selectedEl.style, 'left'), origTop: getPx(selectedEl.style, 'top'),
+        origW: getPx(selectedEl.style, 'width') || Math.round(r.width),
+        origH: getPx(selectedEl.style, 'height') || Math.round(r.height),
+      };
+      handles[dir].setPointerCapture(e.pointerId);
+    };
+    handles[dir].onpointermove = (e) => {
+      if (!resizeState || resizeState.dir !== dir) return;
+      const dx = e.clientX - resizeState.startX;
+      const dy = e.clientY - resizeState.startY;
+      const el = resizeState.el;
+      let newW = resizeState.origW;
+      let newH = resizeState.origH;
+      let newLeft = resizeState.origLeft;
+      let newTop = resizeState.origTop;
+      if (dir.includes('e')) newW = Math.max(20, resizeState.origW + dx);
+      if (dir.includes('w')) { newW = Math.max(20, resizeState.origW - dx); newLeft = resizeState.origLeft + (resizeState.origW - newW); }
+      if (dir.includes('s')) newH = Math.max(20, resizeState.origH + dy);
+      if (dir.includes('n')) { newH = Math.max(20, resizeState.origH - dy); newTop = resizeState.origTop + (resizeState.origH - newH); }
+      setPx(el.style, 'left', newLeft);
+      setPx(el.style, 'top', newTop);
+      setPx(el.style, 'width', newW);
+      setPx(el.style, 'height', newH);
+      updateSelectionBox(el);
+      loadInspector(el);
+    };
+    handles[dir].onpointerup = () => {
+      if (!resizeState) return;
+      pushHistory(history, model);
+      commitFrameToModel();
+      resizeState = null;
+      render();
+    };
   }
 
   function wireOverlayInteractions() {

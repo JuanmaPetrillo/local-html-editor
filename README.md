@@ -253,13 +253,11 @@ V2 in `apps/desktop-v2` is now the primary pilot: visual-fidelity sanitized DOM 
 - **Edit mode:** scripts removed, inline handlers removed, remote URLs removed, CSS/DOM preserved as much as possible.
 - **Export mode:** sanitized edited HTML export (scripts are not preserved in this MVP).
 
-Known limitation: generalized move/resize editing for arbitrary original objects is still pending a dedicated overlay manipulation phase.
-
-
 ## V2 Preview/Edit behavior
 
 - **Preview mode** is interactive and uses `live-preview-frame` with `sandbox="allow-scripts"` (without `allow-same-origin`) to allow self-contained in-slide scripts while preserving isolation.
 - **Edit mode** is safe and uses `edit-frame` with `sandbox="allow-same-origin"` (without `allow-scripts`); script tags and inline handlers are stripped in edit/export HTML.
-- In Edit mode: single-click selects, double-click enters text editing, and drag only starts after movement threshold on selected absolute/fixed elements.
-- Buttons are selectable/editable in Edit mode but actions are disabled there; button actions can run only in Preview mode if self-contained.
-- Move/resize is limited to absolute/fixed layout elements; normal-flow elements stay format-editable in inspector but movement is locked to avoid layout breakage.
+- In Edit mode: single-click selects (without activating buttons), double-click enters text editing, drag-to-move starts after a 4 px threshold, and Ctrl+click passes native click through to the iframe (useful for links/fragments).
+- Buttons are selectable/editable in Edit mode but their actions never fire; actions run only in Preview mode when self-contained.
+- **Overlay selection engine:** a transparent `#edit-overlay` div sits above the edit iframe and captures all pointer events. A dashed hover box follows the cursor; a solid blue selection box appears on selection. 8-handle resize overlay (corners + edges) enables drag-to-resize for absolute/fixed elements.
+- Normal-flow elements are fully format-editable via the inspector (text, color, background, font, bold) but movement is locked — use inspector X/Y fields to reposition.
