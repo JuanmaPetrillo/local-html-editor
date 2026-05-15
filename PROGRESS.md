@@ -769,3 +769,4 @@ Known limitations: General move/resize overlay editing for arbitrary imported el
 Next recommended task: Implement safe overlay move/resize handles and attribute panel edits for supported DOM elements with explicit lock badges for unsupported/script-driven content.
 
 - 2026-05-15: Added V2 explicit Preview/Edit modes with dual iframes, preview script-preserving isolated sandbox, expanded edit inspector formatting controls, direct move/resize via inline style editing/drag, and safe export status copy. Updated V2/security test contracts for mode-specific sanitization and sandbox invariants.
+- 2026-05-15: PR #55 fix-forward: fixed V2 delete regression by correcting regex escapes in tag mutation helpers (`\\b`, `[\\s\\S]`), restoring delete behavior and making `test:v2` green; reran full validation gate successfully.

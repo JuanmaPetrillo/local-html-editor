@@ -43,7 +43,7 @@ function collectSlides(doc) {
 
 
 function replaceFirstTextInTag(html, tagName, replacementText) {
-  const re = new RegExp(`<${tagName}\b([^>]*)>([\s\S]*?)<\/${tagName}>`, 'i');
+  const re = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\/${tagName}>`, 'i');
   return String(html).replace(re, (_m, attrs) => `<${tagName}${attrs}>${escapeHtml(replacementText)}</${tagName}>`);
 }
 function getSlideRegexById(slideId) {
@@ -71,7 +71,7 @@ export function deleteFirstTagInSlide(modelInput, tagName) {
   if (!slideId) return model;
   const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
   if (!target) return model;
-  const updated = target.replace(new RegExp(`<${tagName}\b[^>]*>[\s\S]*?<\/${tagName}>`, 'i'), '');
+  const updated = target.replace(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\/${tagName}>`, 'i'), '');
   model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
   return mapHtmlToModel(model.sourceHtml);
 }
