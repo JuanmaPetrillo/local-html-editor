@@ -33,39 +33,11 @@
 - ZIP/assets import-export remains pending.
 - Persistence/autosave remains pending.
 
-## Future phases
-
 ### Phase 6A: Local image replacement ✓
 
 - Replace selected safe `<img>` objects with user-selected local raster image files (png/jpeg/jpg/gif/webp/avif).
 - Replacement is embedded as a local `data:image/...;base64,...` URL for preview/export.
 - SVG replacement and non-image replacement remain blocked.
-
-### Phase 7: ZIP/assets import-export
-
-- Phase 7A started: ZIP path-safety model + main-HTML selection UI scaffold.
-- ZIP entry extraction/listing preview remains blocked pending approved ZIP parsing dependency.
-### Phase 8: Packaging/non-admin distribution
-### Phase 9: Pilot hardening
-
-### Phase 8B: Manual pilot packaging guide (browser-first) ✓
-
-- Added docs/scripts-only manual pilot packaging flow for `dist/` portable distribution.
-- Added versioned portable-folder packaging helper (`npm run package:pilot`).
-- No installer/executable packaging added in this phase.
-
-
-## Next focus
-
-- Phase 7 ZIP/assets import-export (only with explicit approval).
-
-## Strategy guardrails across all phases
-
-- Arbitrary HTML support is best-effort; full editability is not guaranteed.
-- Edit-ready Copilot metadata is recommended and supported, not required.
-- Unsupported complex content must be preserved and previewed, not destructively rewritten.
-- Final UX target is a local visual editor for non-technical users, not a code editor.
-- Current browser-first MVP remains a foundation/proof of concept.
 
 ### Phase 8A: Explicit local project save/reopen ✓
 
@@ -74,43 +46,12 @@
 - Project files may contain sensitive patch data and embedded replacement images.
 - Raw original HTML is not stored in project files.
 
+### Phase 8B: Manual pilot packaging guide (browser-first) ✓
+
+- Added docs/scripts-only manual pilot packaging flow for `dist/` portable distribution.
+- Added versioned portable-folder packaging helper (`npm run package:pilot`).
+- No installer/executable packaging added in this phase.
 - V2 pilot promoted as default packaging target with standalone non-module bundle and START_HERE launcher.
-
-- V2 direct-canvas editor now includes multi-slide navigation and inspector/layers editing as primary pilot behavior.
-
-
-### Phase 9A: V2 interaction polish ✓
-
-- Preview/Edit mode behavior split hardened.
-- Preview iframe interactivity contract and sandbox policy checks added.
-- Edit interactions changed to click-select, double-click text edit, drag threshold movement.
-- Slide-switch persistence and V2 contract tests expanded.
-
-### Phase 9E: V2 polish — copy/paste, z-order, italic/underline/opacity, snap, layers ✓
-
-- Ctrl+C/V copy-paste: copies selected element, pastes offset by 20px (respects snap), auto-selects.
-- Bring to Front / Send to Back buttons (DOM reordering, undoable).
-- Inspector additions: Italic, Underline, Opacity % (0–100).
-- Snap to 10px grid toggle in toolbar; applied during drag, arrow nudge, and paste.
-- LI, A, LABEL elements added to double-click text edit allowlist.
-- Layers panel shows content text preview; includes li/a/label elements.
-
-### Phase 9D: V2 full editor — free drag, slide management, inspector ✓
-
-- `convertToAbsolute(el)`: any element can now be freely dragged/resized — auto-converted to `position:absolute` at its current visual position on drag start, resize handle drag, arrow-key nudge, or inspector X/Y change.
-- Resize handles shown for all selected elements (not just absolute/fixed).
-- Arrow-key nudge: ArrowLeft/Right/Up/Down move selected element 1px (10px with Shift); debounced 300ms commit.
-- Slide management: Add Slide, Delete Slide, Duplicate Slide buttons.
-- Inspector: font family select (7 web-safe fonts); text alignment select; X/Y shows visual position for non-positioned elements.
-- Removed "locked" status text — drag to freely position messaging instead.
-
-### Phase 9C: V2 keyboard shortcuts, preview-reflects-edits, image replacement ✓
-
-- Document-level Escape key clears selection (when not in text-edit mode).
-- Delete key removes selected element (ignored when focus is in inspector inputs).
-- `buildLivePreviewHtml` computes live preview from current `sourceHtml` + injects original inline scripts; remote script src blocked.
-- Preview mode now shows the current edited content (not the stale original), while still running original self-contained scripts.
-- Inspector "Replace Image" button appears when an `<img>` is selected; validates MIME, replaces src with local data URL.
 
 ### Phase 9B: V2 overlay editor — clean selection, drag, resize ✓
 
@@ -123,3 +64,70 @@
 - Resize handles hidden during text edit mode, restored on commit/cancel.
 - New `v2-overlay-interaction.html` fixture with multi-slide, absolute elements, button with onclick, data image, remote CSS to strip.
 - Preview/Edit sandbox invariants and sanitization coverage expanded.
+
+### Phase 9A: V2 interaction polish ✓
+
+- Preview/Edit mode behavior split hardened.
+- Preview iframe interactivity contract and sandbox policy checks added.
+- Edit interactions changed to click-select, double-click text edit, drag threshold movement.
+- Slide-switch persistence and V2 contract tests expanded.
+
+### Phase 9C: V2 keyboard shortcuts, preview-reflects-edits, image replacement ✓
+
+- Document-level Escape key clears selection (when not in text-edit mode).
+- Delete key removes selected element (ignored when focus is in inspector inputs).
+- `buildLivePreviewHtml` computes live preview from current `sourceHtml` + injects original inline scripts; remote script src blocked.
+- Preview mode now shows the current edited content (not the stale original), while still running original self-contained scripts.
+- Inspector "Replace Image" button appears when an `<img>` is selected; validates MIME, replaces src with local data URL.
+
+### Phase 9D: V2 full editor — free drag, slide management, inspector ✓
+
+- `convertToAbsolute(el)`: any element can now be freely dragged/resized — auto-converted to `position:absolute` at its current visual position on drag start, resize handle drag, arrow-key nudge, or inspector X/Y change.
+- Resize handles shown for all selected elements (not just absolute/fixed).
+- Arrow-key nudge: ArrowLeft/Right/Up/Down move selected element 1px (10px with Shift); debounced 300ms commit.
+- Slide management: Add Slide, Delete Slide, Duplicate Slide buttons.
+- Inspector: font family select (7 web-safe fonts); text alignment select; X/Y shows visual position for non-positioned elements.
+- Removed "locked" status text — drag to freely position messaging instead.
+
+### Phase 9E: V2 polish — copy/paste, z-order, italic/underline/opacity, snap, layers ✓
+
+- Ctrl+C/V copy-paste: copies selected element, pastes offset by 20px (respects snap), auto-selects.
+- Bring to Front / Send to Back buttons (DOM reordering, undoable).
+- Inspector additions: Italic, Underline, Opacity % (0–100).
+- Snap to 10px grid toggle in toolbar; applied during drag, arrow nudge, and paste.
+- LI, A, LABEL elements added to double-click text edit allowlist.
+- Layers panel shows content text preview; includes li/a/label elements.
+
+### Phase 10: Usability hardening (pilot blockers) ✓
+
+- Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z keyboard undo/redo added to keydown handler.
+- `convertToAbsolute` warns user when a normal-flow element is converted for free positioning.
+- Project open hardened: invalid JSON and unrecognized schema show clear status messages.
+- Save/export deferred `URL.revokeObjectURL` via setTimeout to prevent race condition.
+- `getSlideRegexById` uses lookaheads so attribute order (class vs data-slide-id) does not matter.
+- Pilot guide stale "lock message, no move" language corrected to match current behavior.
+- CI workflow now runs `test:v2` and `package:pilot` on every push.
+- Documentation updated: V2 is the current primary app; completed phases clearly marked.
+
+## Future phases
+
+### Phase 7: ZIP/assets import-export
+
+- Phase 7A started: ZIP path-safety model + main-HTML selection UI scaffold.
+- ZIP entry extraction/listing preview remains blocked pending approved ZIP parsing dependency.
+
+### Phase 8: Packaging/non-admin distribution
+
+- Installer/executable packaging not yet implemented.
+
+## Next focus
+
+- Phase 7 ZIP/assets import-export (only with explicit approval).
+
+## Strategy guardrails across all phases
+
+- Arbitrary HTML support is best-effort; full editability is not guaranteed.
+- Edit-ready Copilot metadata is recommended and supported, not required.
+- Unsupported complex content must be preserved and previewed, not destructively rewritten.
+- Final UX target is a local visual editor for non-technical users, not a code editor.
+- Current browser-first MVP remains a foundation/proof of concept.
