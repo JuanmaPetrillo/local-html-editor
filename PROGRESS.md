@@ -717,3 +717,13 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Parser remains deterministic string/token heuristic (not full browser CSS cascade/layout engine); transform-heavy or script-rendered layouts can still be approximate/locked.
 Next recommended task: Add another minimized fixture for SVG-heavy deck structure and keep parser changes narrow per pattern.
+### 2026-05-15 (v2 visual fidelity mode for real-html presentations)
+Date: 2026-05-15
+Branch/PR: current branch / pending PR
+Milestone: Phase 8B V2 architecture correction
+Summary: Replaced the V2 absolute-object reconstruction renderer with a sanitized visual-fidelity DOM mode that preserves original presentation HTML/CSS layout in a sandboxed iframe (`sandbox="allow-same-origin"`, no scripts), removes script tags and inline event handlers, blocks/removes remote URL-backed media/link sources, keeps `.slide` structures for navigation, and supports direct text editing on rendered elements while preserving styling context. Added real-fixture regression coverage focused on `from_answers_to_tools_v3.html` to enforce style/class preservation, expected slide detection, core text presence, no script export, and remote URL blocking. Updated V2 UI canvas to iframe preview mode and kept project save/open plus HTML export behavior against sanitized edited DOM source.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, tests/fixtures/from_answers_to_tools_v3.html, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed after updating V2 parser fallback slide detection for Node test runtime.
+Known limitations: Move/resize handles for arbitrary original complex components are not yet reintroduced in this fidelity mode; current V2 direct edit supports text editing and add/delete on sanitized DOM, with constrained object operations still partial for complex imported structures.
+Next recommended task: Add safe overlay move/resize controls on top of fidelity iframe for explicitly supported block elements, with lock badges for complex components.

@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--nav:#0b1f4d;--card:#ffffff;--bg:#f2f5fb;--accent:#2c5cff}
+body{margin:0;background:var(--bg);font-family:Segoe UI,Arial,sans-serif}
+.topnav,.botnav{background:var(--nav);color:#fff;padding:12px 24px}
+.slides-area{padding:20px;display:flex;flex-direction:column;gap:20px}
+.slide{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:24px}
+.slide.active{outline:3px solid var(--accent)}
+.slide-inner{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.card{background:var(--card);border:1px solid #d8e1ff;border-radius:12px;padding:14px}
+.btn{display:inline-block;background:#123cb8;color:white;padding:8px 12px;border-radius:8px}
+</style><script>console.log('unsafe script');</script></head><body>
+<div class="topnav">From Answers to Tools</div>
+<div class="slides-area">
+<section class="slide active" data-slide-id="slide-1" data-label="Intro"><div class="slide-inner"><div><h1>From Answers to Tools</h1><p>Shift from prompts to repeatable workflows.</p><div class="card"><span>Card text</span><button class="btn">Open Tool</button></div></div><div class="card">Side card</div></div></section>
+<section class="slide" data-slide-id="slide-2" data-label="Plan"><div class="slide-inner"><h2>Execution Plan</h2><p>Work streams and owners.</p></div></section>
+</div>
+<div class="botnav">Footer</div>
+<img src="https://example.com/track.png">
+</body></html>
