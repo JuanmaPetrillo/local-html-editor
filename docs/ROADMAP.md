@@ -86,6 +86,15 @@
 - Edit interactions changed to click-select, double-click text edit, drag threshold movement.
 - Slide-switch persistence and V2 contract tests expanded.
 
+### Phase 9E: V2 polish — copy/paste, z-order, italic/underline/opacity, snap, layers ✓
+
+- Ctrl+C/V copy-paste: copies selected element, pastes offset by 20px (respects snap), auto-selects.
+- Bring to Front / Send to Back buttons (DOM reordering, undoable).
+- Inspector additions: Italic, Underline, Opacity % (0–100).
+- Snap to 10px grid toggle in toolbar; applied during drag, arrow nudge, and paste.
+- LI, A, LABEL elements added to double-click text edit allowlist.
+- Layers panel shows content text preview; includes li/a/label elements.
+
 ### Phase 9D: V2 full editor — free drag, slide management, inspector ✓
 
 - `convertToAbsolute(el)`: any element can now be freely dragged/resized — auto-converted to `position:absolute` at its current visual position on drag start, resize handle drag, arrow-key nudge, or inspector X/Y change.
