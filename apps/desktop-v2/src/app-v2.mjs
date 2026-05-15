@@ -84,11 +84,14 @@ export function mapHtmlToModel(htmlText) {
 }
 
 export function exportModelToHtml(modelInput) {
-  return String(modelInput?.sourceHtml || '');
+  return stripUnsafeHtml(String(modelInput?.sourceHtml || ''));
 }
 
 export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model }; }
-export function restoreProjectPayload(payload) { return payload && payload.schema === 'lheproj-v2' && payload.version === 2 ? payload.model : null; }
+export function restoreProjectPayload(payload) {
+  if (!payload || payload.schema !== 'lheproj-v2' || payload.version !== 2) return null;
+  return mapHtmlToModel(String(payload.model?.sourceHtml || ''));
+}
 export function createHistory() { return { undo: [], redo: [] }; }
 export function snapshot(model) { return JSON.parse(JSON.stringify(model)); }
 export function pushHistory(history, model) { history.undo.push(snapshot(model)); if (history.undo.length > 100) history.undo.shift(); history.redo = []; }
@@ -123,6 +126,8 @@ if (hasDom) {
   const refreshButtons = () => { undoBtn.disabled = !canUndo(history); redoBtn.disabled = !canRedo(history); delBtn.disabled = !selectedEl; };
 
   function setFrameHtml() {
+    // allow-same-origin is required so trusted shell can edit sanitized srcdoc via contentDocument.
+    // allow-scripts is intentionally omitted and imported scripts are stripped before srcdoc assignment.
     frame.srcdoc = model.sourceHtml;
     frame.onload = () => {
       const doc = frame.contentDocument;
@@ -213,13 +218,14 @@ if (hasDom) {
 
   fileInput.onchange = async () => { const f = fileInput.files?.[0]; if (!f) return; model = mapHtmlToModel(await f.text()); history.undo = []; history.redo = []; render(); setStatus(`Opened HTML: ${f.name}`); };
   addTextBtn.onclick = () => {
+    pushHistory(history, model);
     const doc = frame.contentDocument; if (!doc) return; const active = collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || doc.body;
     const p = doc.createElement('p'); p.textContent = 'New text'; p.style.position = 'absolute'; p.style.left = '80px'; p.style.top = '80px'; p.style.width = '280px'; p.style.minHeight = '30px';
     active.appendChild(p); serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render();
   };
-  addImageBtn.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); const doc = frame.contentDocument; if (!doc) return; const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body; const img = doc.createElement('img'); img.src = data; img.style.position = 'absolute'; img.style.left = '80px'; img.style.top = '120px'; img.style.width = '240px'; img.style.height = '140px'; active.appendChild(img); serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render(); }; i.click(); };
-  delBtn.onclick = () => { if (!selectedEl) return; selectedEl.remove(); selectedEl = null; serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render(); };
-  insText.onchange = () => { if (!selectedEl || selectedEl.tagName === 'IMG') return; selectedEl.textContent = insText.value; serializeDoc(); };
+  addImageBtn.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); pushHistory(history, model); const doc = frame.contentDocument; if (!doc) return; const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body; const img = doc.createElement('img'); img.src = data; img.style.position = 'absolute'; img.style.left = '80px'; img.style.top = '120px'; img.style.width = '240px'; img.style.height = '140px'; active.appendChild(img); serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render(); }; i.click(); };
+  delBtn.onclick = () => { if (!selectedEl) return; pushHistory(history, model); selectedEl.remove(); selectedEl = null; serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render(); };
+  insText.onchange = () => { if (!selectedEl || selectedEl.tagName === 'IMG') return; pushHistory(history, model); selectedEl.textContent = insText.value; serializeDoc(); model = mapHtmlToModel(model.sourceHtml); render(); };
   undoBtn.onclick = () => { model = undo(history, model); render(); };
   redoBtn.onclick = () => { model = redo(history, model); render(); };
   saveBtn.onclick = () => { const text = JSON.stringify(createProjectPayload(model), null, 2); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'project.lheproj-v2.json'; a.click(); URL.revokeObjectURL(a.href); };

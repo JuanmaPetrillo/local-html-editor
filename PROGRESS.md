@@ -737,3 +737,13 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Visual object move/resize for arbitrary complex imported blocks remains limited; current safety model focuses on visual DOM fidelity + inline text editing and safe add/delete operations.
 Next recommended task: Add safe move/resize overlay handles for supported block-level elements while clearly locking unsupported complex interactive components.
+### 2026-05-15 (pr54 amend: restore/export sanitization + undo/redo + fuller fixture)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Amended PR #54 to close merge blockers: expanded `from_answers_to_tools_v3.html` into a fuller real-structure fixture with 4 slides and richer nested nav/progress/cards/prompt/control/script/event/remote/data patterns; hardened `restoreProjectPayload` to sanitize and rebuild model via `mapHtmlToModel` instead of trusting payload model; hardened `exportModelToHtml` with defense-in-depth sanitization; restored undo/redo reliability for fidelity-mode mutating actions (inspector text commit, add text, add image, delete) by pushing history snapshots before mutations; added V2 security contract checks to `test:security` for same-origin sandbox without scripts and explicit contentDocument+sanitizer contract.
+Files changed: apps/desktop-v2/src/app-v2.mjs, tests/fixtures/from_answers_to_tools_v3.html, scripts/test-v2.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: V2 fidelity mode still does not implement full general move/resize overlays for arbitrary imported components; this remains explicitly out-of-scope for this PR.
+Next recommended task: Implement safe overlay move/resize for supported block elements and lock/label unsupported complex components.

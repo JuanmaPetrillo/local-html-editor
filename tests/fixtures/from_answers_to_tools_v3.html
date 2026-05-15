@@ -3,21 +3,25 @@
 <head>
 <meta charset="utf-8">
 <style>
-:root{--navy:#0b1f4d;--blue:#2563eb;--orange:#f97316;--bg:#f2f5fb;--ink:#0f172a}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:var(--ink)}
+:root{--navy:#0b1f4d;--blue:#2563eb;--orange:#f97316;--bg:#f2f5fb;--ink:#0f172a;--muted:#64748b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:var(--ink)}
 .topnav,.botnav{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:#fff;padding:12px 20px}
-.progress-track{width:240px;height:8px;background:#334155;border-radius:999px;overflow:hidden}.progress-fill{height:8px;width:34%;background:var(--orange)}
+.controls{display:flex;gap:8px;align-items:center}.chip{padding:2px 8px;border-radius:999px;background:#e2e8f0;color:#0f172a}
+.progress-track{width:280px;height:8px;background:#334155;border-radius:999px;overflow:hidden}.progress-fill{height:8px;width:34%;background:var(--orange)}
 .slides-area{padding:20px;display:grid;gap:16px}
-.slide{display:none;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:22px}
-.slide.active{display:block}.slide.exit{opacity:.4}
+.slide{display:none;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:22px;min-height:360px}
+.slide.active{display:block}.slide.exit{opacity:.45}
 .slide-inner{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-.card{background:#fff;border:1px solid #d8e1ff;border-radius:12px;padding:14px}.prompt-block{border-left:4px solid var(--blue);padding:10px 12px;background:#eff6ff}
+.card{background:#fff;border:1px solid #d8e1ff;border-radius:12px;padding:14px}
+.prompt-block{border-left:4px solid var(--blue);padding:10px 12px;background:#eff6ff}
 .btn{display:inline-block;background:var(--blue);color:#fff;padding:8px 12px;border-radius:8px;border:0}
-.controls{display:flex;gap:8px;align-items:center}.chip{padding:2px 8px;border-radius:999px;background:#e2e8f0}
+.muted{color:var(--muted)}
 </style>
 <script>
-window.deckState={index:0};
+window.deckState={index:0,notes:[]};
 function nextSlide(){window.deckState.index+=1;}
+function markDone(id){window.deckState.notes.push(id);}
 </script>
 </head>
 <body>
@@ -38,12 +42,14 @@ function nextSlide(){window.deckState.index+=1;}
 <section class="slide" data-slide-id="slide-2" data-label="System">
   <div class="slide-inner"><div><h2>System Blueprint</h2><p>Roles, tools, and verification loops.</p></div><div class="card">Guardrails</div></div>
 </section>
-<section class="slide exit" data-slide-id="slide-3" data-label="Rollout">
+<section class="slide" data-slide-id="slide-3" data-label="Workflow">
+  <div class="slide-inner"><div><h2>Workflow</h2><div class="card"><button class="btn" onclick="markDone('wf')">Run Checkpoint</button></div></div><div class="card muted">QA gate required</div></div>
+</section>
+<section class="slide exit" data-slide-id="slide-4" data-label="Rollout">
   <div class="slide-inner"><div><h2>Rollout Plan</h2><p>Pilot, train, and scale.</p></div><div class="card">Owners</div></div>
 </section>
 </div>
-<div class="botnav"><span>Internal</span><a href="https://example.com/deck.css">remote link</a></div>
+<div class="botnav"><span>Internal</span><a href="https://example.com/deck.css">remote link</a><img src="data:image/png;base64,AA==" alt="safe-inline"></div>
 <img src="https://example.com/track.png" alt="remote tracker">
-<img src="data:image/png;base64,AA==" alt="safe inline">
 </body>
 </html>
