@@ -1,12 +1,94 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Local HTML Presentation Editor V2</title>
-<style>body{font-family:Segoe UI,Tahoma,sans-serif;margin:0;background:#eef2f7}.top{display:flex;gap:.4rem;flex-wrap:wrap;padding:.6rem;border-bottom:1px solid #cfd8e3;background:#fff}.top button.active{background:#dbeafe}.wrap{display:grid;grid-template-columns:200px 1fr 320px;gap:.6rem;padding:.6rem}.panel{background:#fff;border:1px solid #cfd8e3;border-radius:8px;padding:.6rem}.canvas{width:960px;height:540px;border:1px solid #99a8b9;background:#fff;overflow:hidden;margin:auto}.stage{position:relative}.list{display:flex;flex-direction:column;gap:.3rem;max-height:220px;overflow:auto}.list button.active{background:#dbeafe}.fields{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}.fields label{font-size:.8rem;color:#334155}.fields input,.fields textarea{width:100%;box-sizing:border-box}.status{padding:.5rem;background:#0f172a;color:#e2e8f0;font-size:.9rem}</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local HTML Presentation Editor V2</title>
+<style>
+:root{--navy:#0a1628;--blue:#0066a1;--blue-strong:#0a4e78;--orange:#e87722;--bg:#eef2f6;--panel:#ffffff;--muted:#5c6b7c;--text:#182433;--border:#cfd8e3;--border-strong:#aebcca;--focus:#2f87c8;--danger:#b02a1a;--ok:#1f7a3d;--shadow:0 6px 18px rgba(10,22,40,.08);--radius:10px;--gap:.75rem;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit}
+button,input[type=file],select,textarea{border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text)}
+button{padding:.45rem .75rem;cursor:pointer;font-weight:600}
+button:hover{background:#f3f8fc}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+.app-shell{display:grid;grid-template-rows:auto auto 1fr auto;min-height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:var(--navy);color:#e8eff7;border-bottom:1px solid #24344a}
+.brand h1{font-size:1.05rem;margin:0;font-weight:700;letter-spacing:.2px}
+.brand p{margin:.1rem 0 0;font-size:.78rem;color:#b7c6d8}
+.mode-switch{display:flex;gap:.4rem;background:#11233a;padding:.25rem;border-radius:999px}
+.mode-switch button{border:0;background:transparent;color:#dce7f3;padding:.35rem .8rem;border-radius:999px}
+.mode-switch button.active{background:var(--blue);color:#fff}
+.mode-indicator{font-size:.82rem;color:#b7c6d8}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:.75rem;padding:.6rem 1rem;background:#f7fafc;border-bottom:1px solid var(--border)}
+.group{display:flex;gap:.45rem;align-items:center;padding-right:.75rem;border-right:1px solid var(--border)}
+.group:last-child{border-right:0;padding-right:0}
+label.file-btn,input[type=file]{font-size:.9rem}
+label.file-btn{display:flex;align-items:center;gap:.45rem;font-weight:600;color:var(--blue-strong)}
+label.file-btn input{max-width:230px;background:#fff;padding:.2rem}
+.btn-primary{background:var(--blue);color:#fff;border-color:#0b5f95}
+.btn-accent{background:var(--orange);color:#fff;border-color:#be6118}
+.btn-danger{background:#fff1ef;color:var(--danger);border-color:#e1a8a0}
+
+.workspace{display:grid;grid-template-columns:240px minmax(760px,1fr) 340px;gap:var(--gap);padding:var(--gap);overflow:hidden;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0}
+.panel h2{font-size:.95rem;margin:0;padding:.75rem .8rem;border-bottom:1px solid var(--border);color:#1b3550}
+.panel-body{padding:.65rem .75rem;overflow:auto;display:flex;flex-direction:column;gap:.65rem}
+.panel-actions{display:flex;gap:.45rem;flex-wrap:wrap}
+.list{display:flex;flex-direction:column;gap:.35rem;max-height:32vh;overflow:auto}
+.list button{text-align:left;background:#f9fbfd}
+.list button.active{background:#dbeef9;border-color:#7db5d8;color:#0f3d61}
+
+.stage-wrap{padding:.8rem;background:#e7edf3;border-top:1px solid var(--border);display:flex;justify-content:center;overflow:auto;min-height:0}
+.stage{width:960px;min-width:960px;height:540px;border:1px solid #9bafc2;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(10,22,40,.18);position:relative;overflow:visible}
+.canvas-frame{width:100%;height:100%;border:0;border-radius:10px}
+#edit-stage{position:relative;padding:0;display:block}
+#edit-overlay{position:absolute;inset:0;cursor:default}
+#hover-box{position:absolute;pointer-events:none;border:1px dashed #5d8ba8;display:none;box-sizing:border-box;border-radius:4px}
+#selection-box{position:absolute;pointer-events:none;border:2px solid var(--blue);display:none;box-sizing:border-box;border-radius:4px}
+
+.empty-note{font-size:.82rem;color:var(--muted);background:#f4f8fb;border:1px solid var(--border);border-radius:8px;padding:.55rem .6rem}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.fields label,.stack label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:#31465b}
+.stack{display:flex;flex-direction:column;gap:.45rem}
+.section{border:1px solid var(--border);border-radius:8px;padding:.55rem;background:#fbfdff}
+.section h3{margin:0 0 .45rem;font-size:.82rem;color:#28506f;text-transform:uppercase;letter-spacing:.3px}
+.helper{font-size:.77rem;color:var(--muted);margin:0}
+#status{padding:.6rem .9rem;background:#102137;color:#e8f0fb;font-size:.9rem;font-weight:600}
+#mode-label,#selected-state{padding:.45rem .9rem;background:#edf3f8;border-top:1px solid var(--border);font-size:.84rem;color:#2f4760}
+
+@media (max-width:1500px){.workspace{grid-template-columns:220px minmax(640px,1fr) 320px}.stage{transform-origin:top center;transform:scale(.93);margin-bottom:-34px}}
+@media (max-width:1280px){.workspace{grid-template-columns:220px 1fr}.right-panel{grid-column:1/-1}.stage{transform:none;margin-bottom:0;min-width:720px;height:405px}}
+</style>
 </head>
 <body>
-<div class="top"><label>Open HTML <input id="file" type="file" accept=".html,.htm"></label><button id="mode-preview">Preview</button><button id="mode-edit" class="active">Edit</button><button id="add-text">Add Text</button><button id="add-image">Add Image</button><button id="delete" disabled>Delete</button><button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button><button id="save-project">Save Project</button><button id="open-project">Open Project</button><button id="export">Export HTML</button><button id="add-slide">+ Slide</button><button id="del-slide" disabled>− Slide</button><button id="dup-slide" disabled>Dup Slide</button><button id="bring-front" disabled>↑ Front</button><button id="send-back" disabled>↓ Back</button><label style="font-size:.85rem;display:flex;align-items:center;gap:.25rem;"><input type="checkbox" id="snap-toggle"> Snap 10px</label><input id="open-project-file" type="file" accept=".json" hidden></div>
-<div class="wrap"><aside class="panel"><h3>Slides</h3><div id="slides" class="list"></div></aside><main class="panel stage"><iframe id="live-preview-frame" class="canvas" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe><div id="edit-stage" class="canvas" style="position:relative;padding:0;display:block;"><iframe id="edit-frame" style="position:absolute;inset:0;width:100%;height:100%;border:none;" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe><div id="edit-overlay" style="position:absolute;inset:0;cursor:default;"></div><div id="hover-box" style="position:absolute;pointer-events:none;border:1px dashed #94a3b8;display:none;box-sizing:border-box;"></div><div id="selection-box" style="position:absolute;pointer-events:none;border:2px solid #2563eb;display:none;box-sizing:border-box;"></div></div></main><aside class="panel"><h3>Inspector</h3><div>Type: <strong id="ins-type">none</strong></div><div class="fields"><label>X<input id="ins-x" type="number"></label><label>Y<input id="ins-y" type="number"></label><label>W<input id="ins-w" type="number"></label><label>H<input id="ins-h" type="number"></label></div><label>Text<textarea id="ins-text" rows="2"></textarea></label><label>Alt text<input id="ins-alt" type="text"></label><button id="ins-replace-img" style="display:none;width:100%;margin-top:.35rem;">Replace Image</button><div class="fields"><label>Font family<select id="ins-font-family"><option value="">Default</option><option value="Arial, sans-serif">Arial</option><option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option><option value="Georgia, serif">Georgia</option><option value="Times New Roman, serif">Times New Roman</option><option value="Verdana, sans-serif">Verdana</option><option value="Trebuchet MS, sans-serif">Trebuchet MS</option><option value="Courier New, monospace">Courier New</option></select></label><label>Align<select id="ins-align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label></div><div class="fields"><label>Text color<input id="ins-color" type="color" value="#000000"></label><label>Background<input id="ins-bg" type="color" value="#ffffff"></label><label>Font px<input id="ins-font" type="number" min="8" max="200" value="16"></label><label>Bold<input id="ins-bold" type="checkbox"></label><label>Italic<input id="ins-italic" type="checkbox"></label><label>Underline<input id="ins-underline" type="checkbox"></label><label>Opacity %<input id="ins-opacity" type="number" min="0" max="100" value="100"></label></div><h3>Layers</h3><div id="layers" class="list"></div></aside></div>
-<div id="status" class="status">Ready.</div><div id="mode-label" class="status">Safe editing. Scripts are disabled. Click to select; double-click text to edit.</div><div id="selected-state" class="status">Selected: none</div>
+<div class="app-shell">
+<header class="topbar"><div class="brand"><h1>Local HTML Editor V2</h1><p>Secure local presentation editing</p></div><div><div class="mode-switch"><button id="mode-preview" aria-label="Switch to Preview mode">Preview</button><button id="mode-edit" class="active" aria-label="Switch to Edit mode">Edit</button></div><div class="mode-indicator">Preview validates behavior, Edit applies safe changes.</div></div></header>
+<div class="toolbar">
+<div class="group"><label class="file-btn">Open HTML <input id="file" type="file" accept=".html,.htm"></label><button id="export" class="btn-accent">Export HTML</button></div>
+<div class="group"><button id="save-project" class="btn-primary">Save Project</button><button id="open-project">Open Project</button><input id="open-project-file" type="file" accept=".json" hidden></div>
+<div class="group"><button id="add-text">Add Text</button><button id="add-image">Add Image</button><button id="delete" class="btn-danger" disabled>Delete</button></div>
+<div class="group"><button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button><button id="bring-front" disabled>Bring Front</button><button id="send-back" disabled>Send Back</button><label style="display:flex;align-items:center;gap:.35rem;font-size:.84rem;"><input type="checkbox" id="snap-toggle"> Snap 10px</label></div>
+</div>
+<div class="workspace">
+<aside class="panel"><h2>Slides</h2><div class="panel-body"><div class="panel-actions"><button id="add-slide">Add</button><button id="dup-slide" disabled>Duplicate</button><button id="del-slide" class="btn-danger" disabled>Delete</button></div><div id="slides" class="list"></div><p class="empty-note">Open an HTML presentation to begin. Use slides here to navigate the deck.</p></div></aside>
+<main class="panel"><h2>Editing Stage</h2><div class="stage-wrap"><iframe id="live-preview-frame" class="stage canvas-frame" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe><div id="edit-stage" class="stage" style="display:block;"><iframe id="edit-frame" class="canvas-frame" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe><div id="edit-overlay"></div><div id="hover-box"></div><div id="selection-box"></div></div></div></main>
+<aside class="panel right-panel"><h2>Inspector</h2><div class="panel-body"><div class="section"><h3>Selection</h3><div>Type: <strong id="ins-type">none</strong></div><p class="helper">Moving normal-flow items can shift nearby layout. Use Undo if needed.</p></div>
+<div class="section"><h3>Position &amp; Size</h3><div class="fields"><label>X<input id="ins-x" type="number"></label><label>Y<input id="ins-y" type="number"></label><label>W<input id="ins-w" type="number"></label><label>H<input id="ins-h" type="number"></label></div></div>
+<div class="section"><h3>Text</h3><div class="stack"><label>Text<textarea id="ins-text" rows="2"></textarea></label><label>Font family<select id="ins-font-family"><option value="">Default</option><option value="Arial, sans-serif">Arial</option><option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option><option value="Georgia, serif">Georgia</option><option value="Times New Roman, serif">Times New Roman</option><option value="Verdana, sans-serif">Verdana</option><option value="Trebuchet MS, sans-serif">Trebuchet MS</option><option value="Courier New, monospace">Courier New</option></select></label><label>Align<select id="ins-align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label></div></div>
+<div class="section"><h3>Appearance</h3><div class="fields"><label>Text color<input id="ins-color" type="color" value="#000000"></label><label>Background<input id="ins-bg" type="color" value="#ffffff"></label><label>Font px<input id="ins-font" type="number" min="8" max="200" value="16"></label><label>Opacity %<input id="ins-opacity" type="number" min="0" max="100" value="100"></label><label>Bold<input id="ins-bold" type="checkbox"></label><label>Italic<input id="ins-italic" type="checkbox"></label><label>Underline<input id="ins-underline" type="checkbox"></label></div></div>
+<div class="section"><h3>Image</h3><div class="stack"><label>Alt text<input id="ins-alt" type="text"></label><button id="ins-replace-img" style="display:none;width:100%;">Replace Image</button></div></div>
+<div class="section"><h3>Layers</h3><div id="layers" class="list"></div><p class="helper">Showing nearest editable elements for the current slide.</p></div>
+<p class="helper">Export strips scripts from edited output for safe local handling.</p></div></aside>
+</div>
+<footer id="status">Ready.</footer>
+<div id="mode-label">Open an HTML presentation to begin. 1) Open HTML 2) Preview or Edit 3) Export edited copy.</div>
+<div id="selected-state">Selected: none</div>
+</div>
 <script src="./app-v2.bundle.js"></script>
-</body></html>
+</body>
+</html>
