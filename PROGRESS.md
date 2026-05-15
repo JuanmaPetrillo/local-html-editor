@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 9C complete (V2 keyboard shortcuts, preview-reflects-edits, image replacement).
+Current milestone: Phase 9D complete (V2 full editor — free drag/resize for all elements, slide management, font family, text align, arrow-key nudge).
 
 ## Latest summary
 
@@ -806,3 +806,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: Normal-flow elements are format-editable but movement is locked (inspector X/Y required). Export strips all scripts by design. buildLivePreviewHtml blocks external script src; inline scripts from original are preserved for preview interactivity.
 Next recommended task: UI polish pass — slide thumbnail nav, better inspector layout, font picker, alignment guides.
+
+### 2026-05-15 (Phase 9D — V2 full editor: free drag, slide management, inspector)
+
+Date: 2026-05-15
+Branch/PR: claude/v2-full-editor
+Milestone: Phase 9D — V2 full editor
+Summary: (1) Free drag/resize for all elements: `convertToAbsolute(el)` helper auto-converts normal-flow elements to `position:absolute` at their current visual position on drag start, resize handle drag, arrow-key nudge, or inspector X/Y change — eliminates the "locked" restriction for non-absolute elements. (2) Resize handles now shown for all selected elements (not just absolute/fixed). (3) Arrow-key nudge: ArrowLeft/Right/Up/Down move selected element 1px (10px with Shift); debounced 300ms commit to avoid flicker. (4) Slide management: Add Slide (inserts after current), Delete Slide (disabled when only 1 slide), Duplicate Slide (copies with "(Copy)" label). (5) Inspector: font family select (Arial, Helvetica, Georgia, Times New Roman, Verdana, Trebuchet MS, Courier New); text alignment select (Left/Center/Right/Justify); X/Y now shows visual position even for non-positioned elements. (6) Updated describeSelected to remove "locked" messaging. (7) Tests: imported new model helpers, added token checks for all new UI elements, added slide management operation tests.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, PROGRESS.md, docs/ROADMAP.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: Export strips all scripts by design. ZIP import/export remains preflight-only. No slide reordering via drag (only add/delete/duplicate). No autosave.
+Next recommended task: User testing with real Copilot HTML files to find edge cases.

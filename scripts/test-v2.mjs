@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import {
   mapHtmlToModel, exportModelToHtml, createProjectPayload, restoreProjectPayload,
   editHeadingTextInModel, addTextBlockToSlide, deleteFirstTagInSlide, createHistory, pushHistory, undo, redo,
-  stripUnsafeHtml, buildLivePreviewHtml
+  stripUnsafeHtml, buildLivePreviewHtml, addSlideToModel, deleteSlideFromModel, duplicateSlideInModel
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="ins-font-family"', 'id="ins-align"']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
 const editStageIdx = html.indexOf('id="edit-stage"');
@@ -218,4 +218,26 @@ const previewNoScripts = buildLivePreviewHtml(previewSrcHtml, '');
 if (!previewNoScripts.includes('Edited heading')) throw new Error('buildLivePreviewHtml: edited content missing when no original scripts');
 if (/<script\b/i.test(previewNoScripts)) throw new Error('buildLivePreviewHtml: script injected when original had none');
 
-console.log('v2 remaining-interactions checks passed');
+// Slide management: add, delete, duplicate
+const baseSlidesModel = mapHtmlToModel(readFileSync('tests/fixtures/v2-multi-slide.html', 'utf8'));
+const withNewSlide = addSlideToModel(baseSlidesModel);
+if (withNewSlide.slides.length !== baseSlidesModel.slides.length + 1) throw new Error('addSlideToModel did not increase slide count');
+if (withNewSlide.selectedSlideId === baseSlidesModel.selectedSlideId) throw new Error('addSlideToModel did not switch to new slide');
+if (!exportModelToHtml(withNewSlide).includes('New slide')) throw new Error('addSlideToModel new slide content missing');
+
+const withDeleted = deleteSlideFromModel(baseSlidesModel);
+if (withDeleted.slides.length !== baseSlidesModel.slides.length - 1) throw new Error('deleteSlideFromModel did not reduce slide count');
+if (withDeleted.selectedSlideId === baseSlidesModel.selectedSlideId) throw new Error('deleteSlideFromModel did not switch away from deleted slide');
+
+const singleSlideModel = mapHtmlToModel('<!doctype html><html><body><section class="slide" data-slide-id="s1" data-label="Only"><h1>Only</h1></section></body></html>');
+if (deleteSlideFromModel(singleSlideModel).slides.length !== 1) throw new Error('deleteSlideFromModel must not delete the last slide');
+
+const withDuplicate = duplicateSlideInModel(baseSlidesModel);
+if (withDuplicate.slides.length !== baseSlidesModel.slides.length + 1) throw new Error('duplicateSlideInModel did not increase slide count');
+if (withDuplicate.selectedSlideId === baseSlidesModel.selectedSlideId) throw new Error('duplicateSlideInModel did not switch to duplicated slide');
+// Test (Copy) label with a fixture that has data-label attributes
+const labelModel = mapHtmlToModel(realFixture);
+const withLabelDup = duplicateSlideInModel(labelModel);
+if (!withLabelDup.slides.find((s) => s.label.includes('(Copy)'))) throw new Error('duplicateSlideInModel label copy suffix missing');
+
+console.log('v2 full-editor checks passed');
