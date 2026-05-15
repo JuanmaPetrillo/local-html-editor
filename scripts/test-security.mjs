@@ -116,8 +116,9 @@ assertForbidden(exporterCode, ['.text()', '.arrayBuffer()'], 'exporter-file-read
 // iframe sandbox invariants
 assertRequired(html, ['id="safe-preview-frame"', 'sandbox=""'], 'iframe-sandbox');
 assertForbidden(html, ['allow-scripts', 'allow-same-origin', 'allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'iframe-sandbox');
-assertRequired(v2Html, ['id="preview-frame"', 'sandbox="allow-same-origin"'], 'v2-iframe-sandbox');
-assertForbidden(v2Html, ['allow-scripts', 'allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'v2-iframe-sandbox');
+assertRequired(v2Html, ['id="edit-frame"', 'sandbox="allow-same-origin"', 'id="live-preview-frame"', 'sandbox="allow-scripts"'], 'v2-iframe-sandbox');
+if (/id=\"live-preview-frame\"[^>]*sandbox=\"[^\"]*allow-scripts[^\"]*allow-same-origin/.test(v2Html)) throw new Error('[v2-iframe-sandbox] live preview has unsafe scripts+same-origin');
+assertForbidden(v2Html, ['allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'v2-iframe-sandbox');
 assertRequired(v2Code, ['contentDocument', 'stripUnsafeHtml'], 'v2-fidelity-safety-contract');
 
 // preview/export module forbidden APIs

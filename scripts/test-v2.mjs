@@ -5,11 +5,11 @@ import {
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="preview-frame"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
-if (!html.includes('sandbox="allow-same-origin"')) throw new Error('preview iframe sandbox missing');
-if (html.includes('allow-scripts')) throw new Error('allow-scripts must not be enabled for preview iframe');
+if (!html.includes('id="edit-frame"') || !html.includes('sandbox="allow-same-origin"')) throw new Error('edit iframe sandbox missing');
+if (!html.includes('id="live-preview-frame"') || !html.includes('sandbox="allow-scripts"')) throw new Error('live preview iframe sandbox missing');
 
 const realFixture = readFileSync('tests/fixtures/from_answers_to_tools_v3.html', 'utf8');
 const staticFixture = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
@@ -108,3 +108,11 @@ if (!restored || restored.slides.length !== 4) throw new Error('project save/ope
 if (!restored.sourceHtml.includes('slides-area')) throw new Error('project sourceHtml lost');
 
 console.log('v2 checks passed');
+
+
+const modeFixture = '<!doctype html><html><body><button onclick="window.__x=1">Go</button><script>window.__x=2</script><img src="https://evil.example/x.png"></body></html>';
+const modeMapped = mapHtmlToModel(modeFixture);
+if (!modeMapped.previewHtml.includes('<script>')) throw new Error('preview html should keep script');
+if (!modeMapped.previewHtml.includes('onclick=')) throw new Error('preview html should keep inline handlers');
+if (/https:\/\//i.test(modeMapped.previewHtml)) throw new Error('preview html should block remote URLs');
+if (modeMapped.sourceHtml.includes('<script>') || modeMapped.sourceHtml.includes('onclick=')) throw new Error('edit html should strip scripts/handlers');
