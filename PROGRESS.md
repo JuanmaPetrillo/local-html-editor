@@ -823,3 +823,15 @@ Validation run: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm
 Result: Full validation gate passed.
 Known limitations: Export strips scripts. ZIP preflight-only. No autosave.
 Next recommended task: Real-file pilot testing with HR Copilot presentations.
+
+### 2026-05-15 (Phase 11 — V2 premium UI shell and inspector redesign)
+
+Date: 2026-05-15
+Branch/PR: current branch / pending PR
+Milestone: Phase 11 — V2 premium UI/UX polish
+Summary: Rebuilt `apps/desktop-v2/index.html` into a premium, boardroom-style editor shell while preserving all existing control IDs and interaction hooks. Added a Tenaris-style restrained palette (deep navy, blue, orange accent), semantic top app bar + grouped secondary toolbar, clearer slide panel controls, professional staged canvas framing, grouped inspector sections (Selection, Position & Size, Text, Appearance, Image, Layers), improved status/help visibility, keyboard-focus styling, and intentional empty-state guidance. Updated pilot guide wording to reflect current “Open HTML” labeling.
+Files changed: apps/desktop-v2/index.html, docs/MANUAL_PILOT_GUIDE.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: UX polish is visual-only; core editor architecture and current known functional limits (ZIP preflight-only, script stripping on export) remain unchanged.
+Next recommended task: Optional targeted JS-level UX pass for status severity styling (`info/success/warning/error`) if desired without broad logic rewrite.

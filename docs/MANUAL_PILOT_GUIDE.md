@@ -87,7 +87,7 @@ Important:
 1. Extract/copy the pilot folder to any user-writable location.
 2. Double-click `START_HERE.bat` (recommended).
 3. If the browser does not open automatically, open `http://localhost:8765`.
-4. Use **Open HTML/ZIP** and select a local `.html` or `.htm` file.
+4. Use **Open HTML** and select a local `.html` or `.htm` file.
 
 Why this is recommended:
 - Some browser/corporate policies block ES module loading from `file://` URLs.
