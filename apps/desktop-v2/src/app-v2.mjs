@@ -96,6 +96,53 @@ export function deleteFirstTagInSlide(modelInput, tagName) {
   return mapHtmlToModel(model.sourceHtml);
 }
 
+export function addSlideToModel(modelInput) {
+  const model = { ...modelInput };
+  const newId = `lhe-slide-${Date.now()}`;
+  const newSlide = `<section class="slide" data-slide-id="${newId}" data-label="New Slide" style="position:relative;width:100%;min-height:100%;"><p style="position:absolute;left:80px;top:80px;font-size:24px;">New slide</p></section>`;
+  const re = model.selectedSlideId ? getSlideRegexById(model.selectedSlideId) : null;
+  const match = re ? String(model.sourceHtml).match(re) : null;
+  const newSourceHtml = match
+    ? String(model.sourceHtml).replace(re, `${match[0]}\n${newSlide}`)
+    : (/(<\/body>)/i.test(String(model.sourceHtml)) ? String(model.sourceHtml).replace(/<\/body>/i, `${newSlide}</body>`) : String(model.sourceHtml) + newSlide);
+  const result = mapHtmlToModel(newSourceHtml);
+  result.selectedSlideId = newId;
+  return result;
+}
+
+export function deleteSlideFromModel(modelInput) {
+  const model = { ...modelInput };
+  if (model.slides.length <= 1) return model;
+  const idx = model.slides.findIndex((s) => s.id === model.selectedSlideId);
+  if (idx === -1) return model;
+  const newSelectedId = model.slides[idx > 0 ? idx - 1 : 1].id;
+  const re = getSlideRegexById(model.selectedSlideId);
+  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, ''));
+  result.selectedSlideId = newSelectedId;
+  return result;
+}
+
+export function duplicateSlideInModel(modelInput) {
+  const model = { ...modelInput };
+  const re = getSlideRegexById(model.selectedSlideId);
+  const match = String(model.sourceHtml).match(re);
+  if (!match) return model;
+  const newId = `lhe-slide-${Date.now()}`;
+  let dupe = match[0].replace(/data-slide-id\s*=\s*"[^"]*"/i, `data-slide-id="${newId}"`);
+  dupe = dupe.replace(/data-slide-id\s*=\s*'[^']*'/i, `data-slide-id='${newId}'`);
+  const hasLabel = /data-label\s*=\s*["']/i.test(dupe);
+  if (hasLabel) {
+    dupe = dupe.replace(/data-label\s*=\s*"([^"]*)"/i, (_m, l) => `data-label="${l} (Copy)"`);
+    dupe = dupe.replace(/data-label\s*=\s*'([^']*)'/i, (_m, l) => `data-label='${l} (Copy)'`);
+  } else {
+    const existingLabel = model.slides.find((s) => s.id === model.selectedSlideId)?.label || 'Slide';
+    dupe = dupe.replace(/(<(section|div)\b[^>]*class\s*=\s*["'][^"']*slide[^"']*["'][^>]*data-slide-id\s*=\s*["'][^"']*["'])([^>]*>)/i, `$1 data-label="${existingLabel} (Copy)"$3`);
+  }
+  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, `${match[0]}\n${dupe}`));
+  result.selectedSlideId = newId;
+  return result;
+}
+
 function getPx(style, key) { const v = style.getPropertyValue(key) || ''; const n = Number.parseFloat(v); return Number.isFinite(n) ? n : 0; }
 function setPx(style, key, value) { style.setProperty(key, `${Math.round(value)}px`); }
 function getPointerDistance(start, end) { return Math.hypot(end.x - start.x, end.y - start.y); }
@@ -161,6 +208,11 @@ if (hasDom) {
   const insType = q('#ins-type'); const insText = q('#ins-text'); const insAlt = q('#ins-alt'); const insReplaceImgBtn = q('#ins-replace-img');
   const insX = q('#ins-x'); const insY = q('#ins-y'); const insW = q('#ins-w'); const insH = q('#ins-h');
   const insColor = q('#ins-color'); const insBg = q('#ins-bg'); const insFont = q('#ins-font'); const insBold = q('#ins-bold');
+  const insFontFamily = q('#ins-font-family');
+  const insAlign = q('#ins-align');
+  const addSlideBtn = q('#add-slide');
+  const delSlideBtn = q('#del-slide');
+  const dupSlideBtn = q('#dup-slide');
   const editStage = q('#edit-stage');
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
@@ -193,20 +245,18 @@ if (hasDom) {
     delBtn.disabled = !selectedEl || !editable;
     addTextBtn.disabled = !editable;
     addImageBtn.disabled = !editable;
+    addSlideBtn.disabled = !editable;
+    delSlideBtn.disabled = !editable || model.slides.length <= 1;
+    dupSlideBtn.disabled = !editable || !model.selectedSlideId;
     previewBtn.classList.toggle('active', model.mode === 'preview');
     editBtn.classList.toggle('active', model.mode === 'edit');
   }
 
   function describeSelected(el) {
-    if (!el) {
-      selectedState.textContent = 'Selected: none';
-      return;
-    }
+    if (!el) { selectedState.textContent = 'Selected: none'; return; }
     const editableText = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
     const movable = isMovableByPosition(el);
-    const resizable = movable && el.tagName !== 'BUTTON';
-    const lock = movable ? '' : ' (move/resize locked: element is not absolute/fixed)';
-    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'yes' : 'no'} move:${movable ? 'yes' : 'no'} resize:${resizable ? 'yes' : 'no'}${lock}`;
+    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'yes' : 'no'} | ${movable ? 'drag/resize freely' : 'drag to freely position'}`;
   }
 
   function updateSlideVisibility(doc) {
@@ -252,20 +302,24 @@ if (hasDom) {
 
   function loadInspector(el) {
     const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    const cr = editOverlay.getBoundingClientRect();
     insType.textContent = el.tagName.toLowerCase();
     insText.value = el.tagName === 'IMG' ? '' : (el.textContent || '');
     insAlt.value = ['IMG', 'BUTTON'].includes(el.tagName) ? (el.getAttribute('alt') || '') : '';
     insReplaceImgBtn.style.display = el.tagName === 'IMG' ? '' : 'none';
-    insX.value = String(getPx(el.style, 'left'));
-    insY.value = String(getPx(el.style, 'top'));
-    insW.value = String(getPx(el.style, 'width') || Math.round(el.getBoundingClientRect().width));
-    insH.value = String(getPx(el.style, 'height') || Math.round(el.getBoundingClientRect().height));
+    const movable = isMovableByPosition(el);
+    insX.value = String(movable ? getPx(el.style, 'left') : Math.round(r.left - cr.left));
+    insY.value = String(movable ? getPx(el.style, 'top') : Math.round(r.top - cr.top));
+    insW.value = String(getPx(el.style, 'width') || Math.round(r.width));
+    insH.value = String(getPx(el.style, 'height') || Math.round(r.height));
     insColor.value = rgbToHex(cs.color);
     insBg.value = rgbToHex(cs.backgroundColor);
     insFont.value = String(Math.round(parseFloat(cs.fontSize) || 16));
     insBold.checked = (cs.fontWeight === 'bold' || Number.parseInt(cs.fontWeight, 10) >= 600);
-    const movable = isMovableByPosition(el);
-    [insX, insY, insW, insH].forEach((input) => { input.disabled = !movable; });
+    const inlineFontFamily = el.style.fontFamily || '';
+    insFontFamily.value = Array.from(insFontFamily.options).some((o) => o.value === inlineFontFamily) ? inlineFontFamily : '';
+    insAlign.value = el.style.textAlign || cs.textAlign || 'left';
   }
 
   function rgbToHex(rgb) {
@@ -367,7 +421,7 @@ if (hasDom) {
   }
 
   function updateResizeHandles(el) {
-    if (!el || !isMovableByPosition(el)) { hideResizeHandles(); return; }
+    if (!el) { hideResizeHandles(); return; }
     const r = el.getBoundingClientRect();
     const hs = HANDLE_PX / 2;
     const pts = {
@@ -390,7 +444,8 @@ if (hasDom) {
   for (const dir of HANDLE_DIRS) {
     handles[dir].onpointerdown = (e) => {
       e.stopPropagation();
-      if (!selectedEl || !isMovableByPosition(selectedEl)) return;
+      if (!selectedEl) return;
+      if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
       const r = selectedEl.getBoundingClientRect();
       resizeState = {
         dir, el: selectedEl, startX: e.clientX, startY: e.clientY,
@@ -429,6 +484,17 @@ if (hasDom) {
     };
   }
 
+  function convertToAbsolute(el) {
+    const r = el.getBoundingClientRect();
+    const op = el.offsetParent;
+    const pr = op ? op.getBoundingClientRect() : editOverlay.getBoundingClientRect();
+    el.style.position = 'absolute';
+    setPx(el.style, 'left', Math.round(r.left - pr.left));
+    setPx(el.style, 'top', Math.round(r.top - pr.top));
+    setPx(el.style, 'width', Math.round(r.width));
+    setPx(el.style, 'height', Math.round(r.height));
+  }
+
   function wireOverlayInteractions() {
     const doc = editFrame.contentDocument;
     if (!doc) return;
@@ -460,12 +526,8 @@ if (hasDom) {
       }
       if (overlayPointerDown && !overlayDragState && !activeEditingEl) {
         if (getPointerDistance(overlayPointerDown, { x: e.clientX, y: e.clientY }) >= 4) {
-          if (!isMovableByPosition(selectedEl)) {
-            setStatus('Element is not absolute/fixed — use inspector X/Y fields to reposition.');
-            overlayPointerDown = null;
-          } else {
-            overlayDragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
-          }
+          if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
+          overlayDragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
         }
       }
       if (overlayDragState) {
@@ -566,16 +628,31 @@ if (hasDom) {
   previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
   editBtn.onclick = () => { model.mode = 'edit'; render(); };
 
+  let nudgeTimer = null;
   document.addEventListener('keydown', (e) => {
     if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.target.matches('input,textarea,select')) return;
     if (e.key === 'Escape' && selectedEl) {
       e.preventDefault();
       selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons();
+      return;
     }
     if (e.key === 'Delete' && selectedEl) {
       e.preventDefault();
       applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
+      return;
+    }
+    const nudge = e.shiftKey ? 10 : 1;
+    const dir = { ArrowLeft: [-nudge, 0], ArrowRight: [nudge, 0], ArrowUp: [0, -nudge], ArrowDown: [0, nudge] }[e.key];
+    if (dir && selectedEl) {
+      e.preventDefault();
+      if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
+      setPx(selectedEl.style, 'left', getPx(selectedEl.style, 'left') + dir[0]);
+      setPx(selectedEl.style, 'top', getPx(selectedEl.style, 'top') + dir[1]);
+      updateSelectionBox(selectedEl);
+      loadInspector(selectedEl);
+      clearTimeout(nudgeTimer);
+      nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); }, 300);
     }
   });
   addTextBtn.onclick = () => {
@@ -628,8 +705,11 @@ if (hasDom) {
   insBg.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.backgroundColor = insBg.value; });
   insFont.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontSize = `${Number(insFont.value || 16)}px`; });
   insBold.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontWeight = insBold.checked ? '700' : '400'; });
+  insFontFamily.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontFamily = insFontFamily.value; });
+  insAlign.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textAlign = insAlign.value; });
   [insX, insY, insW, insH].forEach((input) => input.onchange = () => applyStyle(() => {
-    if (!selectedEl || !isMovableByPosition(selectedEl)) return;
+    if (!selectedEl) return;
+    if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
     const x = Number(insX.value); const y = Number(insY.value); const w = Number(insW.value); const h = Number(insH.value);
     if (Number.isFinite(x)) setPx(selectedEl.style, 'left', x);
     if (Number.isFinite(y)) setPx(selectedEl.style, 'top', y);
@@ -637,6 +717,28 @@ if (hasDom) {
     if (Number.isFinite(h) && h > 0) setPx(selectedEl.style, 'height', h);
   }));
 
+  addSlideBtn.onclick = () => {
+    pushHistory(history, model);
+    commitFrameToModel();
+    model = addSlideToModel(model);
+    selectedEl = null; selectionId = '';
+    render();
+  };
+  delSlideBtn.onclick = () => {
+    if (model.slides.length <= 1) { setStatus('Cannot delete the only slide.'); return; }
+    pushHistory(history, model);
+    commitFrameToModel();
+    model = deleteSlideFromModel(model);
+    selectedEl = null; selectionId = '';
+    render();
+  };
+  dupSlideBtn.onclick = () => {
+    pushHistory(history, model);
+    commitFrameToModel();
+    model = duplicateSlideInModel(model);
+    selectedEl = null; selectionId = '';
+    render();
+  };
   undoBtn.onclick = () => { model = undo(history, model); render(); };
   redoBtn.onclick = () => { model = redo(history, model); render(); };
   saveBtn.onclick = () => {

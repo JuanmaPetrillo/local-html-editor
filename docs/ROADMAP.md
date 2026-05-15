@@ -86,6 +86,15 @@
 - Edit interactions changed to click-select, double-click text edit, drag threshold movement.
 - Slide-switch persistence and V2 contract tests expanded.
 
+### Phase 9D: V2 full editor — free drag, slide management, inspector ✓
+
+- `convertToAbsolute(el)`: any element can now be freely dragged/resized — auto-converted to `position:absolute` at its current visual position on drag start, resize handle drag, arrow-key nudge, or inspector X/Y change.
+- Resize handles shown for all selected elements (not just absolute/fixed).
+- Arrow-key nudge: ArrowLeft/Right/Up/Down move selected element 1px (10px with Shift); debounced 300ms commit.
+- Slide management: Add Slide, Delete Slide, Duplicate Slide buttons.
+- Inspector: font family select (7 web-safe fonts); text alignment select; X/Y shows visual position for non-positioned elements.
+- Removed "locked" status text — drag to freely position messaging instead.
+
 ### Phase 9C: V2 keyboard shortcuts, preview-reflects-edits, image replacement ✓
 
 - Document-level Escape key clears selection (when not in text-edit mode).
