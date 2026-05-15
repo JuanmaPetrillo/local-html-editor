@@ -126,7 +126,13 @@ Run this checklist with at least one synthetic fixture deck (e.g. `tests/fixture
 ## V2 pilot usage (updated)
 Use `npm run build` then `npm run package:pilot`. Package now includes standalone `index.html` + `app-v2.bundle.js` and `START_HERE.bat`.
 
-Updated V2 pilot behavior: slide navigator + inspector/layers + project save/open (`lheproj-v2`) + export all slides.
+**V2 UI layout (Phase 11 premium shell):**
+- **Top bar**: brand header left, Preview/Edit mode pill center, "all data stays local" chip right.
+- **Secondary toolbar**: grouped controls — File (Open HTML · Export HTML) | Project (Save · Open) | Add/Delete | Edit (Undo · Redo · Front/Back · Snap).
+- **Left panel**: Slides — Add/Duplicate/Delete slide controls, slide list, getting-started guide (hidden once slides load).
+- **Center stage**: neutral gray background framing the 960 × 540 white slide canvas with premium shadow.
+- **Right inspector**: collapsible sections — Selection · Position & Size · Text · Appearance · Image · Layers.
+- **Status bar**: dark status strip + secondary footer with mode guidance and selection state.
 
 V2 support contract in this pilot:
 - Visual fidelity first: render sanitized original DOM/CSS in iframe (best effort).

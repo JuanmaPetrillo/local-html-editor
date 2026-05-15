@@ -249,7 +249,15 @@ if (hasDom) {
   let snapEnabled = false;
   const snapCoord = (v) => snapEnabled ? Math.round(v / 10) * 10 : Math.round(v);
 
-  const setStatus = (t) => { status.textContent = t; };
+  const setStatus = (t) => {
+    status.textContent = t;
+    const lo = t.toLowerCase();
+    const cls = /export|opened|saved|replaced|pasted|copied|enabled|disabled|snap/.test(lo) ? 'ok'
+      : /cannot|blocked|not recognized|could not|only|unsupported|invalid|failed/.test(lo) ? 'error'
+      : /stripped|converted|scripts removed|snap/.test(lo) ? 'warn'
+      : '';
+    status.className = cls;
+  };
 
   function refreshButtons() {
     undoBtn.disabled = !canUndo(history);

@@ -827,11 +827,11 @@ Next recommended task: Real-file pilot testing with HR Copilot presentations.
 ### 2026-05-15 (Phase 11 — V2 premium UI shell and inspector redesign)
 
 Date: 2026-05-15
-Branch/PR: current branch / pending PR
+Branch/PR: claude/premium-v2-redesign-WxqMQ / pending PR
 Milestone: Phase 11 — V2 premium UI/UX polish
-Summary: Rebuilt `apps/desktop-v2/index.html` into a premium, boardroom-style editor shell while preserving all existing control IDs and interaction hooks. Added a Tenaris-style restrained palette (deep navy, blue, orange accent), semantic top app bar + grouped secondary toolbar, clearer slide panel controls, professional staged canvas framing, grouped inspector sections (Selection, Position & Size, Text, Appearance, Image, Layers), improved status/help visibility, keyboard-focus styling, and intentional empty-state guidance. Updated pilot guide wording to reflect current “Open HTML” labeling.
+Summary: Full premium redesign of `apps/desktop-v2/index.html` into a boardroom-grade Tenaris-style editor shell. All existing control IDs, sandbox attributes, and interaction hooks preserved. Changes: (1) Comprehensive CSS design token system (palette, spacing, shadow, radius, typography variables). (2) Navy top app bar with brand mark, centered Preview/Edit pill, “all data stays local” chip. (3) Grouped secondary toolbar with visual separators: File group (Open HTML · Export HTML), Project group, Add/Delete group, Edit group (Undo/Redo/Front/Back/Snap). (4) Premium slide list with active-state highlight, `:has()` CSS to auto-hide welcome card once slides load, three-step getting-started guide. (5) Stage area: neutral blue-gray background framing a white 960×540 canvas with premium drop shadow and border. (6) Inspector rebuilt with card sections (Selection · Position & Size · Text · Appearance · Image · Layers), two-column X/Y/W/H grid, labeled fields, status notes for dangerous actions, inline export warning. (7) Dark status strip + secondary footer line. (8) Styled scrollbars, focus rings, hover transitions, and btn hierarchy (default · primary · accent-orange · danger). (9) Responsive breakpoints for 1280 and 1480 px viewports. Updated pilot guide to describe new UI layout.
 Files changed: apps/desktop-v2/index.html, docs/MANUAL_PILOT_GUIDE.md, PROGRESS.md
 Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
-Result: Passed.
-Known limitations: UX polish is visual-only; core editor architecture and current known functional limits (ZIP preflight-only, script stripping on export) remain unchanged.
-Next recommended task: Optional targeted JS-level UX pass for status severity styling (`info/success/warning/error`) if desired without broad logic rewrite.
+Result: Full validation gate passed.
+Known limitations: UX polish is visual-only; core editor architecture and current known functional limits (ZIP preflight-only, script stripping on export) remain unchanged. Status bar severity styling (info/success/warning/error classes) is CSS-ready but not yet wired to JS setStatus() calls.
+Next recommended task: Optional JS-level status severity pass: classify setStatus() calls into severity levels and set a CSS class on #status accordingly.

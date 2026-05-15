@@ -3,92 +3,1102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Local HTML Presentation Editor V2</title>
+<title>HTML Presentation Editor — Tenaris</title>
 <style>
-:root{--navy:#0a1628;--blue:#0066a1;--blue-strong:#0a4e78;--orange:#e87722;--bg:#eef2f6;--panel:#ffffff;--muted:#5c6b7c;--text:#182433;--border:#cfd8e3;--border-strong:#aebcca;--focus:#2f87c8;--danger:#b02a1a;--ok:#1f7a3d;--shadow:0 6px 18px rgba(10,22,40,.08);--radius:10px;--gap:.75rem;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
-button,input,select,textarea{font:inherit}
-button,input[type=file],select,textarea{border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text)}
-button{padding:.45rem .75rem;cursor:pointer;font-weight:600}
-button:hover{background:#f3f8fc}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-button:disabled{opacity:.45;cursor:not-allowed}
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* Brand palette */
+  --c-navy:         #0a1628;
+  --c-navy-mid:     #152236;
+  --c-navy-light:   #1e3350;
+  --c-navy-border:  rgba(255,255,255,.07);
+  --c-blue:         #0066a1;
+  --c-blue-hover:   #1a7ec0;
+  --c-blue-pale:    #dbeef9;
+  --c-blue-ghost:   #eaf4fb;
+  --c-orange:       #e87722;
+  --c-orange-hover: #f08430;
+  --c-orange-pale:  #fef3e8;
 
-.app-shell{display:grid;grid-template-rows:auto auto 1fr auto;min-height:100vh;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1rem;background:var(--navy);color:#e8eff7;border-bottom:1px solid #24344a}
-.brand h1{font-size:1.05rem;margin:0;font-weight:700;letter-spacing:.2px}
-.brand p{margin:.1rem 0 0;font-size:.78rem;color:#b7c6d8}
-.mode-switch{display:flex;gap:.4rem;background:#11233a;padding:.25rem;border-radius:999px}
-.mode-switch button{border:0;background:transparent;color:#dce7f3;padding:.35rem .8rem;border-radius:999px}
-.mode-switch button.active{background:var(--blue);color:#fff}
-.mode-indicator{font-size:.82rem;color:#b7c6d8}
+  /* Surfaces */
+  --s-workspace:    #e6ecf3;
+  --s-toolbar:      #f3f7fb;
+  --s-panel:        #ffffff;
+  --s-panel-alt:    #f8fafc;
+  --s-stage-bg:     #dce4ed;
 
-.toolbar{display:flex;flex-wrap:wrap;gap:.75rem;padding:.6rem 1rem;background:#f7fafc;border-bottom:1px solid var(--border)}
-.group{display:flex;gap:.45rem;align-items:center;padding-right:.75rem;border-right:1px solid var(--border)}
-.group:last-child{border-right:0;padding-right:0}
-label.file-btn,input[type=file]{font-size:.9rem}
-label.file-btn{display:flex;align-items:center;gap:.45rem;font-weight:600;color:var(--blue-strong)}
-label.file-btn input{max-width:230px;background:#fff;padding:.2rem}
-.btn-primary{background:var(--blue);color:#fff;border-color:#0b5f95}
-.btn-accent{background:var(--orange);color:#fff;border-color:#be6118}
-.btn-danger{background:#fff1ef;color:var(--danger);border-color:#e1a8a0}
+  /* Text */
+  --t-primary:      #182433;
+  --t-secondary:    #334d65;
+  --t-muted:        #5c7386;
+  --t-inverse:      #eaf1f8;
+  --t-inverse-dim:  #8ba8c0;
 
-.workspace{display:grid;grid-template-columns:240px minmax(760px,1fr) 340px;gap:var(--gap);padding:var(--gap);overflow:hidden;min-height:0}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0}
-.panel h2{font-size:.95rem;margin:0;padding:.75rem .8rem;border-bottom:1px solid var(--border);color:#1b3550}
-.panel-body{padding:.65rem .75rem;overflow:auto;display:flex;flex-direction:column;gap:.65rem}
-.panel-actions{display:flex;gap:.45rem;flex-wrap:wrap}
-.list{display:flex;flex-direction:column;gap:.35rem;max-height:32vh;overflow:auto}
-.list button{text-align:left;background:#f9fbfd}
-.list button.active{background:#dbeef9;border-color:#7db5d8;color:#0f3d61}
+  /* Borders */
+  --b-soft:         #d8e2ec;
+  --b-mid:          #b8c8d8;
+  --b-strong:       #9ab0c4;
+  --b-focus:        #0066a1;
 
-.stage-wrap{padding:.8rem;background:#e7edf3;border-top:1px solid var(--border);display:flex;justify-content:center;overflow:auto;min-height:0}
-.stage{width:960px;min-width:960px;height:540px;border:1px solid #9bafc2;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(10,22,40,.18);position:relative;overflow:visible}
-.canvas-frame{width:100%;height:100%;border:0;border-radius:10px}
-#edit-stage{position:relative;padding:0;display:block}
-#edit-overlay{position:absolute;inset:0;cursor:default}
-#hover-box{position:absolute;pointer-events:none;border:1px dashed #5d8ba8;display:none;box-sizing:border-box;border-radius:4px}
-#selection-box{position:absolute;pointer-events:none;border:2px solid var(--blue);display:none;box-sizing:border-box;border-radius:4px}
+  /* Status colors */
+  --stat-bg:        #0d1f34;
+  --stat-text:      #c8ddf0;
+  --stat-ok-bg:     #0a2818;
+  --stat-ok-text:   #7de5a8;
+  --stat-warn-bg:   #2e1c00;
+  --stat-warn-text: #ffc870;
+  --stat-err-bg:    #2e0a08;
+  --stat-err-text:  #ffada8;
 
-.empty-note{font-size:.82rem;color:var(--muted);background:#f4f8fb;border:1px solid var(--border);border-radius:8px;padding:.55rem .6rem}
-.fields{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
-.fields label,.stack label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:#31465b}
-.stack{display:flex;flex-direction:column;gap:.45rem}
-.section{border:1px solid var(--border);border-radius:8px;padding:.55rem;background:#fbfdff}
-.section h3{margin:0 0 .45rem;font-size:.82rem;color:#28506f;text-transform:uppercase;letter-spacing:.3px}
-.helper{font-size:.77rem;color:var(--muted);margin:0}
-#status{padding:.6rem .9rem;background:#102137;color:#e8f0fb;font-size:.9rem;font-weight:600}
-#mode-label,#selected-state{padding:.45rem .9rem;background:#edf3f8;border-top:1px solid var(--border);font-size:.84rem;color:#2f4760}
+  /* Shadows */
+  --sh-xs:  0 1px 2px rgba(10,22,40,.06);
+  --sh-sm:  0 1px 4px rgba(10,22,40,.08), 0 1px 2px rgba(10,22,40,.04);
+  --sh-md:  0 4px 14px rgba(10,22,40,.10), 0 1px 3px rgba(10,22,40,.06);
+  --sh-stage: 0 8px 32px rgba(10,22,40,.20), 0 2px 6px rgba(10,22,40,.10);
 
-@media (max-width:1500px){.workspace{grid-template-columns:220px minmax(640px,1fr) 320px}.stage{transform-origin:top center;transform:scale(.93);margin-bottom:-34px}}
-@media (max-width:1280px){.workspace{grid-template-columns:220px 1fr}.right-panel{grid-column:1/-1}.stage{transform:none;margin-bottom:0;min-width:720px;height:405px}}
+  /* Radius */
+  --r-sm:   5px;
+  --r:      8px;
+  --r-lg:   12px;
+  --r-pill: 999px;
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* Typography */
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--s-workspace); color: var(--t-primary); }
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; user-select: none; }
+button:disabled { opacity: 0.42; cursor: not-allowed; pointer-events: none; }
+a { color: inherit; }
+
+/* ============================================================
+   FOCUS RING
+   ============================================================ */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0,102,161,.35);
+  border-color: var(--b-focus) !important;
+}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.app-shell {
+  display: grid;
+  grid-template-rows: 52px 44px 1fr auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-5);
+  background: var(--c-navy);
+  border-bottom: 1px solid var(--c-navy-border);
+  flex-shrink: 0;
+}
+
+/* Brand */
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.brand-mark {
+  width: 30px; height: 30px;
+  background: var(--c-blue);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #fff;
+  letter-spacing: -0.5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.05px;
+  line-height: 1.2;
+}
+.brand-sub {
+  font-size: 10.5px;
+  color: var(--t-inverse-dim);
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+/* Mode switch pill */
+.topbar-center { flex: 1; display: flex; justify-content: center; }
+
+.mode-pill {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--r-pill);
+  padding: 3px;
+}
+
+.mode-pill button {
+  background: transparent;
+  border: none;
+  color: var(--t-inverse-dim);
+  padding: 5px 20px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background .12s, color .12s;
+  letter-spacing: 0.2px;
+}
+
+.mode-pill button:hover:not(.active) {
+  background: rgba(255,255,255,.1);
+  color: var(--t-inverse);
+}
+
+.mode-pill button.active {
+  background: var(--c-blue);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.mode-pill button:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255,255,255,.45) !important;
+}
+
+/* Topbar end */
+.topbar-end { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+
+.topbar-chip {
+  font-size: 11px;
+  color: var(--t-inverse-dim);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   SECONDARY TOOLBAR
+   ============================================================ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-4);
+  background: var(--s-toolbar);
+  border-bottom: 1px solid var(--b-soft);
+  gap: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.tbar-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 var(--sp-3);
+  border-right: 1px solid var(--b-soft);
+  height: 100%;
+}
+
+.tbar-group:first-child { padding-left: 0; }
+.tbar-group:last-child { border-right: none; }
+
+/* ============================================================
+   BUTTON SYSTEM
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--b-mid);
+  border-radius: var(--r-sm);
+  background: var(--s-panel);
+  color: var(--t-primary);
+  transition: background .1s, border-color .1s;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.btn:hover:not(:disabled) {
+  background: #eaf3fb;
+  border-color: var(--b-focus);
+  color: var(--c-blue);
+}
+
+.btn:active:not(:disabled) { background: var(--c-blue-pale); }
+
+.btn-file {
+  padding: 5px 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--c-blue);
+  border: 1px solid #005a8e;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background .1s;
+  white-space: nowrap;
+  font-size: 12.5px;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-file:hover { background: var(--c-blue-hover); }
+.btn-file input { display: none; }
+
+.btn-primary {
+  background: var(--c-blue);
+  color: #fff;
+  border-color: #005a8e;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) { background: var(--c-blue-hover); border-color: #005a8e; color: #fff; }
+.btn-primary:active:not(:disabled) { background: #005a8e; }
+
+.btn-accent {
+  background: var(--c-orange);
+  color: #fff;
+  border-color: #c45e0e;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+.btn-accent:hover:not(:disabled) { background: var(--c-orange-hover); border-color: #c45e0e; color: #fff; }
+
+.btn-danger {
+  background: #fff7f6;
+  color: #941d0f;
+  border-color: #e0a89e;
+}
+.btn-danger:hover:not(:disabled) { background: #ffe8e6; border-color: #941d0f; color: #941d0f; }
+
+.snap-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  transition: color .1s, background .1s;
+}
+.snap-toggle-label:hover { color: var(--t-primary); background: rgba(0,0,0,.04); }
+.snap-toggle-label input { width: 13px; height: 13px; cursor: pointer; }
+
+/* ============================================================
+   WORKSPACE
+   ============================================================ */
+.workspace {
+  display: grid;
+  grid-template-columns: 230px minmax(640px, 1fr) 308px;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+.panel {
+  background: var(--s-panel);
+  border: 1px solid var(--b-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-hd {
+  display: flex;
+  align-items: center;
+  padding: 9px var(--sp-3);
+  background: var(--s-panel-alt);
+  border-bottom: 1px solid var(--b-soft);
+  flex-shrink: 0;
+}
+
+.panel-hd h2 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex: 1;
+  margin: 0;
+}
+
+.panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-height: 0;
+}
+
+/* ============================================================
+   SLIDE PANEL
+   ============================================================ */
+.slide-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+.slide-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 5px 6px; }
+
+#slides.slide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 40px;
+}
+
+#slides.slide-list button {
+  display: block;
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t-secondary);
+  background: var(--s-panel-alt);
+  border: 1px solid var(--b-soft);
+  border-radius: var(--r-sm);
+  transition: background .1s, border-color .1s, color .1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#slides.slide-list button:hover:not(.active) {
+  background: var(--c-blue-ghost);
+  border-color: #a8c8e4;
+  color: var(--t-primary);
+}
+
+#slides.slide-list button.active {
+  background: var(--c-blue-pale);
+  border-color: var(--c-blue);
+  color: #083a6a;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(0,102,161,.1);
+}
+
+/* Empty / welcome state */
+.welcome-card {
+  background: var(--c-blue-ghost);
+  border: 1px solid #c0d9ee;
+  border-radius: var(--r);
+  padding: var(--sp-3) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.welcome-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t-secondary);
+}
+
+.welcome-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.welcome-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--t-secondary);
+}
+
+.welcome-step-n {
+  width: 18px;
+  height: 18px;
+  background: var(--c-blue);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   STAGE / CANVAS AREA
+   ============================================================ */
+.stage-hd {
+  display: flex;
+  align-items: center;
+  padding: 9px var(--sp-3);
+  background: var(--s-panel-alt);
+  border-bottom: 1px solid var(--b-soft);
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+.stage-hd h2 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex: 1;
+  margin: 0;
+}
+
+.stage-wrap {
+  flex: 1;
+  display: flex;
+  align-items: safe center;   /* center when fits, flex-start when overflowing */
+  justify-content: center;
+  padding: var(--sp-5);
+  background: var(--s-stage-bg);
+  overflow: auto;
+  min-height: 0;
+}
+
+/* The slide canvas */
+.stage {
+  width: 960px;
+  min-width: 960px;
+  height: 540px;
+  border-radius: var(--r);
+  background: #fff;
+  box-shadow: var(--sh-stage);
+  position: relative;
+  overflow: visible;
+  flex-shrink: 0;
+  border: 1px solid #a8bed4;
+}
+
+.canvas-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--r);
+  display: block;
+}
+
+#edit-stage {
+  position: relative;
+  padding: 0;
+  display: block;
+}
+
+#edit-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+  border-radius: var(--r);
+}
+
+#hover-box {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px dashed #5d88a8;
+  display: none;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: rgba(0,102,161,.025);
+}
+
+#selection-box {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid var(--c-blue);
+  display: none;
+  box-sizing: border-box;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0,102,161,.18);
+}
+
+/* ============================================================
+   INSPECTOR PANEL
+   ============================================================ */
+.inspector-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+}
+
+.ins-card {
+  border: 1px solid var(--b-soft);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--s-panel);
+}
+
+.ins-card-hd {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--s-panel-alt);
+  border-bottom: 1px solid var(--b-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--t-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  gap: 6px;
+}
+
+.ins-card-body {
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Two-column grid for X/Y/W/H */
+.ins-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* Field label + input */
+.ins-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ins-field-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--t-muted);
+  letter-spacing: 0.2px;
+}
+
+.ins-field input,
+.ins-field select,
+.ins-field textarea {
+  padding: 4px 7px;
+  font-size: 12px;
+  border: 1px solid var(--b-mid);
+  border-radius: 4px;
+  background: var(--s-panel);
+  color: var(--t-primary);
+  width: 100%;
+  transition: border-color .1s;
+}
+
+.ins-field textarea { resize: vertical; line-height: 1.4; }
+
+.ins-field input[type="color"] {
+  padding: 2px 3px;
+  height: 28px;
+  cursor: pointer;
+}
+
+/* Type badge */
+.ins-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-type-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #083a6a;
+  background: var(--c-blue-pale);
+  border: 1px solid #b8d4ec;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* Checkbox row */
+.ins-checks {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.ins-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t-secondary);
+  cursor: pointer;
+}
+
+.ins-check input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Note / warning callouts */
+.ins-note {
+  font-size: 11px;
+  color: #5a4000;
+  background: var(--c-orange-pale);
+  border: 1px solid #f0c07a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  line-height: 1.45;
+}
+
+.ins-hint {
+  font-size: 11px;
+  color: var(--t-muted);
+  line-height: 1.45;
+  font-style: italic;
+}
+
+/* Layers list */
+#layers.layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+#layers.layers-list button {
+  text-align: left;
+  width: 100%;
+  background: var(--s-panel-alt);
+  border: 1px solid var(--b-soft);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--t-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .08s, color .08s;
+}
+
+#layers.layers-list button:hover {
+  background: var(--c-blue-ghost);
+  border-color: #a8c8e4;
+  color: var(--t-primary);
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+.statusbar { flex-shrink: 0; }
+
+#status {
+  padding: 7px var(--sp-5);
+  background: var(--stat-bg);
+  color: var(--stat-text);
+  font-size: 12.5px;
+  font-weight: 500;
+  min-height: 33px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  letter-spacing: 0.05px;
+  border-top: 1px solid rgba(255,255,255,.04);
+  transition: background .2s, color .2s;
+}
+
+#status.ok   { background: var(--stat-ok-bg);   color: var(--stat-ok-text); }
+#status.warn { background: var(--stat-warn-bg);  color: var(--stat-warn-text); }
+#status.error{ background: var(--stat-err-bg);   color: var(--stat-err-text); }
+
+#status::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.status-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 5px var(--sp-5);
+  background: var(--s-toolbar);
+  border-top: 1px solid var(--b-soft);
+}
+
+#mode-label {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--t-secondary);
+}
+
+#selected-state {
+  font-size: 11.5px;
+  color: var(--t-muted);
+  flex-shrink: 0;
+  font-style: italic;
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--b-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--t-muted); }
+
+/* ============================================================
+   CONTEXT-AWARE
+   ============================================================ */
+/* hide welcome card once slides are loaded */
+.left-panel:has(#slides button) .welcome-card { display: none; }
+
+/* stage header label reflects active mode */
+.app-shell:has(#mode-preview.active) .stage-hd-label { display: none; }
+.app-shell:has(#mode-preview.active) .stage-hd-preview { display: block; }
+.stage-hd-preview { display: none; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1480px) {
+  .workspace { grid-template-columns: 216px minmax(600px, 1fr) 288px; }
+  .stage { transform-origin: top center; transform: scale(.91); margin-bottom: -44px; }
+}
+
+@media (max-width: 1280px) {
+  .workspace { grid-template-columns: 200px 1fr; }
+  .right-panel { grid-column: 1 / -1; max-height: 260px; }
+  .stage { transform: none; min-width: 700px; height: 394px; margin-bottom: 0; }
+}
 </style>
 </head>
 <body>
 <div class="app-shell">
-<header class="topbar"><div class="brand"><h1>Local HTML Editor V2</h1><p>Secure local presentation editing</p></div><div><div class="mode-switch"><button id="mode-preview" aria-label="Switch to Preview mode">Preview</button><button id="mode-edit" class="active" aria-label="Switch to Edit mode">Edit</button></div><div class="mode-indicator">Preview validates behavior, Edit applies safe changes.</div></div></header>
-<div class="toolbar">
-<div class="group"><label class="file-btn">Open HTML <input id="file" type="file" accept=".html,.htm"></label><button id="export" class="btn-accent">Export HTML</button></div>
-<div class="group"><button id="save-project" class="btn-primary">Save Project</button><button id="open-project">Open Project</button><input id="open-project-file" type="file" accept=".json" hidden></div>
-<div class="group"><button id="add-text">Add Text</button><button id="add-image">Add Image</button><button id="delete" class="btn-danger" disabled>Delete</button></div>
-<div class="group"><button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button><button id="bring-front" disabled>Bring Front</button><button id="send-back" disabled>Send Back</button><label style="display:flex;align-items:center;gap:.35rem;font-size:.84rem;"><input type="checkbox" id="snap-toggle"> Snap 10px</label></div>
+
+<!-- ====== TOP APP BAR ====== -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">T</div>
+    <div>
+      <div class="brand-name">HTML Presentation Editor</div>
+      <div class="brand-sub">Tenaris internal tool &middot; fully local</div>
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <div class="mode-pill">
+      <button id="mode-preview" aria-label="Switch to Preview mode">Preview</button>
+      <button id="mode-edit" class="active" aria-label="Switch to Edit mode">Edit</button>
+    </div>
+  </div>
+
+  <div class="topbar-end">
+    <span class="topbar-chip">All data stays local</span>
+  </div>
+</header>
+
+<!-- ====== SECONDARY TOOLBAR ====== -->
+<div class="toolbar" role="toolbar" aria-label="Editor tools">
+
+  <div class="tbar-group">
+    <label class="btn-file" title="Open an HTML presentation file" aria-label="Open HTML file">
+      Open HTML
+      <input id="file" type="file" accept=".html,.htm">
+    </label>
+    <button id="export" class="btn btn-accent" title="Export sanitized HTML copy (scripts removed)">Export HTML</button>
+  </div>
+
+  <div class="tbar-group">
+    <button id="save-project" class="btn btn-primary" title="Save project as .lheproj-v2.json">Save Project</button>
+    <button id="open-project" class="btn" title="Open a saved project file">Open Project</button>
+    <input id="open-project-file" type="file" accept=".json" hidden>
+  </div>
+
+  <div class="tbar-group">
+    <button id="add-text" class="btn" title="Add a text block to the active slide">Add Text</button>
+    <button id="add-image" class="btn" title="Add an image to the active slide">Add Image</button>
+    <button id="delete" class="btn btn-danger" disabled title="Delete selected element (Delete key)">Delete</button>
+  </div>
+
+  <div class="tbar-group">
+    <button id="undo" class="btn" disabled title="Undo (Ctrl+Z)">Undo</button>
+    <button id="redo" class="btn" disabled title="Redo (Ctrl+Y)">Redo</button>
+    <button id="bring-front" class="btn" disabled title="Bring element to front">&#8679; Front</button>
+    <button id="send-back" class="btn" disabled title="Send element to back">&#8681; Back</button>
+    <label class="snap-toggle-label" title="Snap drag/nudge to 10&nbsp;px grid">
+      <input type="checkbox" id="snap-toggle">
+      Snap 10&thinsp;px
+    </label>
+  </div>
+
 </div>
+
+<!-- ====== WORKSPACE ====== -->
 <div class="workspace">
-<aside class="panel"><h2>Slides</h2><div class="panel-body"><div class="panel-actions"><button id="add-slide">Add</button><button id="dup-slide" disabled>Duplicate</button><button id="del-slide" class="btn-danger" disabled>Delete</button></div><div id="slides" class="list"></div><p class="empty-note">Open an HTML presentation to begin. Use slides here to navigate the deck.</p></div></aside>
-<main class="panel"><h2>Editing Stage</h2><div class="stage-wrap"><iframe id="live-preview-frame" class="stage canvas-frame" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe><div id="edit-stage" class="stage" style="display:block;"><iframe id="edit-frame" class="canvas-frame" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe><div id="edit-overlay"></div><div id="hover-box"></div><div id="selection-box"></div></div></div></main>
-<aside class="panel right-panel"><h2>Inspector</h2><div class="panel-body"><div class="section"><h3>Selection</h3><div>Type: <strong id="ins-type">none</strong></div><p class="helper">Moving normal-flow items can shift nearby layout. Use Undo if needed.</p></div>
-<div class="section"><h3>Position &amp; Size</h3><div class="fields"><label>X<input id="ins-x" type="number"></label><label>Y<input id="ins-y" type="number"></label><label>W<input id="ins-w" type="number"></label><label>H<input id="ins-h" type="number"></label></div></div>
-<div class="section"><h3>Text</h3><div class="stack"><label>Text<textarea id="ins-text" rows="2"></textarea></label><label>Font family<select id="ins-font-family"><option value="">Default</option><option value="Arial, sans-serif">Arial</option><option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option><option value="Georgia, serif">Georgia</option><option value="Times New Roman, serif">Times New Roman</option><option value="Verdana, sans-serif">Verdana</option><option value="Trebuchet MS, sans-serif">Trebuchet MS</option><option value="Courier New, monospace">Courier New</option></select></label><label>Align<select id="ins-align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label></div></div>
-<div class="section"><h3>Appearance</h3><div class="fields"><label>Text color<input id="ins-color" type="color" value="#000000"></label><label>Background<input id="ins-bg" type="color" value="#ffffff"></label><label>Font px<input id="ins-font" type="number" min="8" max="200" value="16"></label><label>Opacity %<input id="ins-opacity" type="number" min="0" max="100" value="100"></label><label>Bold<input id="ins-bold" type="checkbox"></label><label>Italic<input id="ins-italic" type="checkbox"></label><label>Underline<input id="ins-underline" type="checkbox"></label></div></div>
-<div class="section"><h3>Image</h3><div class="stack"><label>Alt text<input id="ins-alt" type="text"></label><button id="ins-replace-img" style="display:none;width:100%;">Replace Image</button></div></div>
-<div class="section"><h3>Layers</h3><div id="layers" class="list"></div><p class="helper">Showing nearest editable elements for the current slide.</p></div>
-<p class="helper">Export strips scripts from edited output for safe local handling.</p></div></aside>
+
+  <!-- LEFT: Slides panel -->
+  <aside class="panel left-panel" aria-label="Slides">
+    <div class="panel-hd">
+      <h2>Slides</h2>
+    </div>
+    <div class="panel-body">
+
+      <div class="slide-actions">
+        <button id="add-slide" class="btn" title="Add a new slide after the current one">Add</button>
+        <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
+        <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
+      </div>
+
+      <div id="slides" class="slide-list"></div>
+
+      <div class="welcome-card">
+        <div class="welcome-card-title">Get started</div>
+        <div class="welcome-steps">
+          <div class="welcome-step">
+            <div class="welcome-step-n">1</div>
+            <span>Open an HTML presentation above</span>
+          </div>
+          <div class="welcome-step">
+            <div class="welcome-step-n">2</div>
+            <span>Switch between Preview and Edit</span>
+          </div>
+          <div class="welcome-step">
+            <div class="welcome-step-n">3</div>
+            <span>Export your edited HTML copy</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- CENTER: Editing stage -->
+  <main class="panel center-panel" aria-label="Editing stage">
+    <div class="stage-hd">
+      <h2 class="stage-hd-label">Editing Stage</h2>
+      <h2 class="stage-hd-preview">Live Preview</h2>
+    </div>
+    <div class="stage-wrap">
+      <iframe id="live-preview-frame"
+        class="stage canvas-frame"
+        sandbox="allow-scripts"
+        referrerpolicy="no-referrer"
+        title="Interactive preview"
+      ></iframe>
+      <div id="edit-stage" class="stage" style="display:block;">
+        <iframe id="edit-frame"
+          class="canvas-frame"
+          sandbox="allow-same-origin"
+          referrerpolicy="no-referrer"
+          title="Edit canvas"
+        ></iframe>
+        <div id="edit-overlay" aria-hidden="true"></div>
+        <div id="hover-box"     aria-hidden="true"></div>
+        <div id="selection-box" aria-hidden="true"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Inspector panel -->
+  <aside class="panel right-panel" aria-label="Element inspector">
+    <div class="panel-hd">
+      <h2>Inspector</h2>
+    </div>
+    <div class="inspector-scroll">
+
+      <!-- Selection -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Selection</div>
+        <div class="ins-card-body">
+          <div class="ins-type-row">
+            <span style="font-size:11px;color:var(--t-muted);">Element:</span>
+            <span class="ins-type-badge" id="ins-type">none</span>
+          </div>
+          <div class="ins-note">
+            Moving normal-flow elements can shift nearby layout. Use Ctrl+Z to undo.
+          </div>
+        </div>
+      </div>
+
+      <!-- Position & Size -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Position &amp; Size</div>
+        <div class="ins-card-body">
+          <div class="ins-grid-2">
+            <div class="ins-field">
+              <span class="ins-field-label">X&thinsp;(px)</span>
+              <input id="ins-x" type="number" placeholder="0">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">Y&thinsp;(px)</span>
+              <input id="ins-y" type="number" placeholder="0">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">W&thinsp;(px)</span>
+              <input id="ins-w" type="number" placeholder="0">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">H&thinsp;(px)</span>
+              <input id="ins-h" type="number" placeholder="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Text</div>
+        <div class="ins-card-body">
+          <div class="ins-field">
+            <span class="ins-field-label">Content</span>
+            <textarea id="ins-text" rows="2" placeholder="Text content&hellip;"></textarea>
+          </div>
+          <div class="ins-field">
+            <span class="ins-field-label">Font family</span>
+            <select id="ins-font-family">
+              <option value="">Default</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Times New Roman, serif">Times New Roman</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+              <option value="Courier New, monospace">Courier New</option>
+            </select>
+          </div>
+          <div class="ins-field">
+            <span class="ins-field-label">Alignment</span>
+            <select id="ins-align">
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+              <option value="justify">Justify</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Appearance</div>
+        <div class="ins-card-body">
+          <div class="ins-grid-2">
+            <div class="ins-field">
+              <span class="ins-field-label">Text color</span>
+              <input id="ins-color" type="color" value="#000000">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">Background</span>
+              <input id="ins-bg" type="color" value="#ffffff">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">Font&thinsp;(px)</span>
+              <input id="ins-font" type="number" min="8" max="200" value="16">
+            </div>
+            <div class="ins-field">
+              <span class="ins-field-label">Opacity&thinsp;(%)</span>
+              <input id="ins-opacity" type="number" min="0" max="100" value="100">
+            </div>
+          </div>
+          <div class="ins-checks">
+            <label class="ins-check"><input id="ins-bold" type="checkbox"> Bold</label>
+            <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
+            <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Image</div>
+        <div class="ins-card-body">
+          <div class="ins-field">
+            <span class="ins-field-label">Alt text</span>
+            <input id="ins-alt" type="text" placeholder="Image description">
+          </div>
+          <button id="ins-replace-img" class="btn btn-primary" style="display:none;width:100%;justify-content:center;">
+            Replace Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Layers -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Layers</div>
+        <div class="ins-card-body">
+          <div id="layers" class="layers-list"></div>
+          <div class="ins-hint">Editable elements in the active slide. Click to select.</div>
+        </div>
+      </div>
+
+      <!-- Export warning -->
+      <div class="ins-note">
+        Export removes all scripts from the output — safe for local distribution.
+      </div>
+
+    </div><!-- /inspector-scroll -->
+  </aside>
+
+</div><!-- /workspace -->
+
+<!-- ====== STATUS BAR ====== -->
+<div class="statusbar">
+  <div id="status">Ready &mdash; open an HTML presentation to begin editing.</div>
+  <div class="status-footer">
+    <span id="mode-label">Open an HTML presentation to begin. &nbsp;1)&nbsp;Open HTML &nbsp;&nbsp;2)&nbsp;Preview or Edit &nbsp;&nbsp;3)&nbsp;Export edited copy.</span>
+    <span id="selected-state">Selected: none</span>
+  </div>
 </div>
-<footer id="status">Ready.</footer>
-<div id="mode-label">Open an HTML presentation to begin. 1) Open HTML 2) Preview or Edit 3) Export edited copy.</div>
-<div id="selected-state">Selected: none</div>
-</div>
+
+</div><!-- /app-shell -->
 <script src="./app-v2.bundle.js"></script>
 </body>
 </html>
