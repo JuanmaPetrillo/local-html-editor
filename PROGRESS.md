@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 9D complete (V2 full editor — free drag/resize for all elements, slide management, font family, text align, arrow-key nudge).
+Current milestone: Phase 9E complete (V2 polish — copy/paste, z-order, italic/underline/opacity, snap to grid, better layers).
 
 ## Latest summary
 
@@ -818,3 +818,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: Export strips all scripts by design. ZIP import/export remains preflight-only. No slide reordering via drag (only add/delete/duplicate). No autosave.
 Next recommended task: User testing with real Copilot HTML files to find edge cases.
+
+### 2026-05-15 (Phase 9E — V2 polish: copy/paste, z-order, italic/underline/opacity, snap, layers)
+
+Date: 2026-05-15
+Branch/PR: claude/v2-polish
+Milestone: Phase 9E — V2 polish
+Summary: (1) Ctrl+C/V copy-paste: copies selected element outerHTML as clipboard; paste offsets by +20px if positioned or snaps to absolute (100,100) if not, strips unsafe HTML, inserts into active slide, auto-selects result. (2) Bring to Front / Send to Back toolbar buttons (z-order via DOM reordering, Undo-able). (3) Inspector: Italic checkbox, Underline checkbox, Opacity % field (0-100). (4) Snap to 10px grid: toggle in toolbar; applies during drag, arrow nudge, and paste. (5) More editable element types: LI, A, LABEL added to double-click text edit allowlist. (6) Layers panel: shows content text preview (first 28 chars) and includes li/a/label elements. (7) Status bar mentions Ctrl+C to copy on selection.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, PROGRESS.md, docs/ROADMAP.md
+Validation run: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: Export strips scripts. ZIP preflight-only. No autosave.
+Next recommended task: Real-file pilot testing with HR Copilot presentations.

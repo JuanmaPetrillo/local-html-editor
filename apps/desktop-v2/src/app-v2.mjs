@@ -213,6 +213,12 @@ if (hasDom) {
   const addSlideBtn = q('#add-slide');
   const delSlideBtn = q('#del-slide');
   const dupSlideBtn = q('#dup-slide');
+  const bringFrontBtn = q('#bring-front');
+  const sendBackBtn = q('#send-back');
+  const snapToggle = q('#snap-toggle');
+  const insItalic = q('#ins-italic');
+  const insUnderline = q('#ins-underline');
+  const insOpacity = q('#ins-opacity');
   const editStage = q('#edit-stage');
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
@@ -235,6 +241,9 @@ if (hasDom) {
   let activeEditingEl = null;
   let selectionId = '';
   let resizeState = null;
+  let clipboard = null;
+  let snapEnabled = false;
+  const snapCoord = (v) => snapEnabled ? Math.round(v / 10) * 10 : Math.round(v);
 
   const setStatus = (t) => { status.textContent = t; };
 
@@ -248,6 +257,8 @@ if (hasDom) {
     addSlideBtn.disabled = !editable;
     delSlideBtn.disabled = !editable || model.slides.length <= 1;
     dupSlideBtn.disabled = !editable || !model.selectedSlideId;
+    bringFrontBtn.disabled = !selectedEl || !editable;
+    sendBackBtn.disabled = !selectedEl || !editable;
     previewBtn.classList.toggle('active', model.mode === 'preview');
     editBtn.classList.toggle('active', model.mode === 'edit');
   }
@@ -256,7 +267,7 @@ if (hasDom) {
     if (!el) { selectedState.textContent = 'Selected: none'; return; }
     const editableText = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
     const movable = isMovableByPosition(el);
-    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'yes' : 'no'} | ${movable ? 'drag/resize freely' : 'drag to freely position'}`;
+    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'dbl-click to edit' : 'no'} | ${movable ? 'drag/resize freely' : 'drag to freely position'} | Ctrl+C to copy`;
   }
 
   function updateSlideVisibility(doc) {
@@ -317,6 +328,9 @@ if (hasDom) {
     insBg.value = rgbToHex(cs.backgroundColor);
     insFont.value = String(Math.round(parseFloat(cs.fontSize) || 16));
     insBold.checked = (cs.fontWeight === 'bold' || Number.parseInt(cs.fontWeight, 10) >= 600);
+    insItalic.checked = cs.fontStyle === 'italic';
+    insUnderline.checked = (cs.textDecoration || '').includes('underline');
+    insOpacity.value = String(Math.round((parseFloat(cs.opacity || '1')) * 100));
     const inlineFontFamily = el.style.fontFamily || '';
     insFontFamily.value = Array.from(insFontFamily.options).some((o) => o.value === inlineFontFamily) ? inlineFontFamily : '';
     insAlign.value = el.style.textAlign || cs.textAlign || 'left';
@@ -334,9 +348,14 @@ if (hasDom) {
     if (!doc) return;
     const active = collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId);
     if (!active) return;
-    Array.from(active.querySelectorAll('h1,h2,h3,p,button,div,span,img')).slice(0, 120).forEach((el, i) => {
+    Array.from(active.querySelectorAll('h1,h2,h3,p,button,div,span,img,li,a,label')).slice(0, 120).forEach((el) => {
       const b = document.createElement('button');
-      b.textContent = `${el.tagName.toLowerCase()} ${i + 1}`;
+      const tag = el.tagName.toLowerCase();
+      const preview = tag === 'img'
+        ? `img: ${(el.getAttribute('alt') || '').slice(0, 22) || '(image)'}`
+        : `${tag}: ${(el.textContent || '').trim().slice(0, 28) || '(empty)'}`;
+      b.textContent = preview;
+      b.title = preview;
       b.onclick = () => selectElement(el);
       layersList.appendChild(b);
     });
@@ -383,7 +402,7 @@ if (hasDom) {
   }
 
   function enterTextEditMode(el) {
-    if (!el || !['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName)) return;
+    if (!el || !['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV', 'LI', 'A', 'LABEL'].includes(el.tagName)) return;
     activeEditingEl = el;
     el.dataset.lheOriginalText = el.textContent || '';
     el.setAttribute('contenteditable', 'true');
@@ -531,8 +550,8 @@ if (hasDom) {
         }
       }
       if (overlayDragState) {
-        setPx(overlayDragState.el.style, 'left', overlayDragState.left + (e.clientX - overlayDragState.startX));
-        setPx(overlayDragState.el.style, 'top', overlayDragState.top + (e.clientY - overlayDragState.startY));
+        setPx(overlayDragState.el.style, 'left', snapCoord(overlayDragState.left + (e.clientX - overlayDragState.startX)));
+        setPx(overlayDragState.el.style, 'top', snapCoord(overlayDragState.top + (e.clientY - overlayDragState.startY)));
         updateSelectionBox(overlayDragState.el);
         loadInspector(overlayDragState.el);
       }
@@ -642,13 +661,45 @@ if (hasDom) {
       applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
       return;
     }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedEl) {
+      clipboard = selectedEl.outerHTML;
+      setStatus('Copied. Ctrl+V to paste.');
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboard) {
+      e.preventDefault();
+      const doc = editFrame.contentDocument;
+      if (!doc) return;
+      const temp = doc.createElement('div');
+      temp.innerHTML = stripUnsafeHtml(clipboard);
+      const clone = temp.firstElementChild;
+      if (!clone) return;
+      clone.removeAttribute('data-lhe-id');
+      if (isMovableByPosition(clone)) {
+        setPx(clone.style, 'left', snapCoord(getPx(clone.style, 'left') + 20));
+        setPx(clone.style, 'top', snapCoord(getPx(clone.style, 'top') + 20));
+      } else {
+        clone.style.position = 'absolute';
+        setPx(clone.style, 'left', 100); setPx(clone.style, 'top', 100);
+        if (!getPx(clone.style, 'width')) setPx(clone.style, 'width', 200);
+        if (!getPx(clone.style, 'height')) setPx(clone.style, 'height', 40);
+      }
+      const active = collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || doc.body;
+      active.appendChild(clone);
+      selectElement(clone);
+      pushHistory(history, model);
+      commitFrameToModel();
+      render();
+      setStatus('Pasted.');
+      return;
+    }
     const nudge = e.shiftKey ? 10 : 1;
     const dir = { ArrowLeft: [-nudge, 0], ArrowRight: [nudge, 0], ArrowUp: [0, -nudge], ArrowDown: [0, nudge] }[e.key];
     if (dir && selectedEl) {
       e.preventDefault();
       if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
-      setPx(selectedEl.style, 'left', getPx(selectedEl.style, 'left') + dir[0]);
-      setPx(selectedEl.style, 'top', getPx(selectedEl.style, 'top') + dir[1]);
+      setPx(selectedEl.style, 'left', snapCoord(getPx(selectedEl.style, 'left') + dir[0]));
+      setPx(selectedEl.style, 'top', snapCoord(getPx(selectedEl.style, 'top') + dir[1]));
       updateSelectionBox(selectedEl);
       loadInspector(selectedEl);
       clearTimeout(nudgeTimer);
@@ -707,6 +758,12 @@ if (hasDom) {
   insBold.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontWeight = insBold.checked ? '700' : '400'; });
   insFontFamily.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontFamily = insFontFamily.value; });
   insAlign.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textAlign = insAlign.value; });
+  insItalic.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontStyle = insItalic.checked ? 'italic' : 'normal'; });
+  insUnderline.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textDecoration = insUnderline.checked ? 'underline' : 'none'; });
+  insOpacity.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.opacity = String(Math.max(0, Math.min(100, Number(insOpacity.value || 100))) / 100); });
+  bringFrontBtn.onclick = () => applyStyle(() => { if (selectedEl?.parentElement) selectedEl.parentElement.appendChild(selectedEl); });
+  sendBackBtn.onclick = () => applyStyle(() => { if (selectedEl?.parentElement) selectedEl.parentElement.insertBefore(selectedEl, selectedEl.parentElement.firstChild); });
+  snapToggle.onchange = () => { snapEnabled = snapToggle.checked; setStatus(snapEnabled ? 'Snap to 10px grid enabled.' : 'Snap disabled.'); };
   [insX, insY, insW, insH].forEach((input) => input.onchange = () => applyStyle(() => {
     if (!selectedEl) return;
     if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
