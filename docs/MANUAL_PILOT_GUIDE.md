@@ -22,11 +22,10 @@ npm ci
 npm run build
 ```
 
-Expected output folder:
+Expected output folder (V2):
 
 - `dist/index.html`
-- `dist/src/app-shell.mjs`
-- supporting `dist/src/*.mjs` runtime modules copied by build
+- `dist/app-v2.bundle.js`
 
 ## 2) Create a portable pilot folder
 
@@ -38,7 +37,7 @@ npm run package:pilot
 
 Default output location:
 
-- `pilot-dist/local-html-editor-pilot-v<version>-<YYYYMMDD-HHMMSS>/`
+- `pilot-dist/local-html-editor-pilot-<timestamp>/` (timestamp is Unix milliseconds from `Date.now()`)
 
 What the script does:
 - validates required `dist/` files exist
