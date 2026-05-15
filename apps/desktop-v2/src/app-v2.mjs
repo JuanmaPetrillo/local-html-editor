@@ -41,6 +41,17 @@ function sanitizeByMode(inputHtml, mode = 'edit') {
 export function stripUnsafeHtml(inputHtml) { return sanitizeByMode(inputHtml, 'edit'); }
 export function createLivePreviewHtml(inputHtml) { return sanitizeByMode(inputHtml, 'preview'); }
 
+export function buildLivePreviewHtml(sourceHtml, originalHtml) {
+  const base = createLivePreviewHtml(sourceHtml);
+  const scripts = [];
+  const scriptRe = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
+  let m;
+  while ((m = scriptRe.exec(String(originalHtml || ''))) !== null) scripts.push(m[0]);
+  if (!scripts.length) return base;
+  const block = blockRemoteAttributes(scripts.join('\n'));
+  return /(<\/body>)/i.test(base) ? base.replace(/(<\/body>)/i, `${block}$1`) : base + block;
+}
+
 function collectSlides(doc) {
   const nodes = Array.from(doc.querySelectorAll('.slide'));
   if (nodes.length) return nodes;
@@ -147,7 +158,7 @@ if (hasDom) {
   const openProjectInput = q('#open-project-file');
   const addTextBtn = q('#add-text'); const addImageBtn = q('#add-image'); const delBtn = q('#delete');
   const undoBtn = q('#undo'); const redoBtn = q('#redo'); const saveBtn = q('#save-project'); const openProjectBtn = q('#open-project'); const exportBtn = q('#export');
-  const insType = q('#ins-type'); const insText = q('#ins-text'); const insAlt = q('#ins-alt');
+  const insType = q('#ins-type'); const insText = q('#ins-text'); const insAlt = q('#ins-alt'); const insReplaceImgBtn = q('#ins-replace-img');
   const insX = q('#ins-x'); const insY = q('#ins-y'); const insW = q('#ins-w'); const insH = q('#ins-h');
   const insColor = q('#ins-color'); const insBg = q('#ins-bg'); const insFont = q('#ins-font'); const insBold = q('#ins-bold');
   const editStage = q('#edit-stage');
@@ -209,7 +220,7 @@ if (hasDom) {
     editStage.style.display = model.mode === 'edit' ? 'block' : 'none';
     liveFrame.style.display = model.mode === 'preview' ? 'block' : 'none';
     if (model.mode === 'preview') {
-      liveFrame.srcdoc = model.previewHtml;
+      liveFrame.srcdoc = buildLivePreviewHtml(model.sourceHtml, model.originalHtml);
       liveFrame.onload = () => { liveFrame.focus(); };
       modeEl.textContent = 'Interactive preview. Use this to test buttons/navigation. Switch to Edit to modify.';
       return;
@@ -244,6 +255,7 @@ if (hasDom) {
     insType.textContent = el.tagName.toLowerCase();
     insText.value = el.tagName === 'IMG' ? '' : (el.textContent || '');
     insAlt.value = ['IMG', 'BUTTON'].includes(el.tagName) ? (el.getAttribute('alt') || '') : '';
+    insReplaceImgBtn.style.display = el.tagName === 'IMG' ? '' : 'none';
     insX.value = String(getPx(el.style, 'left'));
     insY.value = String(getPx(el.style, 'top'));
     insW.value = String(getPx(el.style, 'width') || Math.round(el.getBoundingClientRect().width));
@@ -553,6 +565,19 @@ if (hasDom) {
   };
   previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
   editBtn.onclick = () => { model.mode = 'edit'; render(); };
+
+  document.addEventListener('keydown', (e) => {
+    if (model.mode !== 'edit' || activeEditingEl) return;
+    if (e.target.matches('input,textarea,select')) return;
+    if (e.key === 'Escape' && selectedEl) {
+      e.preventDefault();
+      selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons();
+    }
+    if (e.key === 'Delete' && selectedEl) {
+      e.preventDefault();
+      applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
+    }
+  });
   addTextBtn.onclick = () => {
     pushHistory(history, model);
     commitFrameToModel();
@@ -576,6 +601,22 @@ if (hasDom) {
         img.style.position = 'absolute'; img.style.left = '80px'; img.style.top = '120px'; img.style.width = '240px'; img.style.height = '140px';
         active.appendChild(img);
       });
+    };
+    i.click();
+  };
+
+  insReplaceImgBtn.onclick = () => {
+    if (!selectedEl || selectedEl.tagName !== 'IMG') return;
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif';
+    i.onchange = async () => {
+      const f = i.files?.[0];
+      if (!f) return;
+      const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+      if (!/^data:image\/(png|jpeg|jpg|gif|webp|avif)/i.test(data)) { setStatus('Only PNG, JPEG, GIF, WebP, AVIF images are supported.'); return; }
+      applyStyle(() => { if (selectedEl?.tagName === 'IMG') selectedEl.src = data; });
+      setStatus('Image replaced.');
     };
     i.click();
   };

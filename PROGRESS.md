@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 9B complete (V2 overlay editor — clean selection, drag, resize).
+Current milestone: Phase 9C complete (V2 keyboard shortcuts, preview-reflects-edits, image replacement).
 
 ## Latest summary
 
@@ -794,3 +794,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: Preview mode does not reflect text/style edits (previewHtml is generated from original file content; edit mode edits appear in export only). Normal-flow elements are format-editable but movement is locked (inspector X/Y required). Export strips all scripts by design.
 Next recommended task: Preview-reflects-edits mode (rebuild previewHtml from sourceHtml, injecting original scripts from a parallel clean parse); or premium UI polish pass.
+
+### 2026-05-15 (Phase 9C — keyboard shortcuts, preview-reflects-edits, image replacement)
+
+Date: 2026-05-15
+Branch/PR: claude/v2-remaining-interactions
+Milestone: Phase 9C — remaining interaction features
+Summary: (1) Keyboard shortcuts: document-level keydown handler — Escape clears selection when not in text-edit mode; Delete removes selected element. Both ignored when focus is in an input/textarea/select. (2) Preview reflects edits: `buildLivePreviewHtml(sourceHtml, originalHtml)` computes live preview HTML at render time from current edited `sourceHtml` + injects inline script blocks extracted from `originalHtml` (with remote src blocked); `setFrameHtml` uses this instead of stale `model.previewHtml`. (3) Inspector image replacement: "Replace Image" button (`#ins-replace-img`) shown when an IMG element is selected; opens file picker, validates MIME, sets `selectedEl.src` to the data URL, commits and re-renders.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, PROGRESS.md, docs/ROADMAP.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: Normal-flow elements are format-editable but movement is locked (inspector X/Y required). Export strips all scripts by design. buildLivePreviewHtml blocks external script src; inline scripts from original are preserved for preview interactivity.
+Next recommended task: UI polish pass — slide thumbnail nav, better inspector layout, font picker, alignment guides.

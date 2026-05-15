@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import {
   mapHtmlToModel, exportModelToHtml, createProjectPayload, restoreProjectPayload,
   editHeadingTextInModel, addTextBlockToSlide, deleteFirstTagInSlide, createHistory, pushHistory, undo, redo,
-  stripUnsafeHtml
+  stripUnsafeHtml, buildLivePreviewHtml
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
 const editStageIdx = html.indexOf('id="edit-stage"');
@@ -204,3 +204,18 @@ const relStyle = { getPropertyValue: (k) => k === 'position' ? 'relative' : '' }
 const staticStyle = { getPropertyValue: () => '' };
 // Test getPx / setPx helpers via exported model (node-safe: no DOM needed for model functions)
 // These are DOM helpers; they are tested implicitly via addTextBlockToSlide (which uses absolute inline style)
+
+// buildLivePreviewHtml: edits preserved, scripts injected from originalHtml, remote URLs stripped
+const previewSrcHtml = '<!doctype html><html><body><section class="slide"><h1>Edited heading</h1></section></body></html>';
+const previewOrigHtml = '<!doctype html><html><body><section class="slide"><h1>Original heading</h1><script>window.__slideInit=1</script><script src="https://evil.example/x.js"></script></body></html>';
+const builtPreview = buildLivePreviewHtml(previewSrcHtml, previewOrigHtml);
+if (!builtPreview.includes('Edited heading')) throw new Error('buildLivePreviewHtml: edited content not present');
+if (builtPreview.includes('Original heading')) throw new Error('buildLivePreviewHtml: stale original text leaked into preview');
+if (!builtPreview.includes('window.__slideInit=1')) throw new Error('buildLivePreviewHtml: inline script from original not injected');
+if (/https:\/\//i.test(builtPreview)) throw new Error('buildLivePreviewHtml: remote URL not blocked');
+// No originalHtml scripts: preview still contains edited content
+const previewNoScripts = buildLivePreviewHtml(previewSrcHtml, '');
+if (!previewNoScripts.includes('Edited heading')) throw new Error('buildLivePreviewHtml: edited content missing when no original scripts');
+if (/<script\b/i.test(previewNoScripts)) throw new Error('buildLivePreviewHtml: script injected when original had none');
+
+console.log('v2 remaining-interactions checks passed');
