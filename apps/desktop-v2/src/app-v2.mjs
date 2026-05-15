@@ -150,15 +150,16 @@ if (hasDom) {
   const insType = q('#ins-type'); const insText = q('#ins-text'); const insAlt = q('#ins-alt');
   const insX = q('#ins-x'); const insY = q('#ins-y'); const insW = q('#ins-w'); const insH = q('#ins-h');
   const insColor = q('#ins-color'); const insBg = q('#ins-bg'); const insFont = q('#ins-font'); const insBold = q('#ins-bold');
+  const editStage = q('#edit-stage');
+  const editOverlay = q('#edit-overlay');
+  const hoverBox = q('#hover-box');
+  const selectionBox = q('#selection-box');
 
   let model = mapHtmlToModel('');
   const history = createHistory();
   let selectedEl = null;
   let activeEditingEl = null;
   let selectionId = '';
-  let pointerDown = null;
-  let dragState = null;
-  let resizeState = null;
 
   const setStatus = (t) => { status.textContent = t; };
 
@@ -193,7 +194,7 @@ if (hasDom) {
   }
 
   function setFrameHtml() {
-    editFrame.style.display = model.mode === 'edit' ? 'block' : 'none';
+    editStage.style.display = model.mode === 'edit' ? 'block' : 'none';
     liveFrame.style.display = model.mode === 'preview' ? 'block' : 'none';
     if (model.mode === 'preview') {
       liveFrame.srcdoc = model.previewHtml;
@@ -202,12 +203,12 @@ if (hasDom) {
       return;
     }
     editFrame.srcdoc = model.sourceHtml;
-    modeEl.textContent = 'Safe editing. Scripts are disabled. Click to select; double-click text to edit.';
+    modeEl.textContent = 'Edit mode. Click to select, double-click to edit text, drag to move. Ctrl+click to follow links.';
     editFrame.onload = () => {
       const doc = editFrame.contentDocument;
       if (!doc) return;
       updateSlideVisibility(doc);
-      wireEditableInteractions();
+      wireOverlayInteractions();
       applySelectionMarker();
       refreshLayers();
     };
@@ -266,17 +267,18 @@ if (hasDom) {
   function applySelectionMarker() {
     const doc = editFrame.contentDocument;
     if (!doc) return;
-    doc.querySelectorAll('[data-lhe-selected="1"]').forEach((x) => x.removeAttribute('data-lhe-selected'));
-    if (!selectionId) return;
+    doc.querySelectorAll('[data-lhe-selected]').forEach((x) => x.removeAttribute('data-lhe-selected'));
+    if (!selectionId) { clearSelectionBox(); return; }
     const el = doc.querySelector(`[data-lhe-id="${selectionId}"]`);
     if (!el) {
       selectedEl = null;
       selectionId = '';
       describeSelected(null);
+      clearSelectionBox();
       return;
     }
     selectedEl = el;
-    selectedEl.setAttribute('data-lhe-selected', '1');
+    updateSelectionBox(el);
     loadInspector(selectedEl);
     describeSelected(selectedEl);
   }
@@ -296,98 +298,140 @@ if (hasDom) {
     activeEditingEl.removeAttribute('contenteditable');
     delete activeEditingEl.dataset.lheOriginalText;
     activeEditingEl = null;
+    editOverlay.style.pointerEvents = 'all';
     if (commit) pushHistory(history, model);
     commitFrameToModel();
     render();
   }
 
-  function maybeStartTextEdit(el) {
+  function enterTextEditMode(el) {
     if (!el || !['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName)) return;
     activeEditingEl = el;
     el.dataset.lheOriginalText = el.textContent || '';
     el.setAttribute('contenteditable', 'true');
+    editOverlay.style.pointerEvents = 'none';
     el.focus();
     describeSelected(el);
+    setStatus('Text editing. Press Enter or click away to commit. Escape to cancel.');
   }
 
-  function wireEditableInteractions() {
+  function getIframeElementAt(clientX, clientY) {
+    const doc = editFrame.contentDocument;
+    if (!doc) return null;
+    const r = editOverlay.getBoundingClientRect();
+    const el = doc.elementFromPoint(clientX - r.left, clientY - r.top);
+    if (!el || el === doc.body || el === doc.documentElement) return null;
+    return el;
+  }
+
+  function updateSelectionBox(el) {
+    if (!el) { clearSelectionBox(); return; }
+    const r = el.getBoundingClientRect();
+    selectionBox.style.left = r.left + 'px';
+    selectionBox.style.top = r.top + 'px';
+    selectionBox.style.width = r.width + 'px';
+    selectionBox.style.height = r.height + 'px';
+    selectionBox.style.display = 'block';
+  }
+
+  function clearSelectionBox() {
+    selectionBox.style.display = 'none';
+    hoverBox.style.display = 'none';
+  }
+
+  function wireOverlayInteractions() {
     const doc = editFrame.contentDocument;
     if (!doc) return;
-    const style = doc.createElement('style');
-    style.textContent = '[data-lhe-selected="1"]{outline:2px solid #2563eb !important;}';
-    doc.head.appendChild(style);
 
-    doc.addEventListener('click', (e) => {
-      if (model.mode !== 'edit') return;
-      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
-      if (!target) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (activeEditingEl && target !== activeEditingEl) finishTextEdit(true);
-      selectElement(target);
-    }, true);
+    let hoveredEl = null;
+    let overlayPointerDown = null;
+    let overlayDragState = null;
 
-    doc.addEventListener('dblclick', (e) => {
-      if (model.mode !== 'edit') return;
-      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
-      if (!target) return;
-      e.preventDefault();
-      e.stopPropagation();
-      selectElement(target);
-      maybeStartTextEdit(target);
-    }, true);
+    editOverlay.style.pointerEvents = 'all';
 
-    doc.addEventListener('pointerdown', (e) => {
-      if (model.mode !== 'edit' || !selectedEl || activeEditingEl) return;
-      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
-      if (!target || target !== selectedEl) return;
-      pointerDown = { x: e.clientX, y: e.clientY, mode: 'drag' };
-    }, true);
-
-    doc.addEventListener('pointermove', (e) => {
-      if (model.mode !== 'edit' || activeEditingEl || !pointerDown || !selectedEl) return;
-      if (!dragState && pointerDown.mode === 'drag') {
-        if (getPointerDistance(pointerDown, { x: e.clientX, y: e.clientY }) < 4) return;
-        if (!isMovableByPosition(selectedEl)) {
-          setStatus('Selected element is not absolute/fixed; use inspector formatting only.');
-          pointerDown = null;
-          return;
+    editOverlay.onpointermove = (e) => {
+      if (!activeEditingEl && !overlayDragState) {
+        const iframeEl = getIframeElementAt(e.clientX, e.clientY);
+        if (iframeEl !== hoveredEl) {
+          hoveredEl = iframeEl;
+          if (iframeEl) {
+            const r = iframeEl.getBoundingClientRect();
+            hoverBox.style.left = r.left + 'px';
+            hoverBox.style.top = r.top + 'px';
+            hoverBox.style.width = r.width + 'px';
+            hoverBox.style.height = r.height + 'px';
+            hoverBox.style.display = 'block';
+            editOverlay.style.cursor = 'pointer';
+          } else {
+            hoverBox.style.display = 'none';
+            editOverlay.style.cursor = 'default';
+          }
         }
-        dragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
       }
-      if (dragState) {
-        setPx(dragState.el.style, 'left', dragState.left + (e.clientX - dragState.startX));
-        setPx(dragState.el.style, 'top', dragState.top + (e.clientY - dragState.startY));
-        loadInspector(dragState.el);
+      if (overlayPointerDown && !overlayDragState && !activeEditingEl) {
+        if (getPointerDistance(overlayPointerDown, { x: e.clientX, y: e.clientY }) >= 4) {
+          if (!isMovableByPosition(selectedEl)) {
+            setStatus('Element is not absolute/fixed — use inspector X/Y fields to reposition.');
+            overlayPointerDown = null;
+          } else {
+            overlayDragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
+          }
+        }
       }
-    }, true);
+      if (overlayDragState) {
+        setPx(overlayDragState.el.style, 'left', overlayDragState.left + (e.clientX - overlayDragState.startX));
+        setPx(overlayDragState.el.style, 'top', overlayDragState.top + (e.clientY - overlayDragState.startY));
+        updateSelectionBox(overlayDragState.el);
+        loadInspector(overlayDragState.el);
+      }
+    };
 
-    doc.addEventListener('pointerup', () => {
-      pointerDown = null;
-      if (dragState) {
+    editOverlay.onclick = (e) => {
+      const iframeEl = getIframeElementAt(e.clientX, e.clientY);
+      if (e.ctrlKey || e.metaKey) {
+        if (iframeEl) iframeEl.click();
+        return;
+      }
+      if (activeEditingEl && iframeEl !== activeEditingEl) { finishTextEdit(true); return; }
+      if (iframeEl) selectElement(iframeEl);
+      else { selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons(); }
+    };
+
+    editOverlay.ondblclick = (e) => {
+      const iframeEl = getIframeElementAt(e.clientX, e.clientY);
+      if (!iframeEl) return;
+      selectElement(iframeEl);
+      enterTextEditMode(iframeEl);
+    };
+
+    editOverlay.onpointerdown = (e) => {
+      if (activeEditingEl || !selectedEl) return;
+      const iframeEl = getIframeElementAt(e.clientX, e.clientY);
+      if (iframeEl && iframeEl === selectedEl) {
+        overlayPointerDown = { x: e.clientX, y: e.clientY };
+        editOverlay.setPointerCapture(e.pointerId);
+      }
+    };
+
+    editOverlay.onpointerup = () => {
+      overlayPointerDown = null;
+      if (overlayDragState) {
         pushHistory(history, model);
         commitFrameToModel();
-        dragState = null;
+        overlayDragState = null;
         render();
       }
-      if (resizeState) resizeState = null;
-    }, true);
+    };
 
     doc.addEventListener('keydown', (e) => {
       if (!activeEditingEl) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        finishTextEdit(false);
-      }
-      if (e.key === 'Enter' && activeEditingEl.tagName !== 'DIV') {
-        e.preventDefault();
-        finishTextEdit(true);
-      }
+      if (e.key === 'Escape') { e.preventDefault(); finishTextEdit(false); }
+      if (e.key === 'Enter' && activeEditingEl.tagName !== 'DIV') { e.preventDefault(); finishTextEdit(true); }
     }, true);
 
     doc.addEventListener('focusout', (e) => {
-      if (!activeEditingEl) return;
-      if (e.target === activeEditingEl) finishTextEdit(true);
+      if (!activeEditingEl || e.target !== activeEditingEl) return;
+      setTimeout(() => { if (activeEditingEl) finishTextEdit(true); }, 50);
     }, true);
   }
 

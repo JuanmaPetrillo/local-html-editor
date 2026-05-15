@@ -6,9 +6,12 @@ import {
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
+const editStageIdx = html.indexOf('id="edit-stage"');
+const editOverlayIdx = html.indexOf('id="edit-overlay"');
+if (editOverlayIdx < editStageIdx) throw new Error('edit-overlay must be inside edit-stage wrapper');
 if (!html.includes('id="edit-frame"') || !html.includes('sandbox="allow-same-origin"')) throw new Error('edit iframe sandbox missing');
 if (!html.includes('id="live-preview-frame"') || !html.includes('sandbox="allow-scripts"')) throw new Error('live preview iframe sandbox missing');
 
