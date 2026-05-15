@@ -41,30 +41,33 @@ function collectSlides(doc) {
   return [doc.body];
 }
 
-
 function replaceFirstTextInTag(html, tagName, replacementText) {
   const re = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\/${tagName}>`, 'i');
   return String(html).replace(re, (_m, attrs) => `<${tagName}${attrs}>${escapeHtml(replacementText)}</${tagName}>`);
 }
+
 function getSlideRegexById(slideId) {
   return new RegExp('<(section|div)\\b[^>]*class\\s*=\\s*["\'][^"\']*slide[^"\']*["\'][^>]*data-slide-id\\s*=\\s*["\']' + slideId + '["\'][^>]*>[\\s\\S]*?<\\/\\1>', 'i');
 }
+
 export function editHeadingTextInModel(modelInput, newText) {
   const model = { ...modelInput };
   const next = replaceFirstTextInTag(model.sourceHtml, 'h1', newText);
   model.sourceHtml = next === model.sourceHtml ? String(model.sourceHtml).replace(/>([^<>]{1,200})</, '>' + escapeHtml(newText) + '<') : next;
   return mapHtmlToModel(model.sourceHtml);
 }
+
 export function addTextBlockToSlide(modelInput, text) {
   const model = { ...modelInput };
   const slideId = model.selectedSlideId || model.slides[0]?.id;
   if (!slideId) return model;
   const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
   if (!target) return model;
-  const updated = target.replace(/<\/(section|div)>\s*$/i, `<div class="lhe-added-text">${escapeHtml(text)}</div></$1>`);
+  const updated = target.replace(/<\/(section|div)>\s*$/i, `<div class="lhe-added-text" style="position:absolute;left:80px;top:80px;width:280px;min-height:30px;">${escapeHtml(text)}</div></$1>`);
   model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
   return mapHtmlToModel(model.sourceHtml);
 }
+
 export function deleteFirstTagInSlide(modelInput, tagName) {
   const model = { ...modelInput };
   const slideId = model.selectedSlideId || model.slides[0]?.id;
@@ -78,6 +81,11 @@ export function deleteFirstTagInSlide(modelInput, tagName) {
 
 function getPx(style, key) { const v = style.getPropertyValue(key) || ''; const n = Number.parseFloat(v); return Number.isFinite(n) ? n : 0; }
 function setPx(style, key, value) { style.setProperty(key, `${Math.round(value)}px`); }
+function getPointerDistance(start, end) { return Math.hypot(end.x - start.x, end.y - start.y); }
+function isMovableByPosition(el) {
+  const pos = (el.style.position || '').toLowerCase();
+  return pos === 'absolute' || pos === 'fixed';
+}
 
 export function mapHtmlToModel(htmlText) {
   const originalHtml = String(htmlText || '');
@@ -109,6 +117,7 @@ export function restoreProjectPayload(payload) {
   restored.selectedSlideId = payload.model?.selectedSlideId || restored.selectedSlideId;
   return restored;
 }
+
 export function createHistory() { return { undo: [], redo: [] }; }
 export function snapshot(model) { return JSON.parse(JSON.stringify(model)); }
 export function pushHistory(history, model) { history.undo.push(snapshot(model)); if (history.undo.length > 100) history.undo.shift(); history.redo = []; }
@@ -123,6 +132,7 @@ if (hasDom) {
   const liveFrame = q('#live-preview-frame');
   const status = q('#status');
   const modeEl = q('#mode-label');
+  const selectedState = q('#selected-state');
   const previewBtn = q('#mode-preview');
   const editBtn = q('#mode-edit');
   const slidesList = q('#slides');
@@ -138,17 +148,42 @@ if (hasDom) {
   let model = mapHtmlToModel('');
   const history = createHistory();
   let selectedEl = null;
-  let drag = null;
+  let activeEditingEl = null;
+  let selectionId = '';
+  let pointerDown = null;
+  let dragState = null;
+  let resizeState = null;
 
   const setStatus = (t) => { status.textContent = t; };
-  const activeFrame = () => model.mode === 'preview' ? liveFrame : editFrame;
 
   function refreshButtons() {
-    undoBtn.disabled = !canUndo(history); redoBtn.disabled = !canRedo(history);
+    undoBtn.disabled = !canUndo(history);
+    redoBtn.disabled = !canRedo(history);
     const editable = model.mode === 'edit';
     delBtn.disabled = !selectedEl || !editable;
-    addTextBtn.disabled = !editable; addImageBtn.disabled = !editable;
-    previewBtn.classList.toggle('active', model.mode === 'preview'); editBtn.classList.toggle('active', model.mode === 'edit');
+    addTextBtn.disabled = !editable;
+    addImageBtn.disabled = !editable;
+    previewBtn.classList.toggle('active', model.mode === 'preview');
+    editBtn.classList.toggle('active', model.mode === 'edit');
+  }
+
+  function describeSelected(el) {
+    if (!el) {
+      selectedState.textContent = 'Selected: none';
+      return;
+    }
+    const editableText = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
+    const movable = isMovableByPosition(el);
+    const resizable = movable && el.tagName !== 'BUTTON';
+    const lock = movable ? '' : ' (move/resize locked: element is not absolute/fixed)';
+    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'yes' : 'no'} move:${movable ? 'yes' : 'no'} resize:${resizable ? 'yes' : 'no'}${lock}`;
+  }
+
+  function updateSlideVisibility(doc) {
+    collectSlides(doc).forEach((slide, i) => {
+      const id = slide.getAttribute('data-slide-id') || `s${i + 1}`;
+      slide.style.display = id === model.selectedSlideId ? '' : 'none';
+    });
   }
 
   function setFrameHtml() {
@@ -156,142 +191,311 @@ if (hasDom) {
     liveFrame.style.display = model.mode === 'preview' ? 'block' : 'none';
     if (model.mode === 'preview') {
       liveFrame.srcdoc = model.previewHtml;
-      modeEl.textContent = 'Preview mode: interactive view. Scripts may run in isolated sandbox; remote URLs are blocked where possible.';
+      liveFrame.onload = () => { liveFrame.focus(); };
+      modeEl.textContent = 'Interactive preview. Use this to test buttons/navigation. Switch to Edit to modify.';
       return;
     }
     editFrame.srcdoc = model.sourceHtml;
-    modeEl.textContent = 'Edit mode: safe editing view. Scripts are disabled.';
+    modeEl.textContent = 'Safe editing. Scripts are disabled. Click to select; double-click text to edit.';
     editFrame.onload = () => {
       const doc = editFrame.contentDocument;
       if (!doc) return;
-      const style = doc.createElement('style');
-      style.textContent = '[data-lhe-selected="1"]{outline:2px solid #2563eb !important;}';
-      doc.head.appendChild(style);
-      wireSlideVisibility(); wireEditableClicks(); refreshLayers();
+      updateSlideVisibility(doc);
+      wireEditableInteractions();
+      applySelectionMarker();
+      refreshLayers();
     };
   }
 
   function commitFrameToModel() {
-    const doc = editFrame.contentDocument; if (!doc) return;
+    if (model.mode !== 'edit') return;
+    const doc = editFrame.contentDocument;
+    if (!doc) return;
+    if (activeEditingEl) finishTextEdit(true);
     doc.querySelectorAll('[data-lhe-selected]').forEach((x) => x.removeAttribute('data-lhe-selected'));
+    doc.querySelectorAll('[data-lhe-id]').forEach((x) => {
+      if (!x.getAttribute('data-lhe-id')) x.removeAttribute('data-lhe-id');
+    });
     model.sourceHtml = stripUnsafeHtml(`<!doctype html>\n${doc.documentElement.outerHTML}`);
     model = { ...mapHtmlToModel(model.sourceHtml), originalHtml: model.originalHtml, previewHtml: model.previewHtml, mode: model.mode, selectedSlideId: model.selectedSlideId };
   }
-
-  function wireSlideVisibility() {
-    const doc = editFrame.contentDocument; if (!doc) return;
-    collectSlides(doc).forEach((slide, i) => {
-      const id = slide.getAttribute('data-slide-id') || `s${i + 1}`;
-      slide.style.display = id === model.selectedSlideId ? '' : 'none';
-    });
-  }
-
-  function isEditableText(el) { return !!el && ['H1','H2','H3','P','SPAN','BUTTON','DIV'].includes(el.tagName); }
-  function isSafeMovable(el) { return !!el && !['CANVAS','SVG','IFRAME'].includes(el.tagName); }
 
   function loadInspector(el) {
     const cs = getComputedStyle(el);
     insType.textContent = el.tagName.toLowerCase();
     insText.value = el.tagName === 'IMG' ? '' : (el.textContent || '');
-    insAlt.value = el.tagName === 'IMG' ? (el.getAttribute('alt') || '') : '';
-    insX.value = String(getPx(el.style, 'left')); insY.value = String(getPx(el.style, 'top'));
+    insAlt.value = ['IMG', 'BUTTON'].includes(el.tagName) ? (el.getAttribute('alt') || '') : '';
+    insX.value = String(getPx(el.style, 'left'));
+    insY.value = String(getPx(el.style, 'top'));
     insW.value = String(getPx(el.style, 'width') || Math.round(el.getBoundingClientRect().width));
     insH.value = String(getPx(el.style, 'height') || Math.round(el.getBoundingClientRect().height));
-    insColor.value = rgbToHex(cs.color); insBg.value = rgbToHex(cs.backgroundColor);
+    insColor.value = rgbToHex(cs.color);
+    insBg.value = rgbToHex(cs.backgroundColor);
     insFont.value = String(Math.round(parseFloat(cs.fontSize) || 16));
     insBold.checked = (cs.fontWeight === 'bold' || Number.parseInt(cs.fontWeight, 10) >= 600);
+    const movable = isMovableByPosition(el);
+    [insX, insY, insW, insH].forEach((input) => { input.disabled = !movable; });
   }
 
   function rgbToHex(rgb) {
     const m = String(rgb || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
     if (!m) return '#000000';
-    return `#${[1,2,3].map((i)=>Number(m[i]).toString(16).padStart(2,'0')).join('')}`;
+    return `#${[1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join('')}`;
   }
 
   function refreshLayers() {
     layersList.textContent = '';
-    const doc = editFrame.contentDocument; if (!doc) return;
+    const doc = editFrame.contentDocument;
+    if (!doc) return;
     const active = collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId);
     if (!active) return;
     Array.from(active.querySelectorAll('h1,h2,h3,p,button,div,span,img')).slice(0, 120).forEach((el, i) => {
-      const b = document.createElement('button'); b.textContent = `${el.tagName.toLowerCase()} ${i + 1}`; b.onclick = () => selectElement(el); layersList.appendChild(b);
+      const b = document.createElement('button');
+      b.textContent = `${el.tagName.toLowerCase()} ${i + 1}`;
+      b.onclick = () => selectElement(el);
+      layersList.appendChild(b);
     });
+  }
+
+  function applySelectionMarker() {
+    const doc = editFrame.contentDocument;
+    if (!doc) return;
+    doc.querySelectorAll('[data-lhe-selected="1"]').forEach((x) => x.removeAttribute('data-lhe-selected'));
+    if (!selectionId) return;
+    const el = doc.querySelector(`[data-lhe-id="${selectionId}"]`);
+    if (!el) {
+      selectedEl = null;
+      selectionId = '';
+      describeSelected(null);
+      return;
+    }
+    selectedEl = el;
+    selectedEl.setAttribute('data-lhe-selected', '1');
+    loadInspector(selectedEl);
+    describeSelected(selectedEl);
   }
 
   function selectElement(el) {
-    const doc = editFrame.contentDocument; if (!doc) return;
-    doc.querySelectorAll('[data-lhe-selected="1"]').forEach((x) => x.removeAttribute('data-lhe-selected'));
-    selectedEl = el; selectedEl.setAttribute('data-lhe-selected', '1');
-    loadInspector(el); refreshButtons();
+    if (!el) return;
+    if (!el.getAttribute('data-lhe-id')) el.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
+    selectionId = el.getAttribute('data-lhe-id') || '';
+    selectedEl = el;
+    applySelectionMarker();
+    refreshButtons();
   }
 
-  function ensurePositionable(el) {
-    if (!isSafeMovable(el)) return false;
-    if (!el.style.position) el.style.position = 'absolute';
-    if (!el.style.left) setPx(el.style, 'left', el.offsetLeft || 0);
-    if (!el.style.top) setPx(el.style, 'top', el.offsetTop || 0);
-    if (!el.style.width) setPx(el.style, 'width', el.getBoundingClientRect().width);
-    if (!el.style.height) setPx(el.style, 'height', el.getBoundingClientRect().height);
-    return true;
+  function finishTextEdit(commit) {
+    if (!activeEditingEl) return;
+    if (!commit && activeEditingEl.dataset.lheOriginalText !== undefined) activeEditingEl.textContent = activeEditingEl.dataset.lheOriginalText;
+    activeEditingEl.removeAttribute('contenteditable');
+    delete activeEditingEl.dataset.lheOriginalText;
+    activeEditingEl = null;
+    pushHistory(history, model);
+    commitFrameToModel();
+    render();
   }
 
-  function wireEditableClicks() {
-    const doc = editFrame.contentDocument; if (!doc) return;
-    doc.querySelectorAll('*').forEach((el) => {
-      el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); selectElement(el); });
-      if (isEditableText(el)) el.setAttribute('contenteditable', 'true');
-      el.addEventListener('pointerdown', (e) => {
-        if (model.mode !== 'edit') return;
-        if (!isSafeMovable(el)) return;
-        if (e.target !== el) return;
-        if (!ensurePositionable(el)) { setStatus('Selected element is locked for movement.'); return; }
-        selectElement(el);
-        drag = { el, startX: e.clientX, startY: e.clientY, left: getPx(el.style, 'left'), top: getPx(el.style, 'top') };
-      });
-    });
+  function maybeStartTextEdit(el) {
+    if (!el || !['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName)) return;
+    activeEditingEl = el;
+    el.dataset.lheOriginalText = el.textContent || '';
+    el.setAttribute('contenteditable', 'true');
+    el.focus();
+    describeSelected(el);
+  }
+
+  function wireEditableInteractions() {
+    const doc = editFrame.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.textContent = '[data-lhe-selected="1"]{outline:2px solid #2563eb !important;}';
+    doc.head.appendChild(style);
+
+    doc.addEventListener('click', (e) => {
+      if (model.mode !== 'edit') return;
+      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeEditingEl && target !== activeEditingEl) finishTextEdit(true);
+      selectElement(target);
+    }, true);
+
+    doc.addEventListener('dblclick', (e) => {
+      if (model.mode !== 'edit') return;
+      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      selectElement(target);
+      maybeStartTextEdit(target);
+    }, true);
+
+    doc.addEventListener('pointerdown', (e) => {
+      if (model.mode !== 'edit' || !selectedEl || activeEditingEl) return;
+      const target = e.target instanceof doc.defaultView.HTMLElement ? e.target : null;
+      if (!target || target !== selectedEl) return;
+      pointerDown = { x: e.clientX, y: e.clientY, mode: 'drag' };
+    }, true);
+
     doc.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      setPx(drag.el.style, 'left', drag.left + (e.clientX - drag.startX));
-      setPx(drag.el.style, 'top', drag.top + (e.clientY - drag.startY));
-      loadInspector(drag.el);
-    });
+      if (model.mode !== 'edit' || activeEditingEl || !pointerDown || !selectedEl) return;
+      if (!dragState && pointerDown.mode === 'drag') {
+        if (getPointerDistance(pointerDown, { x: e.clientX, y: e.clientY }) < 4) return;
+        if (!isMovableByPosition(selectedEl)) {
+          setStatus('Selected element is not absolute/fixed; use inspector formatting only.');
+          pointerDown = null;
+          return;
+        }
+        dragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
+      }
+      if (dragState) {
+        setPx(dragState.el.style, 'left', dragState.left + (e.clientX - dragState.startX));
+        setPx(dragState.el.style, 'top', dragState.top + (e.clientY - dragState.startY));
+        loadInspector(dragState.el);
+      }
+    }, true);
+
     doc.addEventListener('pointerup', () => {
-      if (!drag) return;
-      pushHistory(history, model); commitFrameToModel(); drag = null; render();
-    });
+      pointerDown = null;
+      if (dragState) {
+        pushHistory(history, model);
+        commitFrameToModel();
+        dragState = null;
+        render();
+      }
+      if (resizeState) resizeState = null;
+    }, true);
+
+    doc.addEventListener('keydown', (e) => {
+      if (!activeEditingEl) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        finishTextEdit(false);
+      }
+      if (e.key === 'Enter' && activeEditingEl.tagName !== 'DIV') {
+        e.preventDefault();
+        finishTextEdit(true);
+      }
+    }, true);
+
+    doc.addEventListener('focusout', (e) => {
+      if (!activeEditingEl) return;
+      if (e.target === activeEditingEl) finishTextEdit(true);
+    }, true);
   }
 
   function render() {
     slidesList.textContent = '';
     model.slides.forEach((s) => {
-      const b = document.createElement('button'); b.textContent = s.label || s.name; b.className = s.id === model.selectedSlideId ? 'active' : '';
-      b.onclick = () => { commitFrameToModel(); model.selectedSlideId = s.id; setFrameHtml(); };
+      const b = document.createElement('button');
+      b.textContent = s.label || s.name;
+      b.className = s.id === model.selectedSlideId ? 'active' : '';
+      b.onclick = () => {
+        if (model.mode === 'edit') commitFrameToModel();
+        model.selectedSlideId = s.id;
+        setFrameHtml();
+        refreshButtons();
+      };
       slidesList.appendChild(b);
     });
-    setFrameHtml(); refreshButtons();
+    setFrameHtml();
+    refreshButtons();
+    describeSelected(selectedEl);
   }
 
-  function applyStyle(fn) { if (!selectedEl || model.mode !== 'edit') return; pushHistory(history, model); fn(); commitFrameToModel(); render(); }
+  function applyStyle(fn) {
+    if (!selectedEl || model.mode !== 'edit') return;
+    pushHistory(history, model);
+    fn();
+    commitFrameToModel();
+    render();
+  }
 
-  fileInput.onchange = async () => { const f = fileInput.files?.[0]; if (!f) return; model = mapHtmlToModel(await f.text()); history.undo = []; history.redo = []; render(); setStatus(`Opened HTML: ${f.name}`); };
-  previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; render(); };
+  fileInput.onchange = async () => {
+    const f = fileInput.files?.[0];
+    if (!f) return;
+    model = mapHtmlToModel(await f.text());
+    history.undo = [];
+    history.redo = [];
+    selectedEl = null;
+    selectionId = '';
+    render();
+    setStatus(`Opened HTML: ${f.name}`);
+  };
+  previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
   editBtn.onclick = () => { model.mode = 'edit'; render(); };
-  addTextBtn.onclick = () => applyStyle(() => { const doc = editFrame.contentDocument; const active = collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || doc.body; const p = doc.createElement('p'); p.textContent = 'New text'; p.style.position = 'absolute'; p.style.left = '80px'; p.style.top = '80px'; p.style.width = '280px'; p.style.minHeight = '30px'; active.appendChild(p); });
-  addImageBtn.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif'; i.onchange = async () => { const f = i.files?.[0]; if (!f) return; const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); applyStyle(() => { const doc = editFrame.contentDocument; const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body; const img = doc.createElement('img'); img.src = data; img.style.position = 'absolute'; img.style.left = '80px'; img.style.top = '120px'; img.style.width = '240px'; img.style.height = '140px'; active.appendChild(img); }); }; i.click(); };
-  delBtn.onclick = () => applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; });
+  addTextBtn.onclick = () => {
+    pushHistory(history, model);
+    commitFrameToModel();
+    model = addTextBlockToSlide(model, 'New text');
+    render();
+  };
+  addImageBtn.onclick = () => {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif';
+    i.onchange = async () => {
+      const f = i.files?.[0];
+      if (!f) return;
+      const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+      applyStyle(() => {
+        const doc = editFrame.contentDocument;
+        const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body;
+        const img = doc.createElement('img');
+        img.src = data;
+        img.style.position = 'absolute'; img.style.left = '80px'; img.style.top = '120px'; img.style.width = '240px'; img.style.height = '140px';
+        active.appendChild(img);
+      });
+    };
+    i.click();
+  };
+
+  delBtn.onclick = () => applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
   insText.onchange = () => applyStyle(() => { if (selectedEl && selectedEl.tagName !== 'IMG') selectedEl.textContent = insText.value; });
-  insAlt.onchange = () => applyStyle(() => { if (selectedEl?.tagName === 'IMG') selectedEl.setAttribute('alt', insAlt.value); });
+  insAlt.onchange = () => applyStyle(() => { if (selectedEl?.tagName === 'IMG' || selectedEl?.tagName === 'BUTTON') selectedEl.setAttribute('alt', insAlt.value); });
   insColor.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.color = insColor.value; });
   insBg.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.backgroundColor = insBg.value; });
   insFont.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontSize = `${Number(insFont.value || 16)}px`; });
   insBold.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontWeight = insBold.checked ? '700' : '400'; });
-  [insX, insY, insW, insH].forEach((input) => input.onchange = () => applyStyle(() => { if (!selectedEl || !ensurePositionable(selectedEl)) return; setPx(selectedEl.style, 'left', Number(insX.value || 0)); setPx(selectedEl.style, 'top', Number(insY.value || 0)); setPx(selectedEl.style, 'width', Number(insW.value || 10)); setPx(selectedEl.style, 'height', Number(insH.value || 10)); }));
+  [insX, insY, insW, insH].forEach((input) => input.onchange = () => applyStyle(() => {
+    if (!selectedEl || !isMovableByPosition(selectedEl)) return;
+    const x = Number(insX.value); const y = Number(insY.value); const w = Number(insW.value); const h = Number(insH.value);
+    if (Number.isFinite(x)) setPx(selectedEl.style, 'left', x);
+    if (Number.isFinite(y)) setPx(selectedEl.style, 'top', y);
+    if (Number.isFinite(w) && w > 0) setPx(selectedEl.style, 'width', w);
+    if (Number.isFinite(h) && h > 0) setPx(selectedEl.style, 'height', h);
+  }));
+
   undoBtn.onclick = () => { model = undo(history, model); render(); };
   redoBtn.onclick = () => { model = redo(history, model); render(); };
-  saveBtn.onclick = () => { commitFrameToModel(); const text = JSON.stringify(createProjectPayload(model), null, 2); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'project.lheproj-v2.json'; a.click(); URL.revokeObjectURL(a.href); };
+  saveBtn.onclick = () => {
+    commitFrameToModel();
+    const text = JSON.stringify(createProjectPayload(model), null, 2);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = 'project.lheproj-v2.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
   openProjectBtn.onclick = () => openProjectInput.click();
-  openProjectInput.onchange = async () => { const f = openProjectInput.files?.[0]; if (!f) return; const restored = restoreProjectPayload(JSON.parse(await f.text())); if (!restored) return; model = restored; render(); };
-  exportBtn.onclick = () => { commitFrameToModel(); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' })); a.download = 'edited-v2.html'; a.click(); URL.revokeObjectURL(a.href); setStatus('Exported safe edited HTML (scripts removed).'); };
+  openProjectInput.onchange = async () => {
+    const f = openProjectInput.files?.[0];
+    if (!f) return;
+    const restored = restoreProjectPayload(JSON.parse(await f.text()));
+    if (!restored) return;
+    model = restored;
+    render();
+  };
+  exportBtn.onclick = () => {
+    commitFrameToModel();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' }));
+    a.download = 'edited-v2.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setStatus('Exported safe edited HTML (scripts removed).');
+  };
 
   render();
 }

@@ -254,3 +254,12 @@ V2 in `apps/desktop-v2` is now the primary pilot: visual-fidelity sanitized DOM 
 - **Export mode:** sanitized edited HTML export (scripts are not preserved in this MVP).
 
 Known limitation: generalized move/resize editing for arbitrary original objects is still pending a dedicated overlay manipulation phase.
+
+
+## V2 Preview/Edit behavior
+
+- **Preview mode** is interactive and uses `live-preview-frame` with `sandbox="allow-scripts"` (without `allow-same-origin`) to allow self-contained in-slide scripts while preserving isolation.
+- **Edit mode** is safe and uses `edit-frame` with `sandbox="allow-same-origin"` (without `allow-scripts`); script tags and inline handlers are stripped in edit/export HTML.
+- In Edit mode: single-click selects, double-click enters text editing, and drag only starts after movement threshold on selected absolute/fixed elements.
+- Buttons are selectable/editable in Edit mode but actions are disabled there; button actions can run only in Preview mode if self-contained.
+- Move/resize is limited to absolute/fixed layout elements; normal-flow elements stay format-editable in inspector but movement is locked to avoid layout breakage.
