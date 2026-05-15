@@ -380,7 +380,7 @@ a { color: inherit; }
   display: flex;
   gap: var(--sp-2);
 }
-.slide-actions .btn { flex: 1; justify-content: center; }
+.slide-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 5px 6px; }
 
 #slides.slide-list {
   display: flex;
@@ -493,7 +493,7 @@ a { color: inherit; }
 .stage-wrap {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: safe center;   /* center when fits, flex-start when overflowing */
   justify-content: center;
   padding: var(--sp-5);
   background: var(--s-stage-bg);
@@ -795,9 +795,15 @@ a { color: inherit; }
 ::-webkit-scrollbar-thumb:hover { background: var(--t-muted); }
 
 /* ============================================================
-   CONTEXT-AWARE: hide welcome card when slides are populated
+   CONTEXT-AWARE
    ============================================================ */
+/* hide welcome card once slides are loaded */
 .left-panel:has(#slides button) .welcome-card { display: none; }
+
+/* stage header label reflects active mode */
+.app-shell:has(#mode-preview.active) .stage-hd-label { display: none; }
+.app-shell:has(#mode-preview.active) .stage-hd-preview { display: block; }
+.stage-hd-preview { display: none; }
 
 /* ============================================================
    RESPONSIVE
@@ -887,8 +893,8 @@ a { color: inherit; }
 
       <div class="slide-actions">
         <button id="add-slide" class="btn" title="Add a new slide after the current one">Add</button>
-        <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Dup</button>
-        <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Del</button>
+        <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
+        <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
       </div>
 
       <div id="slides" class="slide-list"></div>
@@ -917,7 +923,8 @@ a { color: inherit; }
   <!-- CENTER: Editing stage -->
   <main class="panel center-panel" aria-label="Editing stage">
     <div class="stage-hd">
-      <h2>Editing Stage</h2>
+      <h2 class="stage-hd-label">Editing Stage</h2>
+      <h2 class="stage-hd-preview">Live Preview</h2>
     </div>
     <div class="stage-wrap">
       <iframe id="live-preview-frame"
