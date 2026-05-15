@@ -12,6 +12,7 @@ const simple = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
 const multi = readFileSync('tests/fixtures/v2-multi-slide.html', 'utf8');
 const remote = readFileSync('tests/fixtures/v2-remote-image.html', 'utf8');
 const attrs = readFileSync('tests/fixtures/v2-attributes.html', 'utf8');
+const realFixture = readFileSync('tests/fixtures/user-real-copilot-presentation.html', 'utf8');
 
 for (const token of ['Open HTML', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="ins-x"']) if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 
@@ -81,6 +82,34 @@ const badDirect = normalizeModelForUse({ slides: [{ objects: [{ type: 'image', s
 const expBadDirect = exportModelToHtml(badDirect);
 if (expBadDirect.includes('https://evil.com/1.png')) throw new Error('direct bad model leaked remote url in export');
 if (expBadDirect.includes('<script')) throw new Error('unsafe script emitted');
+
+
+const real = mapHtmlToModel(realFixture);
+if (real.slides.length !== 3) throw new Error('real fixture slide count mismatch');
+const first = real.slides[0];
+const textObjects = first.objects.filter((o) => o.type === 'text');
+if (!textObjects.length) throw new Error('real fixture has zero text objects');
+if (!textObjects.some((o) => /QBR Review|Revenue \+18%/.test(o.text))) throw new Error('real fixture visible text missing');
+if (!textObjects.some((o) => o.text.includes('YoY growth'))) throw new Error('button nested span text missing');
+if (!first.objects.some((o) => o.type === 'image')) throw new Error('real fixture image/background missing');
+if (!first.objects.some((o) => o.type === 'image' && (o.className || '').includes('logo'))) throw new Error('safe data background image missing');
+if (!first.objects.some((o) => o.lockedReason === 'blocked-remote-background-image')) throw new Error('remote background not locked');
+const remoteBgLocked = first.objects.find((o) => o.lockedReason === 'blocked-remote-background-image' && (o.className || '').includes('iconRemote'));
+if (!remoteBgLocked) throw new Error('iconRemote background not represented as locked object');
+if (first.objects.length === 1 && first.objects[0].label === 'Locked: <button>') throw new Error('real fixture collapsed to locked button only');
+if (first.objects.some((o) => o.type === 'text' && !o.text.trim())) throw new Error('empty text object created');
+const hero = first.objects.find((o) => o.type === 'text' && o.text.includes('QBR Review'));
+if (!hero || hero.x !== 45 || hero.y !== 33) throw new Error('class/inline geometry merge failed');
+const editTarget = textObjects[0];
+updateObject(real, editTarget.id, { x: editTarget.x + 3 });
+editTarget.text = 'Edited real text';
+const realExport = exportModelToHtml(real);
+if (!realExport.includes('Edited real text')) throw new Error('real fixture edited text not exported');
+if (/https:\/\//i.test(realExport)) throw new Error('real export contains remote URLs');
+const nested = real.slides.find((sl) => sl.id === 's-nested');
+if (!nested) throw new Error('nested div slide missing');
+if (!nested.objects.some((o) => o.type === 'text' && o.text.includes('Nested Title'))) throw new Error('nested div slide text missing');
+if (!nested.objects.some((o) => o.type === 'image')) throw new Error('nested div slide image missing');
 
 const project = createProjectPayload(m2);
 const restored = restoreProjectPayload(JSON.parse(JSON.stringify(project)));

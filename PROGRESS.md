@@ -696,3 +696,24 @@ Next recommended task: Collect pilot feedback on launch reliability before consi
 - 2026-05-14: V2 MVP canvas-first pilot implemented in apps/desktop-v2; build/package switched to V2 standalone bundle; validation gate run.
 
 - 2026-05-14: Continued V2 MVP with multi-slide model, inspector edits, locked object type, project schema payload helpers, and stronger fixture-driven test:v2 coverage.
+
+### 2026-05-14 (v2 real-file import compatibility hardening)
+Date: 2026-05-14
+Branch/PR: current branch / pending PR
+Milestone: Phase 8B V2 real-file compatibility
+Summary: Hardened V2 HTML-to-model import to avoid blank-canvas collapses from nested slide wrappers and button-heavy structures: fixed slide boundary parsing to keep full slide bodies, added support for button text import as editable objects, added style-tag class rule geometry inference (left/top/width/height), and improved fallback extraction so unsupported elements with visible text become editable text objects instead of only locked placeholders. Added a reduced real-file fixture reproducing nested button/div/class-positioned structure and regression tests validating non-blank first slide, text extraction, edit+export roundtrip, and remote URL blocking.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, tests/fixtures/user-real-copilot-presentation.html, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: Import remains regex/style-heuristic based (not full DOM/CSS layout engine); geometry can still be approximate for complex cascade/transform layouts.
+Next recommended task: Expand fixture corpus with additional real deck patterns (SVG-heavy and transform-heavy slides) and tighten parser guardrails incrementally.
+### 2026-05-14 (v2 parser refactor: deterministic slide scanner + real fixture hardening)
+Date: 2026-05-14
+Branch/PR: current branch / PR #53
+Milestone: Phase 8B V2 real-file compatibility
+Summary: Replaced fragile slide-container regex extraction with deterministic tag-token scanning for section/div/article slide containers and balanced same-tag close matching. Reworked V2 object extraction to preserve visible nested text (including button/span text), merged multi-class geometry rules with inline override, safe data background image import, and explicit locked placeholders for unsafe remote background images. Strengthened real-fixture regression coverage for nested div/section slide bodies, wrapper/button text visibility, geometry inheritance, remote URL blocking, and empty-text guards.
+Files changed: apps/desktop-v2/src/app-v2.mjs, tests/fixtures/user-real-copilot-presentation.html, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: Parser remains deterministic string/token heuristic (not full browser CSS cascade/layout engine); transform-heavy or script-rendered layouts can still be approximate/locked.
+Next recommended task: Add another minimized fixture for SVG-heavy deck structure and keep parser changes narrow per pattern.
