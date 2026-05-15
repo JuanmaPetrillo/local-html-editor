@@ -757,3 +757,13 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: General move/resize/style manipulation for arbitrary imported elements is still pending overlay-layer phase; script-driven interactions are not preserved in sanitized export.
 Next recommended task: Implement V2 visual manipulation overlay handles for safe selected elements (position/size/basic style edits), with explicit lock markers for unsupported complex/script-driven components.
+### 2026-05-15 (pr54 hardening amend: remote CSS URL stripping + inline edit commit durability)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Hardened sanitizer to strip remote URLs from CSS contexts (`<style>` url/http(s)/protocol-relative, `@import` remote rules, and inline `style` attributes) while preserving safe data URLs. Added commit durability for direct iframe inline edits via `commitFrameToModel()` and wired commit-before-transition behavior for slide switch, save, export, add text/image, and delete; this prevents losing direct inline edits before model serialization. Added blur-based direct text commit behavior that records undo snapshots only when text changed. Expanded `test:v2` with remote CSS sanitization regressions for style block, inline style, and direct export path.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: General move/resize overlay editing for arbitrary imported elements remains pending dedicated manipulation phase.
+Next recommended task: Implement safe overlay move/resize handles and attribute panel edits for supported DOM elements with explicit lock badges for unsupported/script-driven content.

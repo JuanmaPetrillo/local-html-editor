@@ -16,6 +16,7 @@ const staticFixture = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8'
 const interactiveFixture = readFileSync('tests/fixtures/user-real-copilot-presentation.html', 'utf8');
 const remoteFixture = readFileSync('tests/fixtures/v2-remote-image.html', 'utf8');
 const noSlideFixture = '<!doctype html><html><head><style>.hero{color:#123}</style><script>alert(1)</script></head><body><main class="hero"><h1>Generic HTML</h1><button onclick="x()">Do</button></main></body></html>';
+const cssRemoteFixture = '<!doctype html><html><head><style>.hero{background:url("https://evil.example/x.png")} .safe{background:url("data:image/png;base64,AA==")} @import url("https://evil.example/x.css");</style></head><body><div class="hero" style="background-image:url(https://evil.example/x.png)">x</div></body></html>';
 
 const staticModel = mapHtmlToModel(staticFixture);
 if (!exportModelToHtml(staticModel).includes('Quarterly Results')) throw new Error('static fixture lost text');
@@ -31,6 +32,12 @@ if (/https:\/\//i.test(exportModelToHtml(remoteModel))) throw new Error('remote 
 const noSlideModel = mapHtmlToModel(noSlideFixture);
 if (!noSlideModel.slides.length) throw new Error('no-slide fallback failed');
 if (!exportModelToHtml(noSlideModel).includes('Generic HTML')) throw new Error('no-slide text missing');
+
+const cssRemoteModel = mapHtmlToModel(cssRemoteFixture);
+const cssSanitized = exportModelToHtml(cssRemoteModel);
+if (/url\(\s*["']?(https?:|\/\/)/i.test(cssSanitized)) throw new Error('remote css url not sanitized');
+if (/@import\s+url\(\s*["']?(https?:|\/\/)/i.test(cssSanitized)) throw new Error('remote css @import not sanitized');
+if (!cssSanitized.includes('data:image/png;base64,AA==')) throw new Error('safe data image css url removed');
 
 const model = mapHtmlToModel(realFixture);
 if (model.slides.length !== 4) throw new Error('slide count mismatch');
@@ -76,6 +83,9 @@ if (!/data:image\/png;base64,AA==/.test(restoredUnsafeHtml)) throw new Error('re
 
 const directSanitized = exportModelToHtml({ sourceHtml: '<script>bad()</script><img src="https://evil/x.png"><img src="data:image/png;base64,AA==">' });
 if (/<script\b/i.test(directSanitized) || /https:\/\//i.test(directSanitized)) throw new Error('direct export did not sanitize sourceHtml');
+const directCssSanitized = exportModelToHtml({ sourceHtml: '<style>.x{background:url(https://evil.example/x.png)}@import url("https://evil.example/x.css");</style><div style="background-image:url(https://evil.example/x.png)"></div><div style="background-image:url(data:image/png;base64,AA==)"></div>' });
+if (/url\(\s*["']?(https?:|\/\/)/i.test(directCssSanitized) || /@import\s+url\(\s*["']?(https?:|\/\/)/i.test(directCssSanitized)) throw new Error('direct export css remote sanitization failed');
+if (!directCssSanitized.includes('data:image/png;base64,AA==')) throw new Error('direct export css safe data image removed');
 
 let undoModel = mapHtmlToModel(realFixture);
 const hist = createHistory();
