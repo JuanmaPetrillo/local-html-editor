@@ -240,4 +240,26 @@ const labelModel = mapHtmlToModel(realFixture);
 const withLabelDup = duplicateSlideInModel(labelModel);
 if (!withLabelDup.slides.find((s) => s.label.includes('(Copy)'))) throw new Error('duplicateSlideInModel label copy suffix missing');
 
+// Regression: Ctrl+Z/Y keyboard shortcut source markers
+const appSrc = readFileSync('apps/desktop-v2/src/app-v2.mjs', 'utf8');
+if (!appSrc.includes("e.key === 'z'") || !appSrc.includes('undo(history,')) throw new Error('v2: Ctrl+Z undo shortcut missing from keydown handler');
+if (!appSrc.includes("e.key === 'y'") || !appSrc.includes('redo(history,')) throw new Error('v2: Ctrl+Y redo shortcut missing from keydown handler');
+
+// Regression: reversed attribute order (data-slide-id before class)
+const reversedAttrHtml = '<!doctype html><html><body><section data-slide-id="s1" class="slide" data-label="Rev"><h1>Reversed</h1></section></body></html>';
+const reversedModel = mapHtmlToModel(reversedAttrHtml);
+if (reversedModel.slides.length !== 1) throw new Error('getSlideRegexById: failed to find slide with data-slide-id before class attribute');
+const reversedExport = exportModelToHtml(reversedModel);
+if (!reversedExport.includes('Reversed')) throw new Error('getSlideRegexById: reversed-attr slide content lost on export');
+
+// Regression: project open error messages present in source
+if (!appSrc.includes('invalid JSON')) throw new Error('v2: openProjectInput missing invalid JSON error message');
+if (!appSrc.includes('Project file format not recognized')) throw new Error('v2: openProjectInput missing unrecognized format error message');
+
+// Regression: revokeObjectURL deferred via setTimeout
+if (!appSrc.includes('setTimeout(() => URL.revokeObjectURL')) throw new Error('v2: URL.revokeObjectURL must be deferred via setTimeout');
+
+// Regression: convertToAbsolute warning message
+if (!appSrc.includes('Press Ctrl+Z to undo if layout changes unexpectedly')) throw new Error('v2: convertToAbsolute missing layout-change warning');
+
 console.log('v2 full-editor checks passed');

@@ -51,11 +51,36 @@ Current strategy summary:
 
 ## Current implementation state
 
-Active development is currently a **browser-first static prototype**.
+Active development is currently the **V2 direct-canvas editor** (`apps/desktop-v2/`), a browser-first static prototype. The V1 shell (`apps/desktop/`) remains available as a reference implementation.
 
-### MVP readiness (current browser-first implementation)
+### V2 MVP capabilities (current pilot target)
 
 #### Current capabilities
+
+- Open local `.html` or `.htm` files directly in an edit canvas.
+- View a live interactive preview in a sandboxed iframe (`allow-scripts`, `referrerpolicy="no-referrer"`).
+- Edit mode: click to select, double-click to edit text inline, drag or nudge to reposition, drag corners to resize.
+- Drag or nudge any element — normal-flow elements are auto-converted to absolute positioning for free positioning (Ctrl+Z to undo).
+- Inspector panel: position (X/Y/W/H), color, font size, font family, bold/italic/underline, opacity, alignment, image replace.
+- Multi-slide navigation with Add / Delete / Duplicate slide.
+- Copy/paste (Ctrl+C/V), z-order (bring front / send back), snap-to-grid toggle.
+- Undo/redo: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (up to 100 steps).
+- Save project as `.lheproj-v2.json` (includes sanitized HTML; no autosave/localStorage/IndexedDB).
+- Open a saved project file to restore session.
+- Export sanitized edited HTML (scripts removed from export).
+- Local image replacement for selected safe `<img>` objects (PNG/JPEG/JPG/GIF/WebP/AVIF).
+
+#### Current limitations
+
+- ZIP remains preflight-only (no extraction/listing/export).
+- No autosave, localStorage, or IndexedDB.
+- Scripts and interactive behaviors are stripped on edit/export (visible in preview only).
+- No installer/executable packaging.
+
+> **V1 legacy note:** The capabilities listed below (editable text candidate discovery, visual object patch pipeline, etc.) describe the V1 `apps/desktop/` app. That code is retained for reference. The V2 direct-canvas editor above is the current pilot target.
+
+<details>
+<summary>V1 legacy capabilities (reference only)</summary>
 
 - Open local `.html`, `.htm`, and `.zip` files from the shell.
 - Scan selected imports and show local safety/reporting summaries.
@@ -71,13 +96,7 @@ Active development is currently a **browser-first static prototype**.
 - Reset the working preview back to the original imported content.
 - Export a user-initiated edited HTML copy locally (download), without mutating the original import, including movement patches when present.
 
-#### Current limitations
-
-- ZIP remains preflight-only for extraction/preview in this build; Phase 7A adds ZIP path-safety model and main-HTML selection UI scaffolding, but entry listing/extraction still requires approved ZIP parsing support.
-- No project persistence/autosave/reopen flow.
-- No iframe internals access (`contentDocument` / `contentWindow`) and no `postMessage` bridge.
-- No Tauri/React/Vite/TypeScript conversion in this implementation branch.
-- Overlay positions are derived from inline pixel geometry in the HTML source; elements without explicit inline `left`/`top`/`width`/`height` pixel styles will not have overlay boxes.
+</details>
 
 #### How to run locally
 

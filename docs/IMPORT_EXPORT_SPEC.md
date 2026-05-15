@@ -33,3 +33,11 @@ Imported content should be classified as:
 - Persist project metadata + text/layout/image patch collections only.
 - Do not persist raw original HTML, sanitized preview documents, or srcdoc.
 - Image replacement data URLs may be included for safe raster formats only.
+
+### V2 project persistence (`.lheproj-v2.json`)
+
+The V2 direct-canvas editor uses a different persistence model:
+- The project payload stores sanitized `sourceHtml` directly (the current edit state), not patch collections.
+- Schema: `{schema: 'lheproj-v2', version: 2, model: {sourceHtml, slides, selectedSlideId, mode}}`.
+- `originalHtml` and `previewHtml` are NOT stored; they are recomputed from `sourceHtml` on restore.
+- Image replacements are embedded in `sourceHtml` as `data:image/...;base64,...` URLs.

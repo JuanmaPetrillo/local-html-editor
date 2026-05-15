@@ -6,6 +6,7 @@ const masterPlan = readFileSync('MASTER_PLAN.md', 'utf8');
 const roadmap = readFileSync('docs/ROADMAP.md', 'utf8');
 const progress = readFileSync('PROGRESS.md', 'utf8');
 const readme = readFileSync('README.md', 'utf8');
+const pilotGuide = readFileSync('docs/MANUAL_PILOT_GUIDE.md', 'utf8');
 
 if (!html.includes('<input id="file-input"')) throw new Error('shell ui missing local file picker');
 if (!html.includes('accept=".html,.htm,.zip"')) throw new Error('shell file picker missing accept hint');
@@ -125,6 +126,8 @@ if (!readme.includes('Local image replacement for selected safe `<img>` objects'
 if (!progress.includes('PR #56')) throw new Error('progress missing PR #56 entry');
 if (!progress.includes('V2 interaction polish')) throw new Error('progress missing V2 interaction polish milestone');
 if (!readme.includes('V2 MVP pilot')) throw new Error('readme missing V2 MVP pilot section');
+if (pilotGuide.includes('status bar shows lock message, no move')) throw new Error('pilot guide has stale lock-behavior description');
+if (pilotGuide.includes('normal-flow elements show locked behavior')) throw new Error('pilot guide has stale locked-behavior limitation text');
 
 console.log('e2e smoke placeholder passed');
 

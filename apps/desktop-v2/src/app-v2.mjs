@@ -64,7 +64,11 @@ function replaceFirstTextInTag(html, tagName, replacementText) {
 }
 
 function getSlideRegexById(slideId) {
-  return new RegExp('<(section|div)\\b[^>]*class\\s*=\\s*["\'][^"\']*slide[^"\']*["\'][^>]*data-slide-id\\s*=\\s*["\']' + slideId + '["\'][^>]*>[\\s\\S]*?<\\/\\1>', 'i');
+  const safeId = slideId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    '<(section|div)\\b(?=[^>]*\\bclass\\s*=\\s*["\'][^"\']*slide[^"\']*["\'])(?=[^>]*\\bdata-slide-id\\s*=\\s*["\']' + safeId + '["\'])[^>]*>[\\s\\S]*?<\\/\\1>',
+    'i'
+  );
 }
 
 export function editHeadingTextInModel(modelInput, newText) {
@@ -504,6 +508,7 @@ if (hasDom) {
   }
 
   function convertToAbsolute(el) {
+    setStatus('Element converted for free positioning. Press Ctrl+Z to undo if layout changes unexpectedly.');
     const r = el.getBoundingClientRect();
     const op = el.offsetParent;
     const pr = op ? op.getBoundingClientRect() : editOverlay.getBoundingClientRect();
@@ -649,8 +654,12 @@ if (hasDom) {
 
   let nudgeTimer = null;
   document.addEventListener('keydown', (e) => {
-    if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.target.matches('input,textarea,select')) return;
+    if ((e.ctrlKey || e.metaKey) && !activeEditingEl) {
+      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); return; }
+      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); return; }
+    }
+    if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.key === 'Escape' && selectedEl) {
       e.preventDefault();
       selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons();
@@ -801,28 +810,28 @@ if (hasDom) {
   saveBtn.onclick = () => {
     commitFrameToModel();
     const text = JSON.stringify(createProjectPayload(model), null, 2);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    a.download = 'project.lheproj-v2.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    a.href = url; a.download = 'project.lheproj-v2.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
   openProjectBtn.onclick = () => openProjectInput.click();
   openProjectInput.onchange = async () => {
     const f = openProjectInput.files?.[0];
     if (!f) return;
-    const restored = restoreProjectPayload(JSON.parse(await f.text()));
-    if (!restored) return;
+    let payload;
+    try { payload = JSON.parse(await f.text()); } catch { setStatus('Project file could not be read: invalid JSON.'); return; }
+    const restored = restoreProjectPayload(payload);
+    if (!restored) { setStatus('Project file format not recognized.'); return; }
     model = restored;
     render();
   };
   exportBtn.onclick = () => {
     commitFrameToModel();
+    const url = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' }));
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' }));
-    a.download = 'edited-v2.html';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    a.href = url; a.download = 'edited-v2.html'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
     setStatus('Exported safe edited HTML (scripts removed).');
   };
 
