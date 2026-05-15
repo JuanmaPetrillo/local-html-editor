@@ -10,7 +10,10 @@ function stripUnsafeHtml(inputHtml) {
     .replace(/\son[a-z0-9_-]+\s*=\s*'[^']*'/gi, '')
     .replace(/\son[a-z0-9_-]+\s*=\s*[^\s>]+/gi, '')
     .replace(/javascript\s*:/gi, '');
-  return cleaned.replace(/<(img|source|video|audio|track|embed|object|iframe|link)\b([^>]*?)>/gi, (full, tag, attrs) => {
+  const remoteBlocked = cleaned
+    .replace(/\s(src|href|poster)\s*=\s*"([^"]*)"/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}="${escapeAttribute(val)}"`))
+    .replace(/\s(src|href|poster)\s*=\s*'([^']*)'/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}='${escapeAttribute(val)}'`));
+  return remoteBlocked.replace(/<(img|source|video|audio|track|embed|object|iframe|link)\b([^>]*?)>/gi, (full, tag, attrs) => {
     const rewritten = attrs
       .replace(/\s(src|href|poster)\s*=\s*"([^"]*)"/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}="${escapeAttribute(val)}"`))
       .replace(/\s(src|href|poster)\s*=\s*'([^']*)'/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}='${escapeAttribute(val)}'`));
@@ -22,6 +25,43 @@ function collectSlides(doc) {
   const nodes = Array.from(doc.querySelectorAll('.slide'));
   if (nodes.length) return nodes;
   return [doc.body];
+}
+
+function replaceFirstTextInTag(html, tagName, replacementText) {
+  const re = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+  return String(html).replace(re, (_m, attrs) => `<${tagName}${attrs}>${escapeHtml(replacementText)}</${tagName}>`);
+}
+
+function getSlideRegexById(slideId) {
+  return new RegExp(`<(section|div)\\b[^>]*class\\s*=\\s*["'][^"']*slide[^"']*["'][^>]*data-slide-id\\s*=\\s*["']${slideId}["'][^>]*>[\\s\\S]*?<\\/\\1>`, 'i');
+}
+
+export function editHeadingTextInModel(modelInput, newText) {
+  const model = { ...modelInput };
+  model.sourceHtml = replaceFirstTextInTag(model.sourceHtml, 'h1', newText);
+  return mapHtmlToModel(model.sourceHtml);
+}
+
+export function addTextBlockToSlide(modelInput, text) {
+  const model = { ...modelInput };
+  const slideId = model.selectedSlideId || model.slides[0]?.id;
+  if (!slideId) return model;
+  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
+  if (!target) return model;
+  const updated = target.replace(/<\/(section|div)>\s*$/i, `<div class="lhe-added-text">${escapeHtml(text)}</div></$1>`);
+  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
+  return mapHtmlToModel(model.sourceHtml);
+}
+
+export function deleteFirstTagInSlide(modelInput, tagName) {
+  const model = { ...modelInput };
+  const slideId = model.selectedSlideId || model.slides[0]?.id;
+  if (!slideId) return model;
+  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
+  if (!target) return model;
+  const updated = target.replace(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'i'), '');
+  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
+  return mapHtmlToModel(model.sourceHtml);
 }
 
 export function mapHtmlToModel(htmlText) {

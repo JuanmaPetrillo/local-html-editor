@@ -1,19 +1,49 @@
-<!doctype html><html><head><meta charset="utf-8"><style>
-:root{--nav:#0b1f4d;--card:#ffffff;--bg:#f2f5fb;--accent:#2c5cff}
-body{margin:0;background:var(--bg);font-family:Segoe UI,Arial,sans-serif}
-.topnav,.botnav{background:var(--nav);color:#fff;padding:12px 24px}
-.slides-area{padding:20px;display:flex;flex-direction:column;gap:20px}
-.slide{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:24px}
-.slide.active{outline:3px solid var(--accent)}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+:root{--navy:#0b1f4d;--blue:#2563eb;--orange:#f97316;--bg:#f2f5fb;--ink:#0f172a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:var(--ink)}
+.topnav,.botnav{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:#fff;padding:12px 20px}
+.progress-track{width:240px;height:8px;background:#334155;border-radius:999px;overflow:hidden}.progress-fill{height:8px;width:34%;background:var(--orange)}
+.slides-area{padding:20px;display:grid;gap:16px}
+.slide{display:none;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:22px}
+.slide.active{display:block}.slide.exit{opacity:.4}
 .slide-inner{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-.card{background:var(--card);border:1px solid #d8e1ff;border-radius:12px;padding:14px}
-.btn{display:inline-block;background:#123cb8;color:white;padding:8px 12px;border-radius:8px}
-</style><script>console.log('unsafe script');</script></head><body>
-<div class="topnav">From Answers to Tools</div>
+.card{background:#fff;border:1px solid #d8e1ff;border-radius:12px;padding:14px}.prompt-block{border-left:4px solid var(--blue);padding:10px 12px;background:#eff6ff}
+.btn{display:inline-block;background:var(--blue);color:#fff;padding:8px 12px;border-radius:8px;border:0}
+.controls{display:flex;gap:8px;align-items:center}.chip{padding:2px 8px;border-radius:999px;background:#e2e8f0}
+</style>
+<script>
+window.deckState={index:0};
+function nextSlide(){window.deckState.index+=1;}
+</script>
+</head>
+<body>
+<div class="topnav"><div>From Answers to Tools</div><div class="controls"><span class="chip">Q2</span><button class="btn" onclick="nextSlide()">Next</button></div></div>
+<div class="progress-track"><div class="progress-fill"></div></div>
 <div class="slides-area">
-<section class="slide active" data-slide-id="slide-1" data-label="Intro"><div class="slide-inner"><div><h1>From Answers to Tools</h1><p>Shift from prompts to repeatable workflows.</p><div class="card"><span>Card text</span><button class="btn">Open Tool</button></div></div><div class="card">Side card</div></div></section>
-<section class="slide" data-slide-id="slide-2" data-label="Plan"><div class="slide-inner"><h2>Execution Plan</h2><p>Work streams and owners.</p></div></section>
+<section class="slide active" data-slide-id="slide-1" data-label="Intro">
+  <div class="slide-inner">
+    <div>
+      <h1>From Answers to Tools</h1>
+      <p>Move from one-off prompts to repeatable execution systems.</p>
+      <div class="card prompt-block"><span>Prompt:</span> <span>Draft an operating plan from this transcript.</span></div>
+      <div class="card"><button class="btn" oninput="alert('x')">Open Tool</button></div>
+    </div>
+    <div class="card"><h3>Outcome</h3><p>Faster delivery and fewer manual steps.</p></div>
+  </div>
+</section>
+<section class="slide" data-slide-id="slide-2" data-label="System">
+  <div class="slide-inner"><div><h2>System Blueprint</h2><p>Roles, tools, and verification loops.</p></div><div class="card">Guardrails</div></div>
+</section>
+<section class="slide exit" data-slide-id="slide-3" data-label="Rollout">
+  <div class="slide-inner"><div><h2>Rollout Plan</h2><p>Pilot, train, and scale.</p></div><div class="card">Owners</div></div>
+</section>
 </div>
-<div class="botnav">Footer</div>
-<img src="https://example.com/track.png">
-</body></html>
+<div class="botnav"><span>Internal</span><a href="https://example.com/deck.css">remote link</a></div>
+<img src="https://example.com/track.png" alt="remote tracker">
+<img src="data:image/png;base64,AA==" alt="safe inline">
+</body>
+</html>
