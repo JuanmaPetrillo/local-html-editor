@@ -86,6 +86,14 @@
 - Edit interactions changed to click-select, double-click text edit, drag threshold movement.
 - Slide-switch persistence and V2 contract tests expanded.
 
+### Phase 9C: V2 keyboard shortcuts, preview-reflects-edits, image replacement ✓
+
+- Document-level Escape key clears selection (when not in text-edit mode).
+- Delete key removes selected element (ignored when focus is in inspector inputs).
+- `buildLivePreviewHtml` computes live preview from current `sourceHtml` + injects original inline scripts; remote script src blocked.
+- Preview mode now shows the current edited content (not the stale original), while still running original self-contained scripts.
+- Inspector "Replace Image" button appears when an `<img>` is selected; validates MIME, replaces src with local data URL.
+
 ### Phase 9B: V2 overlay editor — clean selection, drag, resize ✓
 
 - Replaced in-iframe event wiring with transparent overlay div that captures all pointer events.
