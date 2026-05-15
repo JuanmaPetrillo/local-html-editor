@@ -237,6 +237,20 @@ The MVP is successful when a normal user can:
 
 ## V2 MVP pilot (current default)
 
-V2 in `apps/desktop-v2` is now the primary pilot: canvas-first direct manipulation with inline text edit, drag/resize handles, add/delete, undo/redo, project save/open, and HTML export. Legacy `apps/desktop` remains reference only.
+V2 in `apps/desktop-v2` is now the primary pilot: visual-fidelity sanitized DOM rendering in a sandboxed iframe, inline text edit, add/delete for simple elements, undo/redo, project save/open, and sanitized HTML export. Legacy `apps/desktop` remains reference only.
 
-V2 now includes slide navigator, inspector/layers panel, undo/redo state controls, and explicit `.lheproj-v2.json` save/open.
+### V2 support tiers (current)
+
+1. **Tier 1 — Visual fidelity (all imports, best effort):**
+   - Preserve original DOM/CSS layout in sanitized iframe preview.
+2. **Tier 2 — Direct editable (safe subset):**
+   - Text elements (`h1/h2/h3/p/span/div/button`) and simple add/delete for text/image.
+3. **Tier 3 — Preserved/locked:**
+   - Script-driven interactions, remote assets, canvas/WebGL/embeds, and unsafe handlers/URLs are sanitized/disabled or preserved as non-interactive structure.
+
+### Script/export policy (current)
+
+- **Edit mode:** scripts removed, inline handlers removed, remote URLs removed, CSS/DOM preserved as much as possible.
+- **Export mode:** sanitized edited HTML export (scripts are not preserved in this MVP).
+
+Known limitation: generalized move/resize editing for arbitrary original objects is still pending a dedicated overlay manipulation phase.

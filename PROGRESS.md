@@ -717,3 +717,53 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: Parser remains deterministic string/token heuristic (not full browser CSS cascade/layout engine); transform-heavy or script-rendered layouts can still be approximate/locked.
 Next recommended task: Add another minimized fixture for SVG-heavy deck structure and keep parser changes narrow per pattern.
+### 2026-05-15 (v2 visual fidelity mode for real-html presentations)
+Date: 2026-05-15
+Branch/PR: current branch / pending PR
+Milestone: Phase 8B V2 architecture correction
+Summary: Replaced the V2 absolute-object reconstruction renderer with a sanitized visual-fidelity DOM mode that preserves original presentation HTML/CSS layout in a sandboxed iframe (`sandbox="allow-same-origin"`, no scripts), removes script tags and inline event handlers, blocks/removes remote URL-backed media/link sources, keeps `.slide` structures for navigation, and supports direct text editing on rendered elements while preserving styling context. Added real-fixture regression coverage focused on `from_answers_to_tools_v3.html` to enforce style/class preservation, expected slide detection, core text presence, no script export, and remote URL blocking. Updated V2 UI canvas to iframe preview mode and kept project save/open plus HTML export behavior against sanitized edited DOM source.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, tests/fixtures/from_answers_to_tools_v3.html, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed after updating V2 parser fallback slide detection for Node test runtime.
+Known limitations: Move/resize handles for arbitrary original complex components are not yet reintroduced in this fidelity mode; current V2 direct edit supports text editing and add/delete on sanitized DOM, with constrained object operations still partial for complex imported structures.
+Next recommended task: Add safe overlay move/resize controls on top of fidelity iframe for explicitly supported block elements, with lock badges for complex components.
+### 2026-05-15 (pr54 fix-forward: full real fixture + explicit sanitized export policy)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Completed PR #54 fix-forward by replacing reduced benchmark fixture with a full-structure `from_answers_to_tools_v3.html` fixture (CSS variables, topnav/botnav, progress track/fill, slides-area, slide active/exit classes, cards/buttons/controls/prompt blocks, inline JS, nested content). Clarified the two-mode policy in implementation: Edit mode renders sanitized DOM with CSS/layout preserved and scripts/inline handlers/remote resources removed; Export mode intentionally outputs sanitized edited HTML (scripts removed by design) to keep safe local editing semantics explicit. Added stronger `test:v2` assertions for real fixture slide count, `data-label` preservation, style/class token preservation, first-slide title/body text, style variable preservation, script removal, remote URL removal, inline handler removal, safe data:image retention, edit/add/delete roundtrip behavior, and project payload sourceHtml persistence.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, tests/fixtures/from_answers_to_tools_v3.html, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: Visual object move/resize for arbitrary complex imported blocks remains limited; current safety model focuses on visual DOM fidelity + inline text editing and safe add/delete operations.
+Next recommended task: Add safe move/resize overlay handles for supported block-level elements while clearly locking unsupported complex interactive components.
+### 2026-05-15 (pr54 amend: restore/export sanitization + undo/redo + fuller fixture)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Amended PR #54 to close merge blockers: expanded `from_answers_to_tools_v3.html` into a fuller real-structure fixture with 4 slides and richer nested nav/progress/cards/prompt/control/script/event/remote/data patterns; hardened `restoreProjectPayload` to sanitize and rebuild model via `mapHtmlToModel` instead of trusting payload model; hardened `exportModelToHtml` with defense-in-depth sanitization; restored undo/redo reliability for fidelity-mode mutating actions (inspector text commit, add text, add image, delete) by pushing history snapshots before mutations; added V2 security contract checks to `test:security` for same-origin sandbox without scripts and explicit contentDocument+sanitizer contract.
+Files changed: apps/desktop-v2/src/app-v2.mjs, tests/fixtures/from_answers_to_tools_v3.html, scripts/test-v2.mjs, scripts/test-security.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: V2 fidelity mode still does not implement full general move/resize overlays for arbitrary imported components; this remains explicitly out-of-scope for this PR.
+Next recommended task: Implement safe overlay move/resize for supported block elements and lock/label unsupported complex components.
+### 2026-05-15 (pr54 general-contract amend: support tiers + broader fixture coverage)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Reframed V2 as a general visual-fidelity contract for arbitrary HTML presentations (not single-fixture only). Updated docs/UI wording to define three support tiers (visual fidelity, safe direct editable subset, preserved/locked content), explicit sanitized script policy for edit/export, and non-overclaim limitation for move/resize. Expanded `test:v2` across multiple fixture categories (static positioned HTML, interactive/scripted fixture, remote-asset fixture, full benchmark fixture, and generic no-slide fallback) while retaining fidelity/sanitization assertions. Added roadmap wording for next phase: dedicated visual manipulation overlay layer for safe move/resize.
+Files changed: README.md, docs/MANUAL_PILOT_GUIDE.md, apps/desktop-v2/index.html, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: General move/resize/style manipulation for arbitrary imported elements is still pending overlay-layer phase; script-driven interactions are not preserved in sanitized export.
+Next recommended task: Implement V2 visual manipulation overlay handles for safe selected elements (position/size/basic style edits), with explicit lock markers for unsupported complex/script-driven components.
+### 2026-05-15 (pr54 hardening amend: remote CSS URL stripping + inline edit commit durability)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Hardened sanitizer to strip remote URLs from CSS contexts (`<style>` url/http(s)/protocol-relative, `@import` remote rules, and inline `style` attributes) while preserving safe data URLs. Added commit durability for direct iframe inline edits via `commitFrameToModel()` and wired commit-before-transition behavior for slide switch, save, export, add text/image, and delete; this prevents losing direct inline edits before model serialization. Added blur-based direct text commit behavior that records undo snapshots only when text changed. Expanded `test:v2` with remote CSS sanitization regressions for style block, inline style, and direct export path.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: General move/resize overlay editing for arbitrary imported elements remains pending dedicated manipulation phase.
+Next recommended task: Implement safe overlay move/resize handles and attribute panel edits for supported DOM elements with explicit lock badges for unsupported/script-driven content.

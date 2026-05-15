@@ -38,6 +38,8 @@ const visualObjectModelCode = readFileSync('apps/desktop/src/visual-object-model
 const visualLayoutModelCode = readFileSync('apps/desktop/src/visual-layout-model.mjs', 'utf8');
 const imageReplacementModelCode = readFileSync('apps/desktop/src/image-replacement-model.mjs', 'utf8');
 const projectPersistenceModelCode = readFileSync('apps/desktop/src/project-persistence-model.mjs', 'utf8');
+const v2Html = readFileSync('apps/desktop-v2/index.html', 'utf8');
+const v2Code = readFileSync('apps/desktop-v2/src/app-v2.mjs', 'utf8');
 
 function assertForbidden(sourceText, tokens, category) {
   for (const token of tokens) {
@@ -114,6 +116,9 @@ assertForbidden(exporterCode, ['.text()', '.arrayBuffer()'], 'exporter-file-read
 // iframe sandbox invariants
 assertRequired(html, ['id="safe-preview-frame"', 'sandbox=""'], 'iframe-sandbox');
 assertForbidden(html, ['allow-scripts', 'allow-same-origin', 'allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'iframe-sandbox');
+assertRequired(v2Html, ['id="preview-frame"', 'sandbox="allow-same-origin"'], 'v2-iframe-sandbox');
+assertForbidden(v2Html, ['allow-scripts', 'allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'v2-iframe-sandbox');
+assertRequired(v2Code, ['contentDocument', 'stripUnsafeHtml'], 'v2-fidelity-safety-contract');
 
 // preview/export module forbidden APIs
 assertForbidden(importerCode, ['innerHTML', 'DOMParser'], 'importer-rendering');

@@ -122,3 +122,10 @@ Run this checklist with at least one synthetic fixture deck:
 Use `npm run build` then `npm run package:pilot`. Package now includes standalone `index.html` + `app-v2.bundle.js` and `START_HERE.bat`.
 
 Updated V2 pilot behavior: slide navigator + inspector/layers + project save/open (`lheproj-v2`) + export all slides.
+
+V2 support contract in this pilot:
+- Visual fidelity first: render sanitized original DOM/CSS in iframe (best effort).
+- Safe direct editing second: inline text edits and simple add/delete operations on safe elements.
+- Locked/preserved third: script-driven/remote/unsafe components are sanitized or non-interactive in edit/export mode.
+
+Known V2 limitation: generalized move/resize overlay editing for arbitrary imported elements is not complete yet.
