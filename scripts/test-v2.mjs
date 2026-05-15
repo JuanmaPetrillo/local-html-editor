@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import {
   mapHtmlToModel, exportModelToHtml, createProjectPayload, restoreProjectPayload,
-  editHeadingTextInModel, addTextBlockToSlide, deleteFirstTagInSlide, createHistory, pushHistory, undo, redo
+  editHeadingTextInModel, addTextBlockToSlide, deleteFirstTagInSlide, createHistory, pushHistory, undo, redo,
+  stripUnsafeHtml
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
@@ -132,3 +133,23 @@ const saved = createProjectPayload(editedMulti);
 const reopened = restoreProjectPayload(saved);
 if (!reopened || reopened.selectedSlideId !== 'a') throw new Error('selectedSlideId not persisted through save/open');
 if (!exportModelToHtml(reopened).includes('Persist me')) throw new Error('slide edit lost through save/open');
+
+// SVG data URI blocked in sanitizer; safe raster data URIs preserved
+const svgHtml = '<img src="data:image/svg+xml;base64,PHN2Zyc..." alt="x"><img src="data:image/png;base64,AA==" alt="y">';
+const svgSanitized = stripUnsafeHtml(svgHtml);
+if (/data:image\/svg\+xml/i.test(svgSanitized)) throw new Error('SVG data URI not stripped from src');
+if (!svgSanitized.includes('data:image/png;base64,AA==')) throw new Error('safe PNG data URI removed by sanitizer');
+const svgTextHtml = '<a href="data:text/html,<script>x</script>">x</a>';
+if (/data:text\//i.test(stripUnsafeHtml(svgTextHtml))) throw new Error('data:text/ URI not stripped');
+
+// createProjectPayload must not include originalHtml or raw scripts
+const payloadJson = JSON.stringify(createProjectPayload(model));
+if (payloadJson.includes('"originalHtml"')) throw new Error('project payload must not contain originalHtml key');
+if (/<script\b/i.test(payloadJson)) throw new Error('project payload must not contain script tags');
+if (payloadJson.includes('"previewHtml"')) throw new Error('project payload must not contain previewHtml key');
+
+// meta http-equiv="refresh" stripped in edit (safe) mode
+const metaHtml = '<!doctype html><html><head><meta http-equiv="refresh" content="0;url=https://evil.example/"></head><body><p>text</p></body></html>';
+const metaSanitized = stripUnsafeHtml(metaHtml);
+if (/http-equiv\s*=\s*["']?refresh/i.test(metaSanitized)) throw new Error('meta refresh not stripped in edit mode');
+if (!metaSanitized.includes('text')) throw new Error('meta refresh strip removed non-meta content');

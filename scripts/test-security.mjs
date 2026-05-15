@@ -120,6 +120,8 @@ assertRequired(v2Html, ['id="edit-frame"', 'sandbox="allow-same-origin"', 'id="l
 if (/id=\"live-preview-frame\"[^>]*sandbox=\"[^\"]*allow-scripts[^\"]*allow-same-origin/.test(v2Html)) throw new Error('[v2-iframe-sandbox] live preview has unsafe scripts+same-origin');
 assertForbidden(v2Html, ['allow-top-navigation', 'allow-downloads', 'allow-popups', 'allow-forms'], 'v2-iframe-sandbox');
 assertRequired(v2Code, ['contentDocument', 'stripUnsafeHtml'], 'v2-fidelity-safety-contract');
+assertForbidden(v2Code, ['fetch(', 'XMLHttpRequest', 'WebSocket'], 'v2-network');
+assertForbidden(v2Code, ['sendBeacon', 'telemetry', 'analytics'], 'v2-telemetry');
 
 // preview/export module forbidden APIs
 assertForbidden(importerCode, ['innerHTML', 'DOMParser'], 'importer-rendering');

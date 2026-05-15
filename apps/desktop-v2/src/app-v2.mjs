@@ -10,10 +10,15 @@ function stripRemoteCssUrls(cssText) {
     .replace(/url\(\s*(['"]?)(https?:|\/\/)[^)]+\)/gi, 'url()');
 }
 
+function isBlockedDataUrl(val) {
+  const v = val.trim().toLowerCase();
+  return /^data:image\/svg\+xml/i.test(v) || /^data:text\//i.test(v);
+}
+
 function blockRemoteAttributes(inputHtml) {
   return String(inputHtml || '')
-    .replace(/\s(src|href|poster)\s*=\s*"([^"]*)"/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}="${escapeAttribute(val)}"`))
-    .replace(/\s(src|href|poster)\s*=\s*'([^']*)'/gi, (_m, n, val) => (/^(https?:|\/\/)/i.test(val.trim()) ? '' : ` ${n}='${escapeAttribute(val)}'`));
+    .replace(/\s(src|href|poster)\s*=\s*"([^"]*)"/gi, (_m, n, val) => ((/^(https?:|\/\/)/i.test(val.trim()) || isBlockedDataUrl(val)) ? '' : ` ${n}="${escapeAttribute(val)}"`))
+    .replace(/\s(src|href|poster)\s*=\s*'([^']*)'/gi, (_m, n, val) => ((/^(https?:|\/\/)/i.test(val.trim()) || isBlockedDataUrl(val)) ? '' : ` ${n}='${escapeAttribute(val)}'`));
 }
 
 function sanitizeByMode(inputHtml, mode = 'edit') {
@@ -26,6 +31,7 @@ function sanitizeByMode(inputHtml, mode = 'edit') {
   );
   if (mode === 'preview') return base;
   return base
+    .replace(/<meta\b[^>]*http-equiv\s*=\s*(?:"refresh"|'refresh'|refresh)[^>]*>/gi, '')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/\son[a-z0-9_-]+\s*=\s*"[^"]*"/gi, '')
     .replace(/\son[a-z0-9_-]+\s*=\s*'[^']*'/gi, '')
@@ -109,7 +115,7 @@ export function mapHtmlToModel(htmlText) {
 }
 
 export function exportModelToHtml(modelInput) { return stripUnsafeHtml(String(modelInput?.sourceHtml || '')); }
-export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model: { ...model, sourceHtml: stripUnsafeHtml(model.sourceHtml), previewHtml: createLivePreviewHtml(model.originalHtml || model.previewHtml || model.sourceHtml) } }; }
+export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model: { sourceHtml: stripUnsafeHtml(model.sourceHtml), slides: model.slides, selectedSlideId: model.selectedSlideId, mode: model.mode === 'preview' ? 'preview' : 'edit' } }; }
 export function restoreProjectPayload(payload) {
   if (!payload || payload.schema !== 'lheproj-v2' || payload.version !== 2) return null;
   const restored = mapHtmlToModel(String(payload.model?.sourceHtml || ''));
@@ -290,7 +296,7 @@ if (hasDom) {
     activeEditingEl.removeAttribute('contenteditable');
     delete activeEditingEl.dataset.lheOriginalText;
     activeEditingEl = null;
-    pushHistory(history, model);
+    if (commit) pushHistory(history, model);
     commitFrameToModel();
     render();
   }
@@ -439,6 +445,7 @@ if (hasDom) {
       const f = i.files?.[0];
       if (!f) return;
       const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+      if (!/^data:image\/(png|jpeg|jpg|gif|webp|avif)/i.test(data)) { setStatus('Only PNG, JPEG, GIF, WebP, AVIF images are supported.'); return; }
       applyStyle(() => {
         const doc = editFrame.contentDocument;
         const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body;

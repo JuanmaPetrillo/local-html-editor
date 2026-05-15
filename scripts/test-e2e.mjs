@@ -122,6 +122,9 @@ if (!masterPlan.includes('through Phase 6A')) throw new Error('master plan missi
 if (!roadmap.includes('### Phase 6A: Local image replacement ✓')) throw new Error('roadmap missing phase 6A completion marker');
 if (!progress.includes('Local image replacement is implemented for selected safe `<img>` objects')) throw new Error('progress missing image replacement implementation marker');
 if (!readme.includes('Local image replacement for selected safe `<img>` objects')) throw new Error('readme missing image replacement capability marker');
+if (!progress.includes('PR #56')) throw new Error('progress missing PR #56 entry');
+if (!progress.includes('V2 interaction polish')) throw new Error('progress missing V2 interaction polish milestone');
+if (!readme.includes('V2 MVP pilot')) throw new Error('readme missing V2 MVP pilot section');
 
 console.log('e2e smoke placeholder passed');
 
