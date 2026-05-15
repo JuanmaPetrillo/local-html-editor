@@ -811,7 +811,9 @@ if (hasDom) {
   openProjectInput.onchange = async () => {
     const f = openProjectInput.files?.[0];
     if (!f) return;
-    const restored = restoreProjectPayload(JSON.parse(await f.text()));
+    let payload;
+    try { payload = JSON.parse(await f.text()); } catch { setStatus('Error: invalid project file (not valid JSON).'); return; }
+    const restored = restoreProjectPayload(payload);
     if (!restored) return;
     model = restored;
     render();

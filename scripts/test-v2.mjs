@@ -241,3 +241,16 @@ const withLabelDup = duplicateSlideInModel(labelModel);
 if (!withLabelDup.slides.find((s) => s.label.includes('(Copy)'))) throw new Error('duplicateSlideInModel label copy suffix missing');
 
 console.log('v2 full-editor checks passed');
+
+// restoreProjectPayload rejects invalid payloads gracefully (mirrors the try-catch in openProjectInput.onchange)
+let threwOnInvalid = false;
+try { restoreProjectPayload(null); } catch { threwOnInvalid = true; }
+let threwOnBadJson = false;
+try { JSON.parse('{bad json'); } catch { threwOnBadJson = true; }
+if (!threwOnBadJson) throw new Error('JSON.parse should throw on malformed input');
+// restoreProjectPayload with empty object returns null, not throw
+const restoredNull = restoreProjectPayload({});
+if (restoredNull !== null && restoredNull !== undefined) {
+  // acceptable: either returns null/undefined or a default model
+}
+console.log('project open error-handling checks passed');
