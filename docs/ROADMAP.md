@@ -77,3 +77,11 @@
 - V2 pilot promoted as default packaging target with standalone non-module bundle and START_HERE launcher.
 
 - V2 direct-canvas editor now includes multi-slide navigation and inspector/layers editing as primary pilot behavior.
+
+
+### Phase 9A: V2 interaction polish ✓
+
+- Preview/Edit mode behavior split hardened.
+- Preview iframe interactivity contract and sandbox policy checks added.
+- Edit interactions changed to click-select, double-click text edit, drag threshold movement.
+- Slide-switch persistence and V2 contract tests expanded.

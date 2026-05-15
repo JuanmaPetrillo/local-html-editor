@@ -770,3 +770,15 @@ Next recommended task: Implement safe overlay move/resize handles and attribute 
 
 - 2026-05-15: Added V2 explicit Preview/Edit modes with dual iframes, preview script-preserving isolated sandbox, expanded edit inspector formatting controls, direct move/resize via inline style editing/drag, and safe export status copy. Updated V2/security test contracts for mode-specific sanitization and sandbox invariants.
 - 2026-05-15: PR #55 fix-forward: fixed V2 delete regression by correcting regex escapes in tag mutation helpers (`\\b`, `[\\s\\S]`), restoring delete behavior and making `test:v2` green; reran full validation gate successfully.
+
+### 2026-05-15 (PR #56 V2 interaction polish)
+
+Date: 2026-05-15
+Branch/PR: current branch / PR #56
+Milestone: V2 interaction polish
+Summary: Preview/Edit mode behavior split hardened; preview iframe interactivity contract documented and validated; edit mode uses click-select, double-click text edit, and drag threshold behavior; slide-switch commit and persistence checks added/validated.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, README.md, PROGRESS.md, docs/MANUAL_PILOT_GUIDE.md, docs/ROADMAP.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: Move/resize remains limited to absolute/fixed elements.
+Next recommended task: Optional follow-up polish for resize/move handles without weakening security/sandbox invariants.

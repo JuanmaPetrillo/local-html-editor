@@ -11,6 +11,11 @@ for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'D
 if (!html.includes('id="edit-frame"') || !html.includes('sandbox="allow-same-origin"')) throw new Error('edit iframe sandbox missing');
 if (!html.includes('id="live-preview-frame"') || !html.includes('sandbox="allow-scripts"')) throw new Error('live preview iframe sandbox missing');
 
+const previewSandboxTag = (html.match(/id="live-preview-frame"[^>]*sandbox="([^"]+)"/) || [])[1] || '';
+if (!/allow-scripts/.test(previewSandboxTag) || /allow-same-origin/.test(previewSandboxTag)) throw new Error('live-preview-frame sandbox policy invalid');
+const editSandboxTag = (html.match(/id="edit-frame"[^>]*sandbox="([^"]+)"/) || [])[1] || '';
+if (!/allow-same-origin/.test(editSandboxTag) || /allow-scripts/.test(editSandboxTag)) throw new Error('edit-frame sandbox policy invalid');
+
 const realFixture = readFileSync('tests/fixtures/from_answers_to_tools_v3.html', 'utf8');
 const staticFixture = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
 const interactiveFixture = readFileSync('tests/fixtures/user-real-copilot-presentation.html', 'utf8');
@@ -116,3 +121,14 @@ if (!modeMapped.previewHtml.includes('<script>')) throw new Error('preview html 
 if (!modeMapped.previewHtml.includes('onclick=')) throw new Error('preview html should keep inline handlers');
 if (/https:\/\//i.test(modeMapped.previewHtml)) throw new Error('preview html should block remote URLs');
 if (modeMapped.sourceHtml.includes('<script>') || modeMapped.sourceHtml.includes('onclick=')) throw new Error('edit html should strip scripts/handlers');
+
+
+const multi = mapHtmlToModel(readFileSync('tests/fixtures/v2-multi-slide.html', 'utf8'));
+multi.selectedSlideId = 'b';
+let editedMulti = addTextBlockToSlide(multi, 'Persist me');
+if (!exportModelToHtml(editedMulti).includes('Persist me')) throw new Error('slide edit did not persist in model html');
+editedMulti.selectedSlideId = 'a';
+const saved = createProjectPayload(editedMulti);
+const reopened = restoreProjectPayload(saved);
+if (!reopened || reopened.selectedSlideId !== 'a') throw new Error('selectedSlideId not persisted through save/open');
+if (!exportModelToHtml(reopened).includes('Persist me')) throw new Error('slide edit lost through save/open');

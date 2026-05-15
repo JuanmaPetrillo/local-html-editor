@@ -129,3 +129,18 @@ V2 support contract in this pilot:
 - Locked/preserved third: script-driven/remote/unsafe components are sanitized or non-interactive in edit/export mode.
 
 Known V2 limitation: generalized move/resize overlay editing for arbitrary imported elements is not complete yet.
+
+
+## Preview vs Edit checklist (V2)
+
+Preview mode checks:
+- Buttons/interactions that are self-contained in HTML inline/local script should run in preview iframe.
+- Arrow-key navigation works when preview iframe has focus and source defines keyboard handlers.
+- Remote resources remain blocked/sanitized.
+
+Edit mode checks:
+- Click selects without moving.
+- Double-click enters text edit and typing does not drag object.
+- Buttons are selectable/editable but do not execute original onclick actions.
+- Slide sidebar changes visible slide and preserves edits when switching away/back.
+- Move/resize works for absolute/fixed elements; normal-flow elements show locked behavior and rely on inspector style edits.
