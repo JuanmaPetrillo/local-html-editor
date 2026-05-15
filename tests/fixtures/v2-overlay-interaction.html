@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Overlay Interaction Test Deck</title>
+<style>
+/* Remote CSS url that must be stripped in edit/export */
+.hero-bg { background: url("https://cdn.example.invalid/hero.jpg"); }
+/* Safe local styles */
+.deck { width: 960px; height: 540px; position: relative; overflow: hidden; font-family: Segoe UI, Tahoma, sans-serif; }
+.slide { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #f8fafc; }
+.card { padding: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin: 16px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <section class="slide" data-slide-id="s1" data-label="Edit Controls">
+    <h1 style="position:absolute;left:80px;top:50px;width:600px;font-size:32px;color:#1e293b;margin:0;">Overlay Test — Slide 1</h1>
+    <p id="abs-para" style="position:absolute;left:80px;top:120px;width:400px;font-size:16px;color:#475569;margin:0;">Absolutely-positioned paragraph. Move and resize me.</p>
+    <button onclick="window.__lhe_btn=1" style="position:absolute;left:80px;top:200px;padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:14px;cursor:pointer;">Action Button</button>
+    <img src="data:image/png;base64,AA==" alt="test raster" style="position:absolute;left:540px;top:120px;width:200px;height:120px;border:1px solid #e2e8f0;">
+    <div class="hero-bg" style="position:absolute;left:80px;top:280px;width:300px;height:80px;display:flex;align-items:center;padding:0 16px;box-sizing:border-box;border-radius:6px;color:#fff;font-weight:600;">Hero block</div>
+  </section>
+  <section class="slide" data-slide-id="s2" data-label="Normal Flow">
+    <div class="card">
+      <h2 style="margin:0 0 8px;color:#1e293b;">Normal-Flow Card</h2>
+      <p style="margin:0;color:#475569;">This element is in normal document flow. Movement requires inspector X/Y fields. Text editing works via double-click.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px;color:#0f172a;">Second card heading</h3>
+      <p style="margin:0;color:#64748b;">Additional paragraph for multi-element testing.</p>
+    </div>
+  </section>
+</div>
+<script>
+/* Preview script: keyboard shortcut navigation — must be preserved in previewHtml, stripped in edit export */
+document.addEventListener('keydown', function(e) {
+  var slides = document.querySelectorAll('.slide');
+  if (!slides.length) return;
+  if (e.key === 'ArrowRight') slides[0].dispatchEvent(new Event('next'));
+  if (e.key === 'ArrowLeft') slides[0].dispatchEvent(new Event('prev'));
+  window.__lhe_nav_key = e.key;
+});
+</script>
+</body>
+</html>

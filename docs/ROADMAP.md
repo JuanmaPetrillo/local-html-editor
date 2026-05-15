@@ -85,3 +85,15 @@
 - Preview iframe interactivity contract and sandbox policy checks added.
 - Edit interactions changed to click-select, double-click text edit, drag threshold movement.
 - Slide-switch persistence and V2 contract tests expanded.
+
+### Phase 9B: V2 overlay editor — clean selection, drag, resize ✓
+
+- Replaced in-iframe event wiring with transparent overlay div that captures all pointer events.
+- Buttons no longer activate on click in Edit mode; selection is clean.
+- Text editing no longer conflicts with drag gestures.
+- Ctrl+Click passes native click through (anchor/fragment navigation) without selecting.
+- 8-handle resize overlay for absolute/fixed elements (drag corners and edges to resize).
+- `#hover-box` shows dashed highlight on hover; `#selection-box` shows solid blue selection.
+- Resize handles hidden during text edit mode, restored on commit/cancel.
+- New `v2-overlay-interaction.html` fixture with multi-slide, absolute elements, button with onclick, data image, remote CSS to strip.
+- Preview/Edit sandbox invariants and sanitization coverage expanded.

@@ -6,7 +6,7 @@ This file is the durable handoff between Codex tasks.
 
 Project phase: active development - browser-first static prototype.
 
-Current milestone: Phase 5C complete (constrained trusted-shell resize handles).
+Current milestone: Phase 9B complete (V2 overlay editor — clean selection, drag, resize).
 
 ## Latest summary
 
@@ -782,3 +782,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: Move/resize remains limited to absolute/fixed elements.
 Next recommended task: Optional follow-up polish for resize/move handles without weakening security/sandbox invariants.
+
+### 2026-05-15 (Post-PR56 audit hardening + Phase 9B V2 overlay editor)
+
+Date: 2026-05-15
+Branch/PR: claude/audit-pr56-hardening-0f2l2
+Milestone: Phase 9B — V2 overlay editor (clean selection, drag, resize)
+Summary: Three-commit bundle: (1) Post-PR56 audit hardening — blocked SVG data URI injection via addImageBtn MIME validation and blockRemoteAttributes; fixed createProjectPayload to omit originalHtml/previewHtml (spec compliance); added meta http-equiv="refresh" stripping in sanitizeByMode edit path; guarded finishTextEdit history push with if(commit); expanded test-security.mjs with V2 network/telemetry forbidden-API checks; expanded lint.mjs and typecheck.mjs for V2 coverage; fixed MANUAL_PILOT_GUIDE.md folder-name format; created AUDIT_AFTER_PR56.md report. (2) Phase 1 — replaced wireEditableInteractions() with transparent overlay div architecture: #edit-overlay captures all pointer events above edit-frame; getIframeElementAt() maps overlay coordinates to iframe elements; updateSelectionBox/clearSelectionBox render selection in overlay space; Ctrl+Click passes native click through for links/fragments; enterTextEditMode() drops overlay pointer-events so contenteditable gets focus; finishTextEdit() restores overlay pointer-events. (3) Phase 9B — 8-handle resize overlay for absolute/fixed elements (corner + edge handles); handles hidden during text edit, restored on commit/cancel; new v2-overlay-interaction.html fixture with multi-slide, absolute elements, button with onclick, data image, remote CSS; expanded test-v2.mjs coverage for overlay fixture sanitization, preview contract, add-text round-trip, project round-trip, button onclick stripping.
+Files changed: apps/desktop-v2/src/app-v2.mjs, apps/desktop-v2/index.html, scripts/test-v2.mjs, scripts/test-security.mjs, scripts/lint.mjs, scripts/typecheck.mjs, scripts/test-e2e.mjs, docs/MANUAL_PILOT_GUIDE.md, docs/AUDIT_AFTER_PR56.md, docs/ROADMAP.md, PROGRESS.md, tests/fixtures/v2-overlay-interaction.html
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: Preview mode does not reflect text/style edits (previewHtml is generated from original file content; edit mode edits appear in export only). Normal-flow elements are format-editable but movement is locked (inspector X/Y required). Export strips all scripts by design.
+Next recommended task: Preview-reflects-edits mode (rebuild previewHtml from sourceHtml, injecting original scripts from a parallel clean parse); or premium UI polish pass.

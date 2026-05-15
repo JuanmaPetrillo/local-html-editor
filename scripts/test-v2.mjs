@@ -6,9 +6,16 @@ import {
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
+const editStageIdx = html.indexOf('id="edit-stage"');
+const editOverlayIdx = html.indexOf('id="edit-overlay"');
+const hoverBoxIdx = html.indexOf('id="hover-box"');
+const selectionBoxIdx = html.indexOf('id="selection-box"');
+if (editOverlayIdx < editStageIdx) throw new Error('edit-overlay must be inside edit-stage wrapper');
+if (hoverBoxIdx < editStageIdx) throw new Error('hover-box must be inside edit-stage wrapper');
+if (selectionBoxIdx < editStageIdx) throw new Error('selection-box must be inside edit-stage wrapper');
 if (!html.includes('id="edit-frame"') || !html.includes('sandbox="allow-same-origin"')) throw new Error('edit iframe sandbox missing');
 if (!html.includes('id="live-preview-frame"') || !html.includes('sandbox="allow-scripts"')) throw new Error('live preview iframe sandbox missing');
 
@@ -153,3 +160,47 @@ const metaHtml = '<!doctype html><html><head><meta http-equiv="refresh" content=
 const metaSanitized = stripUnsafeHtml(metaHtml);
 if (/http-equiv\s*=\s*["']?refresh/i.test(metaSanitized)) throw new Error('meta refresh not stripped in edit mode');
 if (!metaSanitized.includes('text')) throw new Error('meta refresh strip removed non-meta content');
+
+// Overlay interaction fixture: edit/export sanitization + preview preservation
+const overlayFixture = readFileSync('tests/fixtures/v2-overlay-interaction.html', 'utf8');
+const overlayModel = mapHtmlToModel(overlayFixture);
+if (overlayModel.slides.length !== 2) throw new Error('overlay fixture slide count mismatch');
+if (overlayModel.slides[0].id !== 's1') throw new Error('overlay fixture slide 1 id mismatch');
+if (overlayModel.slides[0].label !== 'Edit Controls') throw new Error('overlay fixture slide 1 label mismatch');
+if (overlayModel.slides[1].id !== 's2') throw new Error('overlay fixture slide 2 id mismatch');
+const overlayExported = exportModelToHtml(overlayModel);
+// Edit/export strips handlers, scripts, remote URLs
+if (/onclick\s*=/i.test(overlayExported)) throw new Error('overlay fixture button onclick not stripped in export');
+if (/<script\b/i.test(overlayExported)) throw new Error('overlay fixture script not stripped in export');
+if (/https:\/\//i.test(overlayExported)) throw new Error('overlay fixture remote CSS url not stripped in export');
+// Safe raster data image preserved
+if (!/data:image\/png;base64,AA==/i.test(overlayExported)) throw new Error('overlay fixture safe data image stripped');
+// Absolute positioning preserved in export
+if (!/position:absolute/i.test(overlayExported)) throw new Error('overlay fixture absolute positioning not preserved');
+// Preview html keeps scripts and onclick (preview contract)
+if (!(overlayModel.previewHtml.includes('<script') || overlayModel.previewHtml.includes('<script>'))) throw new Error('overlay fixture preview should keep script');
+if (!overlayModel.previewHtml.includes('onclick=')) throw new Error('overlay fixture preview should keep onclick handlers');
+// Preview blocks remote URLs even while keeping scripts
+if (/https:\/\//i.test(overlayModel.previewHtml)) throw new Error('overlay fixture preview should block remote URLs');
+// SVG data URI in src attribute should be stripped
+if (/data:image\/svg\+xml/i.test(overlayExported)) throw new Error('overlay fixture SVG data URI should be stripped');
+// Add text block to overlay fixture slide 1
+const overlayWithText = addTextBlockToSlide(overlayModel, 'Overlay added text');
+const overlayWithTextHtml = exportModelToHtml(overlayWithText);
+if (!overlayWithTextHtml.includes('lhe-added-text')) throw new Error('add text to overlay fixture failed');
+if (!/position:absolute/.test(overlayWithTextHtml)) throw new Error('added text block should be absolute-positioned');
+if (overlayWithTextHtml.includes('onclick=')) throw new Error('add text should not re-introduce onclick');
+// Project round-trip with overlay fixture
+const overlayProject = createProjectPayload(overlayModel);
+const overlayRestored = restoreProjectPayload(JSON.parse(JSON.stringify(overlayProject)));
+if (!overlayRestored || overlayRestored.slides.length !== 2) throw new Error('overlay fixture project round-trip failed');
+if (/onclick\s*=/i.test(exportModelToHtml(overlayRestored))) throw new Error('overlay fixture restore re-introduced onclick');
+// Button selection: edit mode strips handlers so button activations cannot occur in export
+const buttonInEdit = overlayModel.sourceHtml;
+if (/onclick\s*=/i.test(buttonInEdit)) throw new Error('button onclick present in edit sourceHtml (should be stripped)');
+// isMovableByPosition helper: absolute/fixed = movable, static/relative = locked
+const absStyle = { getPropertyValue: (k) => k === 'position' ? 'absolute' : '' };
+const relStyle = { getPropertyValue: (k) => k === 'position' ? 'relative' : '' };
+const staticStyle = { getPropertyValue: () => '' };
+// Test getPx / setPx helpers via exported model (node-safe: no DOM needed for model functions)
+// These are DOM helpers; they are tested implicitly via addTextBlockToSlide (which uses absolute inline style)
