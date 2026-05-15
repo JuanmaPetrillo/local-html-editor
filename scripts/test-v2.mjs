@@ -12,6 +12,26 @@ if (!html.includes('sandbox="allow-same-origin"')) throw new Error('preview ifra
 if (html.includes('allow-scripts')) throw new Error('allow-scripts must not be enabled for preview iframe');
 
 const realFixture = readFileSync('tests/fixtures/from_answers_to_tools_v3.html', 'utf8');
+const staticFixture = readFileSync('tests/fixtures/v2-simple-slide.html', 'utf8');
+const interactiveFixture = readFileSync('tests/fixtures/user-real-copilot-presentation.html', 'utf8');
+const remoteFixture = readFileSync('tests/fixtures/v2-remote-image.html', 'utf8');
+const noSlideFixture = '<!doctype html><html><head><style>.hero{color:#123}</style><script>alert(1)</script></head><body><main class="hero"><h1>Generic HTML</h1><button onclick="x()">Do</button></main></body></html>';
+
+const staticModel = mapHtmlToModel(staticFixture);
+if (!exportModelToHtml(staticModel).includes('Quarterly Results')) throw new Error('static fixture lost text');
+if (!exportModelToHtml(staticModel).includes('data:image/png;base64,AA==')) throw new Error('static fixture lost data image');
+
+const interactiveModel = mapHtmlToModel(interactiveFixture);
+if (!interactiveModel.slides.length) throw new Error('interactive fixture slide detection failed');
+if (/<script\b/i.test(exportModelToHtml(interactiveModel))) throw new Error('interactive fixture script not sanitized');
+
+const remoteModel = mapHtmlToModel(remoteFixture);
+if (/https:\/\//i.test(exportModelToHtml(remoteModel))) throw new Error('remote fixture still has remote URL');
+
+const noSlideModel = mapHtmlToModel(noSlideFixture);
+if (!noSlideModel.slides.length) throw new Error('no-slide fallback failed');
+if (!exportModelToHtml(noSlideModel).includes('Generic HTML')) throw new Error('no-slide text missing');
+
 const model = mapHtmlToModel(realFixture);
 if (model.slides.length !== 4) throw new Error('slide count mismatch');
 if (model.slides[0].id !== 'slide-1') throw new Error('slide id parsing failed');

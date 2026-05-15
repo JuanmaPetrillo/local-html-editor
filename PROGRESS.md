@@ -747,3 +747,13 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Passed.
 Known limitations: V2 fidelity mode still does not implement full general move/resize overlays for arbitrary imported components; this remains explicitly out-of-scope for this PR.
 Next recommended task: Implement safe overlay move/resize for supported block elements and lock/label unsupported complex components.
+### 2026-05-15 (pr54 general-contract amend: support tiers + broader fixture coverage)
+Date: 2026-05-15
+Branch/PR: current branch / PR #54
+Milestone: Phase 8B V2 architecture correction
+Summary: Reframed V2 as a general visual-fidelity contract for arbitrary HTML presentations (not single-fixture only). Updated docs/UI wording to define three support tiers (visual fidelity, safe direct editable subset, preserved/locked content), explicit sanitized script policy for edit/export, and non-overclaim limitation for move/resize. Expanded `test:v2` across multiple fixture categories (static positioned HTML, interactive/scripted fixture, remote-asset fixture, full benchmark fixture, and generic no-slide fallback) while retaining fidelity/sanitization assertions. Added roadmap wording for next phase: dedicated visual manipulation overlay layer for safe move/resize.
+Files changed: README.md, docs/MANUAL_PILOT_GUIDE.md, apps/desktop-v2/index.html, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Passed.
+Known limitations: General move/resize/style manipulation for arbitrary imported elements is still pending overlay-layer phase; script-driven interactions are not preserved in sanitized export.
+Next recommended task: Implement V2 visual manipulation overlay handles for safe selected elements (position/size/basic style edits), with explicit lock markers for unsupported complex/script-driven components.

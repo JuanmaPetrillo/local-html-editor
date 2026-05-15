@@ -7,6 +7,6 @@
 <body>
 <div class="top"><label>Open HTML <input id="file" type="file" accept=".html,.htm"></label><button id="add-text">Add Text</button><button id="add-image">Add Image</button><button id="delete" disabled>Delete</button><button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button><button id="save-project">Save Project</button><button id="open-project">Open Project</button><button id="export">Export HTML</button><input id="open-project-file" type="file" accept=".json" hidden></div>
 <div class="wrap"><aside class="panel"><h3>Slides</h3><div id="slides" class="list"></div></aside><main class="panel"><iframe id="preview-frame" class="canvas" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe></main><aside class="panel"><h3>Inspector</h3><div>Type: <strong id="ins-type">none</strong></div><div class="fields"><label>X<input id="ins-x" type="number"></label><label>Y<input id="ins-y" type="number"></label><label>W<input id="ins-w" type="number"></label><label>H<input id="ins-h" type="number"></label></div><label>Text<textarea id="ins-text" rows="3"></textarea></label><label>Alt text<input id="ins-alt" type="text"></label><h3>Layers</h3><div id="layers" class="list"></div></aside></div>
-<div id="status" class="status">Ready.</div>
+<div id="status" class="status">Ready. Fidelity mode: safe inline text editing for supported elements; complex/script-driven content may be preserved/locked.</div>
 <script src="./app-v2.bundle.js"></script>
 </body></html>
