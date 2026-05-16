@@ -227,6 +227,8 @@ if (hasDom) {
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
+  const rubberBandEl = q('#rubber-band');
+  const stageWrap = q('.stage-wrap');
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
   const brandMark = q('.brand-mark');
@@ -250,11 +252,13 @@ if (hasDom) {
   const markDirty = () => { if (isDirty) return; isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; };
   const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; };
   let selectedEl = null;
+  let selectedEls = [];
   let activeEditingEl = null;
   let selectionId = '';
   let resizeState = null;
   let clipboard = null;
   let snapEnabled = false;
+  let stageScale = 1;
   const snapCoord = (v) => snapEnabled ? Math.round(v / 10) * 10 : Math.round(v);
 
   const setStatus = (t) => {
@@ -301,7 +305,14 @@ if (hasDom) {
   function updateSlideVisibility(doc) {
     collectSlides(doc).forEach((slide, i) => {
       const id = slide.getAttribute('data-slide-id') || `s${i + 1}`;
-      slide.style.display = id === model.selectedSlideId ? '' : 'none';
+      if (id === model.selectedSlideId) {
+        slide.style.display = 'block';
+        slide.style.visibility = 'visible';
+        slide.style.opacity = '1';
+        slide.style.pointerEvents = '';
+      } else {
+        slide.style.display = 'none';
+      }
     });
   }
 
@@ -446,7 +457,7 @@ if (hasDom) {
     const doc = editFrame.contentDocument;
     if (!doc) return null;
     const r = editOverlay.getBoundingClientRect();
-    const el = doc.elementFromPoint(clientX - r.left, clientY - r.top);
+    const el = doc.elementFromPoint((clientX - r.left) / stageScale, (clientY - r.top) / stageScale);
     if (!el || el === doc.body || el === doc.documentElement) return null;
     return el;
   }
@@ -458,6 +469,7 @@ if (hasDom) {
     selectionBox.style.top = r.top + 'px';
     selectionBox.style.width = r.width + 'px';
     selectionBox.style.height = r.height + 'px';
+    selectionBox.style.border = '2px solid var(--c-blue)';
     selectionBox.style.display = 'block';
     updateResizeHandles(el);
   }
@@ -465,6 +477,22 @@ if (hasDom) {
   function clearSelectionBox() {
     selectionBox.style.display = 'none';
     hoverBox.style.display = 'none';
+    hideResizeHandles();
+  }
+
+  function showMultiSelectionBox(els) {
+    if (!els.length) { clearSelectionBox(); return; }
+    const rects = els.map(el => el.getBoundingClientRect());
+    const left = Math.min(...rects.map(r => r.left));
+    const top = Math.min(...rects.map(r => r.top));
+    const right = Math.max(...rects.map(r => r.right));
+    const bottom = Math.max(...rects.map(r => r.bottom));
+    selectionBox.style.left = left + 'px';
+    selectionBox.style.top = top + 'px';
+    selectionBox.style.width = (right - left) + 'px';
+    selectionBox.style.height = (bottom - top) + 'px';
+    selectionBox.style.border = '2px dashed var(--c-blue)';
+    selectionBox.style.display = 'block';
     hideResizeHandles();
   }
 
@@ -505,8 +533,8 @@ if (hasDom) {
     };
     handles[dir].onpointermove = (e) => {
       if (!resizeState || resizeState.dir !== dir) return;
-      const dx = e.clientX - resizeState.startX;
-      const dy = e.clientY - resizeState.startY;
+      const dx = (e.clientX - resizeState.startX) / stageScale;
+      const dy = (e.clientY - resizeState.startY) / stageScale;
       const el = resizeState.el;
       let newW = resizeState.origW;
       let newH = resizeState.origH;
@@ -552,10 +580,23 @@ if (hasDom) {
     let hoveredEl = null;
     let overlayPointerDown = null;
     let overlayDragState = null;
+    let rubberBandState = null;
 
     editOverlay.style.pointerEvents = 'all';
 
     editOverlay.onpointermove = (e) => {
+      if (rubberBandState) {
+        const r = editOverlay.getBoundingClientRect();
+        const ix = (e.clientX - r.left) / stageScale;
+        const iy = (e.clientY - r.top) / stageScale;
+        const x = Math.min(ix, rubberBandState.startX);
+        const y = Math.min(iy, rubberBandState.startY);
+        rubberBandEl.style.left = x + 'px';
+        rubberBandEl.style.top = y + 'px';
+        rubberBandEl.style.width = Math.abs(ix - rubberBandState.startX) + 'px';
+        rubberBandEl.style.height = Math.abs(iy - rubberBandState.startY) + 'px';
+        return;
+      }
       if (!activeEditingEl && !overlayDragState) {
         const iframeEl = getIframeElementAt(e.clientX, e.clientY);
         if (iframeEl !== hoveredEl) {
@@ -576,46 +617,86 @@ if (hasDom) {
       }
       if (overlayPointerDown && !overlayDragState && !activeEditingEl) {
         if (getPointerDistance(overlayPointerDown, { x: e.clientX, y: e.clientY }) >= 4) {
-          if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
-          overlayDragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
+          const el = selectedEl;
+          if (!el) return;
+          if (!isMovableByPosition(el)) convertToAbsolute(el);
+          const extraEls = selectedEls.length > 1 ? selectedEls.filter(x => x !== el) : [];
+          const extraOffsets = extraEls.map(ex => {
+            if (!isMovableByPosition(ex)) convertToAbsolute(ex);
+            return { el: ex, left: getPx(ex.style, 'left'), top: getPx(ex.style, 'top') };
+          });
+          overlayDragState = { el, extraEls, extraOffsets, startX: e.clientX, startY: e.clientY, left: getPx(el.style, 'left'), top: getPx(el.style, 'top') };
         }
       }
       if (overlayDragState) {
-        setPx(overlayDragState.el.style, 'left', snapCoord(overlayDragState.left + (e.clientX - overlayDragState.startX)));
-        setPx(overlayDragState.el.style, 'top', snapCoord(overlayDragState.top + (e.clientY - overlayDragState.startY)));
-        updateSelectionBox(overlayDragState.el);
+        const dx = (e.clientX - overlayDragState.startX) / stageScale;
+        const dy = (e.clientY - overlayDragState.startY) / stageScale;
+        setPx(overlayDragState.el.style, 'left', snapCoord(overlayDragState.left + dx));
+        setPx(overlayDragState.el.style, 'top', snapCoord(overlayDragState.top + dy));
+        for (const off of overlayDragState.extraOffsets) {
+          setPx(off.el.style, 'left', snapCoord(off.left + dx));
+          setPx(off.el.style, 'top', snapCoord(off.top + dy));
+        }
+        if (selectedEls.length > 1) showMultiSelectionBox(selectedEls);
+        else updateSelectionBox(overlayDragState.el);
         loadInspector(overlayDragState.el);
       }
     };
 
     editOverlay.onclick = (e) => {
+      if (rubberBandState) return;
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (e.ctrlKey || e.metaKey) {
         if (iframeEl) iframeEl.click();
         return;
       }
       if (activeEditingEl && iframeEl !== activeEditingEl) { finishTextEdit(true); return; }
-      if (iframeEl) selectElement(iframeEl);
-      else { selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons(); }
+      if (!overlayDragState) {
+        if (iframeEl) {
+          selectElement(iframeEl);
+          selectedEls = [iframeEl];
+        } else {
+          selectedEl = null; selectionId = ''; selectedEls = [];
+          clearSelectionBox(); describeSelected(null); refreshButtons();
+        }
+      }
     };
 
     editOverlay.ondblclick = (e) => {
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (!iframeEl) return;
       selectElement(iframeEl);
+      selectedEls = [iframeEl];
       enterTextEditMode(iframeEl);
     };
 
     editOverlay.onpointerdown = (e) => {
-      if (activeEditingEl || !selectedEl) return;
+      if (activeEditingEl) return;
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
-      if (iframeEl && iframeEl === selectedEl) {
+      if (iframeEl) {
+        if (iframeEl !== selectedEl) {
+          selectElement(iframeEl);
+          selectedEls = [iframeEl];
+        }
         overlayPointerDown = { x: e.clientX, y: e.clientY };
         editOverlay.setPointerCapture(e.pointerId);
+      } else {
+        const r = editOverlay.getBoundingClientRect();
+        const ix = (e.clientX - r.left) / stageScale;
+        const iy = (e.clientY - r.top) / stageScale;
+        rubberBandState = { startX: ix, startY: iy };
+        rubberBandEl.style.left = ix + 'px';
+        rubberBandEl.style.top = iy + 'px';
+        rubberBandEl.style.width = '0px';
+        rubberBandEl.style.height = '0px';
+        rubberBandEl.style.display = 'block';
+        editOverlay.setPointerCapture(e.pointerId);
+        selectedEl = null; selectionId = ''; selectedEls = [];
+        clearSelectionBox(); describeSelected(null); refreshButtons();
       }
     };
 
-    editOverlay.onpointerup = () => {
+    editOverlay.onpointerup = (e) => {
       overlayPointerDown = null;
       if (overlayDragState) {
         pushHistory(history, model);
@@ -623,6 +704,39 @@ if (hasDom) {
         overlayDragState = null;
         render();
         markDirty();
+      }
+      if (rubberBandState) {
+        rubberBandEl.style.display = 'none';
+        const r = editOverlay.getBoundingClientRect();
+        const ix = (e.clientX - r.left) / stageScale;
+        const iy = (e.clientY - r.top) / stageScale;
+        const rbL = Math.min(ix, rubberBandState.startX);
+        const rbT = Math.min(iy, rubberBandState.startY);
+        const rbR = Math.max(ix, rubberBandState.startX);
+        const rbB = Math.max(iy, rubberBandState.startY);
+        rubberBandState = null;
+        if (rbR - rbL > 5 && rbB - rbT > 5) {
+          const activeSlide = collectSlides(doc).find((s, i) =>
+            (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId
+          ) || doc.body;
+          const candidates = Array.from(activeSlide.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,span,img,button,a,li,label'));
+          const hits = candidates.filter(el => {
+            if (el === activeSlide) return false;
+            const er = el.getBoundingClientRect();
+            return er.width > 0 && er.height > 0 &&
+              er.left < rbR && er.right > rbL &&
+              er.top < rbB && er.bottom > rbT;
+          });
+          if (hits.length === 1) {
+            selectElement(hits[0]); selectedEls = hits;
+          } else if (hits.length > 1) {
+            selectedEls = hits;
+            selectElement(hits[0]);
+            showMultiSelectionBox(hits);
+            setStatus(`${hits.length} elements selected — drag to move all, Delete to remove all.`);
+            refreshButtons();
+          }
+        }
       }
     };
 
@@ -699,10 +813,14 @@ if (hasDom) {
       selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons();
       return;
     }
-    if (e.key === 'Delete' && selectedEl) {
+    if (e.key === 'Delete' && (selectedEl || selectedEls.length)) {
       e.preventDefault();
-      applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
-      setStatus('Element deleted. Press Ctrl+Z to undo.');
+      applyStyle(() => {
+        const toDelete = selectedEls.length > 1 ? [...selectedEls] : (selectedEl ? [selectedEl] : []);
+        toDelete.forEach(el => { try { el.remove(); } catch (_) {} });
+        selectedEl = null; selectionId = ''; selectedEls = [];
+      });
+      setStatus('Element(s) deleted. Press Ctrl+Z to undo.');
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedEl) {
@@ -794,7 +912,14 @@ if (hasDom) {
     i.click();
   };
 
-  delBtn.onclick = () => { applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; }); setStatus('Element deleted. Press Ctrl+Z to undo.'); };
+  delBtn.onclick = () => {
+    applyStyle(() => {
+      const toDelete = selectedEls.length > 1 ? [...selectedEls] : (selectedEl ? [selectedEl] : []);
+      toDelete.forEach(el => { try { el.remove(); } catch (_) {} });
+      selectedEl = null; selectionId = ''; selectedEls = [];
+    });
+    setStatus('Element(s) deleted. Press Ctrl+Z to undo.');
+  };
   insText.onchange = () => applyStyle(() => { if (selectedEl && selectedEl.tagName !== 'IMG') selectedEl.textContent = insText.value; });
   insAlt.onchange = () => applyStyle(() => { if (selectedEl?.tagName === 'IMG' || selectedEl?.tagName === 'BUTTON') selectedEl.setAttribute('alt', insAlt.value); });
   insColor.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.color = insColor.value; });
@@ -879,6 +1004,22 @@ if (hasDom) {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     setStatus('Export complete — scripts removed for safety. Buttons and dynamic content may not work in the exported file.');
   };
+
+  function updateStageScale() {
+    const pad = 40;
+    const availW = stageWrap.clientWidth - pad;
+    const availH = stageWrap.clientHeight - pad;
+    if (availW <= 0 || availH <= 0) return;
+    const s = Math.min(availW / 960, availH / 540, 1);
+    stageScale = s;
+    editStage.style.transform = s < 1 ? `scale(${s.toFixed(4)})` : '';
+    editStage.style.marginBottom = s < 1 ? `${-(540 * (1 - s))}px` : '';
+    liveFrame.style.transform = editStage.style.transform;
+    liveFrame.style.marginBottom = editStage.style.marginBottom;
+  }
+
+  new ResizeObserver(updateStageScale).observe(stageWrap);
+  updateStageScale();
 
   render();
 }
