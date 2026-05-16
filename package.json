@@ -15,7 +15,8 @@
     "test:security": "node scripts/test-security.mjs",
     "build": "node scripts/build.mjs",
     "package:pilot": "node scripts/package-pilot.mjs",
-    "test:v2": "node scripts/test-v2.mjs"
+    "test:v2": "node scripts/test-v2.mjs",
+    "test:e2e:browser": "node scripts/test-e2e-browser.mjs"
   },
   "engines": {
     "node": ">=20"

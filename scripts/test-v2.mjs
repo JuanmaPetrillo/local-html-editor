@@ -6,7 +6,7 @@ import {
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="ins-font-family"', 'id="ins-align"', 'id="bring-front"', 'id="send-back"', 'id="snap-toggle"', 'id="ins-italic"', 'id="ins-underline"', 'id="ins-opacity"', 'id="slide-counter"', 'Keyboard Shortcuts']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="set-master"', 'id="apply-master"', 'id="master-preserve-text"', 'id="ins-font-family"', 'id="ins-align"', 'id="ins-master-slot"', 'id="bring-front"', 'id="send-back"', 'id="snap-toggle"', 'id="ins-italic"', 'id="ins-underline"', 'id="ins-opacity"', 'id="ins-rotate"', 'id="slide-counter"', 'Keyboard Shortcuts']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
 const editStageIdx = html.indexOf('id="edit-stage"');
@@ -150,6 +150,16 @@ const svgTextHtml = '<a href="data:text/html,<script>x</script>">x</a>';
 if (/data:text\//i.test(stripUnsafeHtml(svgTextHtml))) throw new Error('data:text/ URI not stripped');
 
 // createProjectPayload must not include originalHtml or raw scripts
+
+// project payload should persist master workflow state
+const payloadWithMaster = createProjectPayload({ ...model, masterSlideTemplateHtml: '<div data-master-slot="title">Master</div>', masterPreserveText: false });
+if (payloadWithMaster.model.masterSlideTemplateHtml !== '<div data-master-slot="title">Master</div>') throw new Error('project payload missing master template html');
+if (payloadWithMaster.model.masterPreserveText !== false) throw new Error('project payload missing master preserve flag');
+const restoredWithMaster = restoreProjectPayload(payloadWithMaster);
+if (!restoredWithMaster) throw new Error('restore with master payload returned null');
+if (restoredWithMaster.masterSlideTemplateHtml !== '<div data-master-slot="title">Master</div>') throw new Error('restore missing master template html');
+if (restoredWithMaster.masterPreserveText !== false) throw new Error('restore missing master preserve flag');
+
 const payloadJson = JSON.stringify(createProjectPayload(model));
 if (payloadJson.includes('"originalHtml"')) throw new Error('project payload must not contain originalHtml key');
 if (/<script\b/i.test(payloadJson)) throw new Error('project payload must not contain script tags');
@@ -259,7 +269,90 @@ if (!appSrc.includes('Project file format not recognized')) throw new Error('v2:
 // Regression: revokeObjectURL deferred via setTimeout
 if (!appSrc.includes('setTimeout(() => URL.revokeObjectURL')) throw new Error('v2: URL.revokeObjectURL must be deferred via setTimeout');
 
+// Regression: selected outline layer should be appended once
+const outlineAppendCount = (appSrc.match(/editStage\.appendChild\(selectedOutlineLayer\)/g) || []).length;
+if (outlineAppendCount !== 1) throw new Error('v2: selected outline layer append should occur exactly once');
+
 // Regression: convertToAbsolute warning message
 if (!appSrc.includes('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.')) throw new Error('v2: convertToAbsolute missing layout-change warning');
 
 console.log('v2 full-editor checks passed');
+
+
+// Master template slot mapping regression: slot should preserve semantically-matched text
+const masterSlotFixture = '<!doctype html><html><body>' +
+  '<section class="slide" data-slide-id="s1" data-label="Master"><h1 data-master-slot="title">Master Title</h1><p data-master-slot="body">Master Body</p></section>' +
+  '<section class="slide" data-slide-id="s2" data-label="Target"><h1 data-master-slot="title">Target Title</h1><p data-master-slot="body">Target Body</p></section>' +
+  '</body></html>';
+const masterSlotModel = mapHtmlToModel(masterSlotFixture);
+const masterSlotHtml = exportModelToHtml(masterSlotModel);
+if (!masterSlotHtml.includes('data-master-slot="title"') || !masterSlotHtml.includes('data-master-slot="body"')) throw new Error('master slot attributes should roundtrip in export');
+if (!masterSlotHtml.includes('Target Title') || !masterSlotHtml.includes('Target Body')) throw new Error('master slot fixture content missing');
+
+
+// Regression: slide add/delete/duplicate should clear full selection state helper
+if (!appSrc.includes("addSlideBtn.onclick") || !appSrc.includes("delSlideBtn.onclick") || !appSrc.includes("dupSlideBtn.onclick")) throw new Error('slide action handlers missing');
+const addBlock = appSrc.slice(appSrc.indexOf('addSlideBtn.onclick'), appSrc.indexOf('delSlideBtn.onclick'));
+const delBlock = appSrc.slice(appSrc.indexOf('delSlideBtn.onclick'), appSrc.indexOf('dupSlideBtn.onclick'));
+const dupBlock = appSrc.slice(appSrc.indexOf('dupSlideBtn.onclick'), appSrc.indexOf('undoBtn.onclick'));
+if (!addBlock.includes('clearSelectionState()')) throw new Error('addSlide handler must clear full selection state');
+if (!delBlock.includes('clearSelectionState()')) throw new Error('delSlide handler must clear full selection state');
+if (!dupBlock.includes('clearSelectionState()')) throw new Error('dupSlide handler must clear full selection state');
+
+
+// Regression: master preserve-text toggle is wired in source
+if (!appSrc.includes("masterPreserveTextToggle.onchange")) throw new Error('master preserve-text toggle onchange handler missing');
+if (!appSrc.includes("masterPreserveText = masterPreserveTextToggle.checked")) throw new Error('master preserve-text toggle does not update state');
+if (!appSrc.includes("applyMasterTemplateToSlide(slide, masterSlideTemplateHtml, masterPreserveText)")) throw new Error('apply master path missing preserve-text state wiring');
+
+
+// Regression: master-slot inspector sanitization should exist
+if (!appSrc.includes("insMasterSlot.onchange")) throw new Error('master slot onchange handler missing');
+if (!appSrc.includes("replace(/[^a-zA-Z0-9_-]/g, '-')")) throw new Error('master slot sanitization missing');
+if (!appSrc.includes("slice(0, 64)")) throw new Error('master slot max length clamp missing');
+
+
+// Regression: slide discovery/visibility hardening should remain present
+if (!appSrc.includes("const selectors = ['.slide', '[data-slide]', 'section.slide', '.page', '.screen']")) throw new Error('collectSlides selector fallback set missing');
+if (!appSrc.includes('slides.length <= 1 || slides[0] === doc.body')) throw new Error('updateSlideVisibility single-slide fallback guard missing');
+if (!appSrc.includes('const hasSelected = slides.some')) throw new Error('updateSlideVisibility selected-id validity check missing');
+
+// Regression: marquee pointer-up should refresh selection UI state
+if (!appSrc.includes('if (marqueeState)')) throw new Error('marquee pointerup block missing');
+if (!appSrc.includes('updateSelectionBox(selectedEl);')) throw new Error('marquee selection should refresh selection box');
+if (!appSrc.includes('loadInspector(selectedEl);')) throw new Error('marquee selection should refresh inspector');
+if (!appSrc.includes('renderSelectedOutlines();')) throw new Error('marquee selection should refresh selected outlines');
+if (!appSrc.includes('refreshButtons();')) throw new Error('marquee selection should refresh button enabled state');
+
+// Regression: mode switch should clear full selection state
+const previewBlock = appSrc.slice(appSrc.indexOf('previewBtn.onclick'), appSrc.indexOf('editBtn.onclick'));
+const editBlock = appSrc.slice(appSrc.indexOf('editBtn.onclick'), appSrc.indexOf("document.addEventListener('keydown'"));
+if (!previewBlock.includes('clearSelectionState()')) throw new Error('preview mode switch must clear selection state');
+if (!editBlock.includes('clearSelectionState()')) throw new Error('edit mode switch must clear selection state');
+
+// Regression: open file/project flows should clear full selection state
+const fileOpenBlock = appSrc.slice(appSrc.indexOf('fileInput.onchange'), appSrc.indexOf('previewBtn.onclick'));
+const projectOpenBlock = appSrc.slice(appSrc.indexOf('openProjectInput.onchange'), appSrc.indexOf('exportBtn.onclick'));
+if (!fileOpenBlock.includes('clearSelectionState()')) throw new Error('file open flow must clear selection state');
+if (!projectOpenBlock.includes('clearSelectionState()')) throw new Error('project open flow must clear selection state');
+
+// Regression: delete paths should clear full selection state helper
+const keyDeleteBlock = appSrc.slice(appSrc.indexOf("if (e.key === 'Delete'"), appSrc.indexOf("if ((e.ctrlKey || e.metaKey) && e.key === 'c'"));
+const deleteBtnBlock = appSrc.slice(appSrc.indexOf('delBtn.onclick'), appSrc.indexOf('insText.onchange'));
+if (!keyDeleteBlock.includes('clearSelectionState()')) throw new Error('keyboard Delete path must clear selection state');
+if (!deleteBtnBlock.includes('clearSelectionState()')) throw new Error('Delete button path must clear selection state');
+
+// Regression: missing selected marker target should clear full selection state
+const markerBlock = appSrc.slice(appSrc.indexOf('function applySelectionMarker()'), appSrc.indexOf('function selectElement('));
+if (!markerBlock.includes('if (!el)')) throw new Error('applySelectionMarker missing !el guard');
+if (!markerBlock.includes('clearSelectionState()')) throw new Error('applySelectionMarker !el guard must clear selection state');
+
+// Regression: clearSelectionState should clear selected outlines layer
+const clearBlock = appSrc.slice(appSrc.indexOf('function clearSelectionState()'), appSrc.indexOf('function finishTextEdit('));
+if (!clearBlock.includes('renderSelectedOutlines();')) throw new Error('clearSelectionState must refresh selected outlines layer');
+
+
+// Regression: master slot mapping should prioritize slot keys before positional fallback
+if (!appSrc.includes("const originalBySlot = new Map()")) throw new Error('master slot map creation missing');
+if (!appSrc.includes("if (slot && originalBySlot.has(slot))")) throw new Error('master slot priority branch missing');
+if (!appSrc.includes("if (i < originalPositional.length) el.textContent = originalPositional[i]")) throw new Error('master positional fallback branch missing');

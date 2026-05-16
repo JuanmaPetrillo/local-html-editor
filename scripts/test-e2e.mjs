@@ -153,3 +153,22 @@ for (const fixtureName of [
 ]) {
   if (!workflowTests.includes(fixtureName)) throw new Error(`workflow tests must reference fixture: ${fixtureName}`);
 }
+
+
+// V2 editor smoke guard (source-level; not browser-driven)
+const v2Html = readFileSync('apps/desktop-v2/index.html', 'utf8');
+const v2App = readFileSync('apps/desktop-v2/src/app-v2.mjs', 'utf8');
+for (const token of ['id="marquee-box"', 'id="set-master"', 'id="apply-master"', 'id="master-preserve-text"', 'id="ins-master-slot"', 'id="ins-rotate"']) {
+  if (!v2Html.includes(token)) throw new Error(`v2 ui token missing: ${token}`);
+}
+if (!v2App.includes('masterPreserveTextToggle.onchange')) throw new Error('v2 preserve-text toggle handler missing');
+if (!v2App.includes('applyMasterTemplateToSlide(slide, masterSlideTemplateHtml, masterPreserveText)')) throw new Error('v2 master apply preserve wiring missing');
+if (!v2App.includes('clearSelectionState()')) throw new Error('v2 selection clear helper missing');
+
+if (!v2App.includes('editOverlay.onpointerdown')) throw new Error('v2 pointerdown handler missing');
+if (!v2App.includes('editOverlay.onpointermove')) throw new Error('v2 pointermove handler missing');
+if (!v2App.includes('editOverlay.onpointerup')) throw new Error('v2 pointerup handler missing');
+if (!v2App.includes('marqueeState')) throw new Error('v2 marquee state wiring missing');
+if (!v2App.includes('masterPreserveTextToggle.onchange')) throw new Error('v2 preserve-text toggle interaction wiring missing');
+
+console.log('v2 e2e smoke placeholder passed');

@@ -847,3 +847,401 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: First-run guide is always visible only until slides populate (existing behavior); no modal/one-time persistence was added. Export continues to strip all scripts by design, which may disable interactive behaviors in exported files.
 Next recommended task: Optional first-time confirmation dialog for normal-flow conversion if future UX testing shows warning-only copy is insufficient.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 1 — layout, slide visibility, drag start)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass1
+Milestone: Phase 11 follow-up stabilization
+Summary: Implemented first stabilization slice targeting reported usability blockers in edit mode. (1) Removed responsive transform-based stage shrinking that forced tiny editing surfaces at narrower widths; switched stage viewport behavior to scroll rather than scale for consistent pointer coordinates. (2) Adjusted workspace column sizing to free more center-stage width while preserving existing UI structure. (3) Hardened slide detection beyond `.slide` by checking `[data-slide]`, `section.slide`, `.page`, `.screen`, and then multi-section fallback before `body`. (4) Hardened slide visibility logic to avoid blank canvases when selected slide ID is missing/invalid and to keep full content visible in single-slide body fallback mode. (5) Improved drag interaction start: pointerdown on an element now selects it (if needed) and arms drag in the same gesture, instead of requiring prior selection.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Marquee multi-select/group move, alignment/distribution, grouping/ungrouping, rotation, and template/master workflows are not yet implemented in this pass.
+Next recommended task: Stabilization pass 2 to add marquee multi-select + group move and regression tests for non-.slide multi-section decks.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 2 — marquee selection baseline)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass2
+Milestone: Phase 11 follow-up stabilization
+Summary: Added baseline marquee-selection support in edit mode. Introduced `#marquee-box` overlay visual for drag-selection gestures, added additive selection support entry points for Shift/Ctrl/Cmd click, and wired pointer lifecycle to gather intersecting elements within marquee bounds and set active selection state. This pass keeps existing single-selection behavior intact while establishing multi-select substrate for upcoming grouped move/alignment operations.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Group drag of all selected elements is not fully wired yet; current drag behavior still operates on active element only. Advanced selection visuals for all selected elements and bulk operations remain pending.
+Next recommended task: Stabilization pass 3 to apply drag deltas/nudge/delete/front-back across selected sets and add focused regression checks for marquee outcomes.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 3 — group operations on selected set)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass3
+Milestone: Phase 11 follow-up stabilization
+Summary: Extended multi-selection behavior from baseline marquee into actionable group operations. Added shared selected-set resolution helper and clear-selection helper, then applied selected-set semantics to drag movement, keyboard nudge, delete, and z-order (bring front/send back). Drag now moves all selected elements together with preserved relative offsets.
+Files changed: apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Multi-selected element outlines are still represented by a single primary selection box. Alignment/distribution, grouping/ungrouping, rotation, and master/template workflows remain pending.
+Next recommended task: Stabilization pass 4 for per-element multi-selection outlines and alignment/distribution controls.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 4 — multi-selection outline visuals)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass4
+Milestone: Phase 11 follow-up stabilization
+Summary: Added visual feedback for multi-selection sets by rendering per-element outline boxes for selected items beyond the active primary selection. Outline layer now refreshes on selection changes, marquee results, drag movement, and keyboard nudge updates.
+Files changed: apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Alignment/distribution, grouping/ungrouping, rotation, and master/template workflows remain pending.
+Next recommended task: Stabilization pass 5 for alignment/distribution controls over selected sets.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 5 — alignment/distribution controls)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass5
+Milestone: Phase 11 follow-up stabilization
+Summary: Added Arrange controls in the inspector for selected sets: Align Left, Align Top, Distribute Horizontal, and Distribute Vertical. Controls are enabled only when multiple elements are selected. Operations now apply to selected sets with automatic absolute-conversion when needed and persist through existing applyStyle history flow.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Grouping/ungrouping, rotation, and master/template workflows remain pending.
+Next recommended task: Stabilization pass 6 for grouping/ungrouping and grouped resize semantics.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 6 — grouping and ungrouping)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass6
+Milestone: Phase 11 follow-up stabilization
+Summary: Added Group/Ungroup controls to Arrange section. Group wraps selected elements into a positioned `.lhe-group` container with normalized child offsets; Ungroup lifts children back to parent while preserving absolute coordinates. Group/Ungroup controls are conditionally enabled based on current selection state.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Rotation controls and master/template workflows remain pending.
+Next recommended task: Stabilization pass 7 for rotation controls and selected-set rotation behavior.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 7 — rotation control)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass7
+Milestone: Phase 11 follow-up stabilization
+Summary: Added Rotate (deg) control to inspector and wired rotation behavior through applyStyle. Rotation now applies to selected sets, preserving any pre-existing non-rotation transform fragments while replacing existing rotate() values.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Master/template workflow remains pending.
+Next recommended task: Stabilization pass 8 for reusable master/template slide structures.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 8 — master template capture/apply)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass8
+Milestone: Phase 11 follow-up stabilization
+Summary: Added master-template baseline workflow. Users can capture the active slide body as a master template (`Set Master`) and apply it across all slides (`Apply Master`). Controls are enabled in edit mode with selected slide context and template availability. Apply operation integrates with undo history and dirty-state tracking.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Master apply currently clones full slide innerHTML (content + layout) to every slide and does not provide selective placeholder mapping.
+Next recommended task: Add placeholder-aware master mapping and opt-in per-slide apply modes.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 9 — master apply preserves slide text)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass9
+Milestone: Phase 11 follow-up stabilization
+Summary: Improved master-template apply behavior to preserve existing slide text content while applying master structure/layout. On apply, text-bearing nodes are mapped in order (`h1/h2/h3/p/li/a/label/button/span`) from original slide into the newly applied master template.
+Files changed: apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Text mapping is positional and best-effort; no explicit placeholder tagging/matching UI yet.
+Next recommended task: Add optional placeholder IDs in master templates for deterministic content mapping.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 10 — master-slot authoring field)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass10
+Milestone: Phase 11 follow-up stabilization
+Summary: Added `Master slot` inspector field for selected elements. Users can now author/edit `data-master-slot` directly in edit mode, enabling deterministic master-template text mapping introduced in prior pass.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Slot matching currently targets text-bearing nodes and still falls back to positional mapping for unmatched slots.
+Next recommended task: Add dedicated tests for slot-preserving master apply behavior across mixed template structures.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 11 — master apply text-preserve toggle)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass11
+Milestone: Phase 11 follow-up stabilization
+Summary: Added explicit `Preserve text` toggle to master workflow controls. Users can now choose whether master apply keeps existing slide text (default enabled) or performs full template content replacement.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Slot-based mapping remains best-effort for unmatched structures.
+Next recommended task: Add targeted automated assertions for master slot mapping outcomes, not only token presence.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 12 — master slot regression assertions)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass12
+Milestone: Phase 11 follow-up stabilization
+Summary: Added focused regression assertions in `scripts/test-v2.mjs` for master-slot fixture coverage to ensure `data-master-slot` attributes and associated content roundtrip through model/export flows.
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: `test:v2` remains a model/token-oriented suite and does not execute full UI click paths for Set Master/Apply Master.
+Next recommended task: Add dedicated E2E coverage for Set Master + Apply Master + Preserve text toggle behavior.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 13 — clear multi-selection on slide operations)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass13
+Milestone: Phase 11 follow-up stabilization
+Summary: Fixed selection-state consistency when adding/deleting/duplicating slides. Replaced partial selection resets (`selectedEl`/`selectionId`) with `clearSelectionState()` so `selectedIds` and outline visuals are fully cleared across slide-level operations.
+Files changed: apps/desktop-v2/src/app-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: `test:v2` still does not execute full click-path UI E2E flows for slide operations.
+Next recommended task: Add UI-path E2E coverage for selection state after add/delete/duplicate slide actions.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 14 — slide action selection-reset regression guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass14
+Milestone: Phase 11 follow-up stabilization
+Summary: Added targeted regression assertions in `scripts/test-v2.mjs` to ensure add/delete/duplicate slide handlers invoke `clearSelectionState()` so multi-selection artifacts do not leak across slide operations.
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Assertion is source-structure based and not a browser interaction E2E flow.
+Next recommended task: Add browser-level E2E step that performs marquee selection then add/delete/duplicate and verifies selection overlays are cleared.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 15 — preserve-text toggle wiring regression guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass15
+Milestone: Phase 11 follow-up stabilization
+Summary: Added source-level regression assertions in `scripts/test-v2.mjs` ensuring master preserve-text toggle wiring remains intact (`onchange` handler, state update, and apply path usage).
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Guard validates source wiring and not end-to-end click behavior.
+Next recommended task: Browser E2E scenario verifying toggle-on preserves text and toggle-off replaces text across multi-slide apply.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 16 — master-slot sanitization regression guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass16
+Milestone: Phase 11 follow-up stabilization
+Summary: Added focused source-level regression assertions in `scripts/test-v2.mjs` to guarantee `ins-master-slot` onchange wiring includes character sanitization and length clamp behavior.
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Guard validates source wiring, not browser-driven input interaction.
+Next recommended task: Add browser E2E flow that enters invalid slot characters and verifies sanitized attribute output.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 17 — slide discovery/visibility regression guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass17
+Milestone: Phase 11 follow-up stabilization
+Summary: Added source-level regression assertions in `scripts/test-v2.mjs` for hardened slide discovery/visibility logic: selector fallback set in `collectSlides()`, single-slide body visibility guard, and selected-id validity fallback checks in `updateSlideVisibility()`.
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Guard validates source wiring and not browser-level visibility interactions.
+Next recommended task: Add E2E fixture run that switches slides in non-`.slide` decks and verifies canvas visibility state.
+
+### 2026-05-16 (V2 stabilization validation sweep — broader gate)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-validation-sweep
+Milestone: Phase 11 follow-up stabilization
+Summary: Ran broader repository validation commands after stabilization passes to reduce risk outside targeted `test:v2` checks.
+Files changed: PROGRESS.md
+Validation run: npm run lint; npm run typecheck; npm test; npm run build
+Result: All listed commands passed.
+Known limitations: `typecheck` is currently a placeholder contract check, and browser click-path E2E coverage for master workflow/marquee flows remains pending.
+Next recommended task: Add browser E2E assertions for marquee + master apply interactions.
+
+### 2026-05-16 (V2 edit-mode stabilization pass 18 — master slot priority mapping regression guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass18
+Milestone: Phase 11 follow-up stabilization
+Summary: Added source-level regression assertions in `scripts/test-v2.mjs` to ensure master apply logic preserves slot-priority mapping before positional fallback (`originalBySlot` branch, then positional fallback branch).
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Assertions are source-structure checks and not browser-level functional E2E assertions.
+Next recommended task: Add browser E2E flow asserting Set Master/Apply Master outcome differences with Preserve text toggle on/off.
+
+### 2026-05-16 (V2 stabilization pass 19 — test:e2e includes V2 source-level smoke guard)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass19
+Milestone: Phase 11 follow-up stabilization
+Summary: Extended `scripts/test-e2e.mjs` with V2-specific smoke assertions (key UI tokens and master-preserve wiring presence) so `npm run test:e2e` now validates both legacy shell and V2 edit-mode contract surfaces.
+Files changed: scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm run test:e2e
+Result: Test script passed (`e2e smoke placeholder passed`, `v2 e2e smoke placeholder passed`).
+Known limitations: Assertions remain source-level and not browser-driven click-path E2E.
+Next recommended task: Add browser automation scenario for marquee + Set Master/Apply Master + preserve toggle behavior.
+
+### 2026-05-16 (V2 stabilization pass 20 — persist master workflow state in project files)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass20
+Milestone: Phase 11 follow-up stabilization
+Summary: Project save/open now persists master workflow state (`masterSlideTemplateHtml`, `masterPreserveText`) so template settings survive session roundtrip. Added targeted `test-v2` assertions for payload/restore coverage.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Targeted v2 test script passed.
+Known limitations: Browser-driven E2E click-path validation remains pending.
+Next recommended task: Add browser E2E scenario covering master preserve toggle + apply across multiple slides.
+
+### 2026-05-16 (V2 stabilization pass 21 — stronger e2e smoke interaction wiring guards)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass21
+Milestone: Phase 11 follow-up stabilization
+Summary: Extended `scripts/test-e2e.mjs` V2 smoke checks to assert core pointer interaction wiring (`onpointerdown`/`onpointermove`/`onpointerup`), marquee state presence, and master preserve-text toggle interaction wiring.
+Files changed: scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm run test:e2e
+Result: Test script passed.
+Known limitations: Still source-level smoke checks, not browser-driven automation.
+Next recommended task: Add true browser E2E automation (Playwright or equivalent) for marquee and master apply click-paths.
+
+
+### 2026-05-16 (V2 stabilization roadmap status snapshot)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-roadmap-snapshot
+Milestone: Phase 11 follow-up stabilization
+Summary: Added an explicit roadmap completion snapshot to track finished vs remaining stabilization scope in one place.
+Completed: layout scaling removal, slide fallback hardening, marquee/additive multi-select, selected-set drag/nudge/delete/z-order, align/distribute, group/ungroup, rotate, master capture/apply, master slot authoring, preserve-text toggle, master state project persistence, `test:v2` + `test:e2e` source-level smoke/regression guards, and broader lint/type/test/build sweep.
+Remaining: browser-driven click-path E2E automation for marquee interactions and Set Master/Apply Master preserve-text behavior.
+Validation run: npm run test:e2e
+Result: Passed.
+Known limitations: Existing E2E checks are source/smoke level and not browser automation.
+Next recommended task: Implement browser-driven E2E test harness and add concrete interaction tests for marquee and master apply flows.
+
+### 2026-05-16 (V2 stabilization pass 22 — browser E2E command scaffold)
+
+Date: 2026-05-16
+Branch/PR: codex/edit-mode-stabilization-pass22
+Milestone: Phase 11 follow-up stabilization
+Summary: Added a dedicated browser-E2E command scaffold (`npm run test:e2e:browser`) to make the remaining roadmap item explicit and runnable when Playwright is available.
+Files changed: package.json, scripts/test-e2e-browser.mjs, PROGRESS.md
+Validation run: npm run test:e2e:browser; npm run test:e2e
+Result: Browser command exits with explicit SKIP when Playwright is unavailable; existing e2e smoke checks passed.
+Known limitations: Real browser click-path assertions are not implemented yet; this pass adds command scaffolding and environment detection only.
+Next recommended task: add Playwright dependency and real V2 click-path specs for marquee/master workflows.
+
+### 2026-05-16 (browser e2e strict-require guard)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: Validation hardening (test harness)
+Summary: Updated `scripts/test-e2e-browser.mjs` so missing Playwright remains a non-fatal skip by default, but becomes a hard failure when `REQUIRE_BROWSER_E2E=1` is set. This enables stricter CI gating when browser E2E is required while preserving local developer ergonomics.
+Files changed: scripts/test-e2e-browser.mjs, PROGRESS.md
+Validation run: npm run test:e2e
+Result: Passed (default environment path, no required browser gate enabled).
+Known limitations: This change only affects test harness behavior; it does not add browser automation or Playwright installation.
+Next recommended task: Wire `REQUIRE_BROWSER_E2E=1` into the CI path(s) that must enforce browser E2E availability.
+
+### 2026-05-16 (ci/browser-e2e-scaffold wiring)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: Validation hardening (workflow coverage)
+Summary: Wired the existing `test:e2e:browser` scaffold command into both CI workflows so automated runs execute the browser-E2E availability check in addition to existing `test:e2e` smoke checks.
+Files changed: .github/workflows/ci.yml, .github/workflows/build-pilot.yml, PROGRESS.md
+Validation run: npm run test:e2e:browser; npm run test:e2e
+Result: Passed (browser scaffold reported SKIP as designed when Playwright is absent).
+Known limitations: This remains scaffold-level verification; no real Playwright spec suite is run yet in CI.
+Next recommended task: Add Playwright dependency/config/spec files, then gate required browser E2E with `REQUIRE_BROWSER_E2E=1` in the strict CI lane.
+
+### 2026-05-16 (regression guard: outline layer append uniqueness)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: Validation hardening (V2 selection overlay)
+Summary: Added a focused regression check in `scripts/test-v2.mjs` to ensure `selectedOutlineLayer` append wiring appears exactly once in V2 source. This guards against accidental duplicate append statements in edit-stage overlay initialization.
+Files changed: scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2
+Result: Passed.
+Known limitations: This is a source-level guard and does not replace browser-interaction E2E for overlay rendering behavior.
+Next recommended task: Add browser-level assertions for selected-outline rendering when Playwright specs are introduced.
+
+### 2026-05-16 (marquee selection UI refresh fix)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Fixed marquee-selection pointer-up flow so selection UI is fully refreshed after marquee hit resolution. On hit, the code now updates selection box and inspector for the active element; on no-hit, it clears selection state. In both paths, it now refreshes selected outlines and button enabled-state.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Regression guard remains source-level; browser-level pointer-path assertions still depend on future Playwright specs.
+Next recommended task: Add real browser E2E coverage for marquee drag-select and post-select inspector/button state.
+
+### 2026-05-16 (mode switch selection-state reset hardening)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Hardened mode switching by clearing full selection state on both Preview and Edit mode toggles (`clearSelectionState()`), preventing stale multi-select IDs/selection UI artifacts from carrying across mode transitions.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Guard is source-level and does not yet validate the full pointer-to-mode-switch browser path.
+Next recommended task: Add browser E2E scenario for select → switch mode → switch back and verify clean selection/inspector state.
+
+### 2026-05-16 (file/project open selection reset hardening)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Hardened file-open and project-open flows by clearing full selection state via `clearSelectionState()` before re-render, preventing stale selection IDs and overlay/inspector artifacts from previous documents.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Regression guards are source-level and do not yet execute browser click-path assertions for open-file/open-project transitions.
+Next recommended task: Add browser E2E scenarios for open-file/open-project transitions with pre-existing selection state.
+
+### 2026-05-16 (delete-path selection reset consolidation)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Consolidated delete-path selection reset logic by switching both keyboard Delete and Delete-button handlers to `clearSelectionState()` after element removal. This avoids partial/manual reset drift and keeps selection cleanup centralized.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Regression checks are source-level and do not yet include browser click/key path assertions.
+Next recommended task: Add browser E2E case covering multi-select delete and post-delete selection/inspector state.
+
+### 2026-05-16 (selection marker missing-target reset hardening)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Hardened `applySelectionMarker()` missing-target path by switching to centralized `clearSelectionState()` reset. This prevents stale `selectedIds` from surviving when the selected marker element no longer exists in the frame DOM.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Regression guard is source-level and does not yet execute browser interaction paths where a selected node disappears.
+Next recommended task: Add browser E2E case for selection invalidation after DOM-mutating operations.
+
+### 2026-05-16 (clearSelectionState outline-layer refresh hardening)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Hardened `clearSelectionState()` by explicitly refreshing selected-outline rendering (`renderSelectedOutlines()`) after selection clear, ensuring stale multi-select outline boxes are cleared whenever centralized selection reset runs.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Guard is source-level and does not yet execute browser-pointer path assertions for outline teardown.
+Next recommended task: Add browser E2E case validating outline teardown after clear-selection triggers.

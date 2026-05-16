@@ -18,6 +18,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:e2e
+      - run: npm run test:e2e:browser
       - run: npm run test:security
       - run: npm run build
       - run: npm run test:v2

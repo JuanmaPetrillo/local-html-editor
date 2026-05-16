@@ -53,8 +53,13 @@ export function buildLivePreviewHtml(sourceHtml, originalHtml) {
 }
 
 function collectSlides(doc) {
-  const nodes = Array.from(doc.querySelectorAll('.slide'));
-  if (nodes.length) return nodes;
+  const selectors = ['.slide', '[data-slide]', 'section.slide', '.page', '.screen'];
+  for (const selector of selectors) {
+    const nodes = Array.from(doc.querySelectorAll(selector));
+    if (nodes.length) return nodes;
+  }
+  const sections = Array.from(doc.querySelectorAll('section'));
+  if (sections.length > 1) return sections;
   return [doc.body];
 }
 
@@ -177,12 +182,14 @@ export function mapHtmlToModel(htmlText) {
 }
 
 export function exportModelToHtml(modelInput) { return stripUnsafeHtml(String(modelInput?.sourceHtml || '')); }
-export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model: { sourceHtml: stripUnsafeHtml(model.sourceHtml), slides: model.slides, selectedSlideId: model.selectedSlideId, mode: model.mode === 'preview' ? 'preview' : 'edit' } }; }
+export function createProjectPayload(model) { return { schema: 'lheproj-v2', version: 2, model: { sourceHtml: stripUnsafeHtml(model.sourceHtml), slides: model.slides, selectedSlideId: model.selectedSlideId, mode: model.mode === 'preview' ? 'preview' : 'edit', masterSlideTemplateHtml: String(model.masterSlideTemplateHtml || ''), masterPreserveText: model.masterPreserveText !== false } }; }
 export function restoreProjectPayload(payload) {
   if (!payload || payload.schema !== 'lheproj-v2' || payload.version !== 2) return null;
   const restored = mapHtmlToModel(String(payload.model?.sourceHtml || ''));
   restored.mode = payload.model?.mode === 'preview' ? 'preview' : 'edit';
   restored.selectedSlideId = payload.model?.selectedSlideId || restored.selectedSlideId;
+  restored.masterSlideTemplateHtml = String(payload.model?.masterSlideTemplateHtml || '');
+  restored.masterPreserveText = payload.model?.masterPreserveText !== false;
   return restored;
 }
 
@@ -214,19 +221,31 @@ if (hasDom) {
   const insColor = q('#ins-color'); const insBg = q('#ins-bg'); const insFont = q('#ins-font'); const insBold = q('#ins-bold');
   const insFontFamily = q('#ins-font-family');
   const insAlign = q('#ins-align');
+  const insMasterSlot = q('#ins-master-slot');
   const addSlideBtn = q('#add-slide');
   const delSlideBtn = q('#del-slide');
   const dupSlideBtn = q('#dup-slide');
+  const setMasterBtn = q('#set-master');
+  const applyMasterBtn = q('#apply-master');
+  const masterPreserveTextToggle = q('#master-preserve-text');
   const bringFrontBtn = q('#bring-front');
   const sendBackBtn = q('#send-back');
   const snapToggle = q('#snap-toggle');
+  const alignLeftBtn = q('#align-left');
+  const alignTopBtn = q('#align-top');
+  const distributeHBtn = q('#distribute-h');
+  const distributeVBtn = q('#distribute-v');
+  const groupSelectionBtn = q('#group-selection');
+  const ungroupSelectionBtn = q('#ungroup-selection');
   const insItalic = q('#ins-italic');
   const insUnderline = q('#ins-underline');
   const insOpacity = q('#ins-opacity');
+  const insRotate = q('#ins-rotate');
   const editStage = q('#edit-stage');
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
+  const marqueeBox = q('#marquee-box');
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
   const brandMark = q('.brand-mark');
@@ -235,6 +254,11 @@ if (hasDom) {
   const HANDLE_CURSORS = { nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', w: 'ew-resize', e: 'ew-resize', sw: 'nesw-resize', s: 'ns-resize', se: 'nwse-resize' };
   const HANDLE_PX = 8;
   const handles = {};
+
+  const selectedOutlineLayer = document.createElement('div');
+  selectedOutlineLayer.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:2;';
+  editStage.appendChild(selectedOutlineLayer);
+
   for (const dir of HANDLE_DIRS) {
     const h = document.createElement('div');
     h.style.cssText = `position:absolute;width:${HANDLE_PX}px;height:${HANDLE_PX}px;background:#2563eb;border:1px solid #fff;box-sizing:border-box;cursor:${HANDLE_CURSORS[dir]};display:none;z-index:4;`;
@@ -252,9 +276,12 @@ if (hasDom) {
   let selectedEl = null;
   let activeEditingEl = null;
   let selectionId = '';
+  let selectedIds = new Set();
   let resizeState = null;
   let clipboard = null;
   let snapEnabled = false;
+  let masterSlideTemplateHtml = String(model.masterSlideTemplateHtml || '');
+  let masterPreserveText = model.masterPreserveText !== false;
   const snapCoord = (v) => snapEnabled ? Math.round(v / 10) * 10 : Math.round(v);
 
   const setStatus = (t) => {
@@ -277,8 +304,17 @@ if (hasDom) {
     addSlideBtn.disabled = !editable;
     delSlideBtn.disabled = !editable || model.slides.length <= 1;
     dupSlideBtn.disabled = !editable || !model.selectedSlideId;
+    setMasterBtn.disabled = !editable || !model.selectedSlideId;
+    applyMasterBtn.disabled = !editable || !masterSlideTemplateHtml;
     bringFrontBtn.disabled = !selectedEl || !editable;
     sendBackBtn.disabled = !selectedEl || !editable;
+    const canArrange = editable && selectedIds.size > 1;
+    alignLeftBtn.disabled = !canArrange;
+    alignTopBtn.disabled = !canArrange;
+    distributeHBtn.disabled = !canArrange;
+    distributeVBtn.disabled = !canArrange;
+    groupSelectionBtn.disabled = !canArrange;
+    ungroupSelectionBtn.disabled = !selectedEl || selectedEl.tagName !== 'DIV' || !selectedEl.classList.contains('lhe-group') || !editable;
     previewBtn.classList.toggle('active', model.mode === 'preview');
     editBtn.classList.toggle('active', model.mode === 'edit');
   }
@@ -299,9 +335,16 @@ if (hasDom) {
   }
 
   function updateSlideVisibility(doc) {
-    collectSlides(doc).forEach((slide, i) => {
+    const slides = collectSlides(doc);
+    if (slides.length <= 1 || slides[0] === doc.body) {
+      if (doc.body) doc.body.style.display = '';
+      return;
+    }
+    const hasSelected = slides.some((slide, i) => (slide.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId);
+    const selectedId = hasSelected ? model.selectedSlideId : (slides[0].getAttribute('data-slide-id') || 's1');
+    slides.forEach((slide, i) => {
       const id = slide.getAttribute('data-slide-id') || `s${i + 1}`;
-      slide.style.display = id === model.selectedSlideId ? '' : 'none';
+      slide.style.display = id === selectedId ? '' : 'none';
     });
   }
 
@@ -347,6 +390,7 @@ if (hasDom) {
     insText.value = el.tagName === 'IMG' ? '' : (el.textContent || '');
     insAlt.value = ['IMG', 'BUTTON'].includes(el.tagName) ? (el.getAttribute('alt') || '') : '';
     insReplaceImgBtn.style.display = el.tagName === 'IMG' ? '' : 'none';
+    insMasterSlot.value = el.getAttribute('data-master-slot') || '';
     const movable = isMovableByPosition(el);
     insX.value = String(movable ? getPx(el.style, 'left') : Math.round(r.left - cr.left));
     insY.value = String(movable ? getPx(el.style, 'top') : Math.round(r.top - cr.top));
@@ -359,6 +403,8 @@ if (hasDom) {
     insItalic.checked = cs.fontStyle === 'italic';
     insUnderline.checked = (cs.textDecoration || '').includes('underline');
     insOpacity.value = String(Math.round((parseFloat(cs.opacity || '1')) * 100));
+    const rot = (el.style.transform || '').match(/rotate\(([-0-9.]+)deg\)/i);
+    insRotate.value = rot ? String(Math.round(Number(rot[1]) || 0)) : '0';
     const inlineFontFamily = el.style.fontFamily || '';
     insFontFamily.value = Array.from(insFontFamily.options).some((o) => o.value === inlineFontFamily) ? inlineFontFamily : '';
     insAlign.value = el.style.textAlign || cs.textAlign || 'left';
@@ -390,31 +436,69 @@ if (hasDom) {
     });
   }
 
+
+  function renderSelectedOutlines() {
+    selectedOutlineLayer.textContent = '';
+    const doc = editFrame.contentDocument;
+    if (!doc || selectedIds.size <= 1) return;
+    selectedIds.forEach((id) => {
+      if (id === selectionId) return;
+      const el = doc.querySelector(`[data-lhe-id="${id}"]`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const box = document.createElement('div');
+      box.style.cssText = `position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;border:1px solid rgba(37,99,235,.85);border-radius:2px;box-sizing:border-box;`;
+      selectedOutlineLayer.appendChild(box);
+    });
+  }
+
   function applySelectionMarker() {
     const doc = editFrame.contentDocument;
     if (!doc) return;
     doc.querySelectorAll('[data-lhe-selected]').forEach((x) => x.removeAttribute('data-lhe-selected'));
-    if (!selectionId) { clearSelectionBox(); return; }
+    if (!selectionId) { clearSelectionBox(); renderSelectedOutlines(); return; }
     const el = doc.querySelector(`[data-lhe-id="${selectionId}"]`);
     if (!el) {
-      selectedEl = null;
-      selectionId = '';
-      describeSelected(null);
-      clearSelectionBox();
+      clearSelectionState();
       return;
     }
     selectedEl = el;
     updateSelectionBox(el);
     loadInspector(selectedEl);
     describeSelected(selectedEl);
+    renderSelectedOutlines();
   }
 
-  function selectElement(el) {
+  function selectElement(el, additive = false) {
     if (!el) return;
     if (!el.getAttribute('data-lhe-id')) el.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
-    selectionId = el.getAttribute('data-lhe-id') || '';
+    const id = el.getAttribute('data-lhe-id') || '';
+    if (!additive) selectedIds.clear();
+    if (id) selectedIds.add(id);
+    selectionId = id;
     selectedEl = el;
     applySelectionMarker();
+    refreshButtons();
+  }
+
+
+  function getSelectedElements(doc) {
+    if (!doc || !selectedIds.size) return selectedEl ? [selectedEl] : [];
+    const out = [];
+    selectedIds.forEach((id) => {
+      const el = doc.querySelector(`[data-lhe-id="${id}"]`);
+      if (el) out.push(el);
+    });
+    return out.length ? out : (selectedEl ? [selectedEl] : []);
+  }
+
+  function clearSelectionState() {
+    selectedEl = null;
+    selectionId = '';
+    selectedIds.clear();
+    clearSelectionBox();
+    renderSelectedOutlines();
+    describeSelected(null);
     refreshButtons();
   }
 
@@ -464,6 +548,8 @@ if (hasDom) {
 
   function clearSelectionBox() {
     selectionBox.style.display = 'none';
+    marqueeBox.style.display = 'none';
+    selectedOutlineLayer.textContent = '';
     hoverBox.style.display = 'none';
     hideResizeHandles();
   }
@@ -552,6 +638,7 @@ if (hasDom) {
     let hoveredEl = null;
     let overlayPointerDown = null;
     let overlayDragState = null;
+    let marqueeState = null;
 
     editOverlay.style.pointerEvents = 'all';
 
@@ -574,17 +661,30 @@ if (hasDom) {
           }
         }
       }
-      if (overlayPointerDown && !overlayDragState && !activeEditingEl) {
+      if (marqueeState) {
+        const x = Math.min(marqueeState.startX, e.clientX);
+        const y = Math.min(marqueeState.startY, e.clientY);
+        const w = Math.abs(e.clientX - marqueeState.startX);
+        const h = Math.abs(e.clientY - marqueeState.startY);
+        marqueeBox.style.left = x + 'px'; marqueeBox.style.top = y + 'px'; marqueeBox.style.width = w + 'px'; marqueeBox.style.height = h + 'px'; marqueeBox.style.display = 'block';
+      }
+      if (overlayPointerDown && !overlayDragState && !activeEditingEl && !marqueeState) {
         if (getPointerDistance(overlayPointerDown, { x: e.clientX, y: e.clientY }) >= 4) {
+          if (!selectedEl) { marqueeState = { startX: overlayPointerDown.x, startY: overlayPointerDown.y }; return; }
           if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
-          overlayDragState = { el: selectedEl, startX: e.clientX, startY: e.clientY, left: getPx(selectedEl.style, 'left'), top: getPx(selectedEl.style, 'top') };
+          const dragElements = getSelectedElements(doc);
+          dragElements.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
+          overlayDragState = { startX: e.clientX, startY: e.clientY, items: dragElements.map((el) => ({ el, left: getPx(el.style, 'left'), top: getPx(el.style, 'top') })) };
         }
       }
       if (overlayDragState) {
-        setPx(overlayDragState.el.style, 'left', snapCoord(overlayDragState.left + (e.clientX - overlayDragState.startX)));
-        setPx(overlayDragState.el.style, 'top', snapCoord(overlayDragState.top + (e.clientY - overlayDragState.startY)));
-        updateSelectionBox(overlayDragState.el);
-        loadInspector(overlayDragState.el);
+        overlayDragState.items.forEach((item) => {
+          setPx(item.el.style, 'left', snapCoord(item.left + (e.clientX - overlayDragState.startX)));
+          setPx(item.el.style, 'top', snapCoord(item.top + (e.clientY - overlayDragState.startY)));
+        });
+        updateSelectionBox(selectedEl);
+        loadInspector(selectedEl);
+        renderSelectedOutlines();
       }
     };
 
@@ -595,8 +695,8 @@ if (hasDom) {
         return;
       }
       if (activeEditingEl && iframeEl !== activeEditingEl) { finishTextEdit(true); return; }
-      if (iframeEl) selectElement(iframeEl);
-      else { selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons(); }
+      if (iframeEl) selectElement(iframeEl, e.shiftKey || e.ctrlKey || e.metaKey);
+      else { clearSelectionState(); }
     };
 
     editOverlay.ondblclick = (e) => {
@@ -607,15 +707,43 @@ if (hasDom) {
     };
 
     editOverlay.onpointerdown = (e) => {
-      if (activeEditingEl || !selectedEl) return;
+      if (activeEditingEl) return;
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
-      if (iframeEl && iframeEl === selectedEl) {
+      if (iframeEl) {
+        if (iframeEl !== selectedEl) selectElement(iframeEl, e.shiftKey || e.ctrlKey || e.metaKey);
         overlayPointerDown = { x: e.clientX, y: e.clientY };
         editOverlay.setPointerCapture(e.pointerId);
+        return;
       }
+      overlayPointerDown = { x: e.clientX, y: e.clientY };
+      marqueeState = { startX: e.clientX, startY: e.clientY };
     };
 
     editOverlay.onpointerup = () => {
+      if (marqueeState) {
+        const mr = marqueeBox.getBoundingClientRect();
+        const hits = [];
+        doc.querySelectorAll('[data-lhe-id]').forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const intersect = !(r.right < mr.left || r.left > mr.right || r.bottom < mr.top || r.top > mr.bottom);
+          if (intersect) hits.push(el);
+        });
+        selectedIds.clear();
+        hits.forEach((el) => selectedIds.add(el.getAttribute('data-lhe-id')));
+        if (hits[0]) {
+          selectedEl = hits[0];
+          selectionId = hits[0].getAttribute('data-lhe-id') || '';
+          applySelectionMarker();
+          updateSelectionBox(selectedEl);
+          loadInspector(selectedEl);
+        } else {
+          clearSelectionState();
+        }
+        renderSelectedOutlines();
+        refreshButtons();
+        marqueeState = null;
+        marqueeBox.style.display = 'none';
+      }
       overlayPointerDown = null;
       if (overlayDragState) {
         pushHistory(history, model);
@@ -636,6 +764,36 @@ if (hasDom) {
       if (!activeEditingEl || e.target !== activeEditingEl) return;
       setTimeout(() => { if (activeEditingEl) finishTextEdit(true); }, 50);
     }, true);
+  }
+
+
+
+  function applyMasterTemplateToSlide(slide, templateHtml, preserveText) {
+    if (!slide) return;
+    if (!preserveText) { slide.innerHTML = templateHtml; return; }
+    const textSelector = 'h1,h2,h3,p,li,a,label,button,span';
+    const originalNodes = Array.from(slide.querySelectorAll(textSelector));
+    const originalBySlot = new Map();
+    originalNodes.forEach((el) => {
+      const slot = el.getAttribute('data-master-slot');
+      if (slot) originalBySlot.set(slot, el.textContent || '');
+    });
+    const originalPositional = originalNodes.map((el) => el.textContent || '');
+    slide.innerHTML = templateHtml;
+    const mapped = Array.from(slide.querySelectorAll(textSelector));
+    mapped.forEach((el, i) => {
+      const slot = el.getAttribute('data-master-slot');
+      if (slot && originalBySlot.has(slot)) {
+        el.textContent = originalBySlot.get(slot) || '';
+        return;
+      }
+      if (i < originalPositional.length) el.textContent = originalPositional[i];
+    });
+  }
+
+  function getActiveSlideElement(doc) {
+    if (!doc) return null;
+    return collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || null;
   }
 
   function render() {
@@ -673,16 +831,18 @@ if (hasDom) {
     if (!f) return;
     if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) { fileInput.value = ''; return; }
     model = mapHtmlToModel(await f.text());
+    masterSlideTemplateHtml = '';
+    masterPreserveText = true;
+    masterPreserveTextToggle.checked = true;
     history.undo = [];
     history.redo = [];
-    selectedEl = null;
-    selectionId = '';
+    clearSelectionState();
     render();
     markClean();
     setStatus(`Opened HTML: ${f.name}`);
   };
-  previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
-  editBtn.onclick = () => { model.mode = 'edit'; render(); };
+  previewBtn.onclick = () => { model.mode = 'preview'; clearSelectionState(); render(); };
+  editBtn.onclick = () => { model.mode = 'edit'; clearSelectionState(); render(); };
 
   let nudgeTimer = null;
   document.addEventListener('keydown', (e) => {
@@ -696,12 +856,12 @@ if (hasDom) {
     if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.key === 'Escape' && selectedEl) {
       e.preventDefault();
-      selectedEl = null; selectionId = ''; clearSelectionBox(); describeSelected(null); refreshButtons();
+      clearSelectionState();
       return;
     }
     if (e.key === 'Delete' && selectedEl) {
       e.preventDefault();
-      applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
+      applyStyle(() => { getSelectedElements(editFrame.contentDocument).forEach((el) => el.remove()); clearSelectionState(); });
       setStatus('Element deleted. Press Ctrl+Z to undo.');
       return;
     }
@@ -741,11 +901,15 @@ if (hasDom) {
     const dir = { ArrowLeft: [-nudge, 0], ArrowRight: [nudge, 0], ArrowUp: [0, -nudge], ArrowDown: [0, nudge] }[e.key];
     if (dir && selectedEl) {
       e.preventDefault();
-      if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
-      setPx(selectedEl.style, 'left', snapCoord(getPx(selectedEl.style, 'left') + dir[0]));
-      setPx(selectedEl.style, 'top', snapCoord(getPx(selectedEl.style, 'top') + dir[1]));
+      const targets = getSelectedElements(editFrame.contentDocument);
+      targets.forEach((el) => {
+        if (!isMovableByPosition(el)) convertToAbsolute(el);
+        setPx(el.style, 'left', snapCoord(getPx(el.style, 'left') + dir[0]));
+        setPx(el.style, 'top', snapCoord(getPx(el.style, 'top') + dir[1]));
+      });
       updateSelectionBox(selectedEl);
       loadInspector(selectedEl);
+      renderSelectedOutlines();
       clearTimeout(nudgeTimer);
       nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); markDirty(); }, 300);
     }
@@ -794,7 +958,7 @@ if (hasDom) {
     i.click();
   };
 
-  delBtn.onclick = () => { applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; }); setStatus('Element deleted. Press Ctrl+Z to undo.'); };
+  delBtn.onclick = () => { applyStyle(() => { getSelectedElements(editFrame.contentDocument).forEach((el) => el.remove()); clearSelectionState(); }); setStatus('Element deleted. Press Ctrl+Z to undo.'); };
   insText.onchange = () => applyStyle(() => { if (selectedEl && selectedEl.tagName !== 'IMG') selectedEl.textContent = insText.value; });
   insAlt.onchange = () => applyStyle(() => { if (selectedEl?.tagName === 'IMG' || selectedEl?.tagName === 'BUTTON') selectedEl.setAttribute('alt', insAlt.value); });
   insColor.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.color = insColor.value; });
@@ -803,11 +967,108 @@ if (hasDom) {
   insBold.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontWeight = insBold.checked ? '700' : '400'; });
   insFontFamily.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontFamily = insFontFamily.value; });
   insAlign.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textAlign = insAlign.value; });
+  insMasterSlot.onchange = () => applyStyle(() => {
+    if (!selectedEl) return;
+    const v = String(insMasterSlot.value || '').trim();
+    if (!v) selectedEl.removeAttribute('data-master-slot');
+    else selectedEl.setAttribute('data-master-slot', v.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 64));
+  });
   insItalic.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontStyle = insItalic.checked ? 'italic' : 'normal'; });
   insUnderline.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textDecoration = insUnderline.checked ? 'underline' : 'none'; });
   insOpacity.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.opacity = String(Math.max(0, Math.min(100, Number(insOpacity.value || 100))) / 100); });
-  bringFrontBtn.onclick = () => applyStyle(() => { if (selectedEl?.parentElement) selectedEl.parentElement.appendChild(selectedEl); });
-  sendBackBtn.onclick = () => applyStyle(() => { if (selectedEl?.parentElement) selectedEl.parentElement.insertBefore(selectedEl, selectedEl.parentElement.firstChild); });
+  insRotate.onchange = () => applyStyle(() => {
+    const deg = Math.max(-360, Math.min(360, Number(insRotate.value || 0)));
+    getSelectedElements(editFrame.contentDocument).forEach((el) => {
+      const existing = el.style.transform || '';
+      const cleaned = existing.replace(/\s*rotate\(([-0-9.]+)deg\)/ig, '').trim();
+      el.style.transform = `${cleaned}${cleaned ? ' ' : ''}rotate(${deg}deg)`;
+    });
+  });
+  bringFrontBtn.onclick = () => applyStyle(() => { getSelectedElements(editFrame.contentDocument).forEach((el) => { if (el.parentElement) el.parentElement.appendChild(el); }); });
+  sendBackBtn.onclick = () => applyStyle(() => { getSelectedElements(editFrame.contentDocument).slice().reverse().forEach((el) => { if (el.parentElement) el.parentElement.insertBefore(el, el.parentElement.firstChild); }); });
+
+  alignLeftBtn.onclick = () => applyStyle(() => {
+    const items = getSelectedElements(editFrame.contentDocument);
+    if (items.length < 2) return;
+    const left = Math.min(...items.map((el) => getPx(el.style, 'left')));
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); setPx(el.style, 'left', left); });
+  });
+  alignTopBtn.onclick = () => applyStyle(() => {
+    const items = getSelectedElements(editFrame.contentDocument);
+    if (items.length < 2) return;
+    const top = Math.min(...items.map((el) => getPx(el.style, 'top')));
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); setPx(el.style, 'top', top); });
+  });
+  distributeHBtn.onclick = () => applyStyle(() => {
+    const items = getSelectedElements(editFrame.contentDocument).slice().sort((a, b) => getPx(a.style, 'left') - getPx(b.style, 'left'));
+    if (items.length < 3) return;
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
+    const minX = getPx(items[0].style, 'left');
+    const maxX = getPx(items[items.length - 1].style, 'left');
+    const step = (maxX - minX) / (items.length - 1);
+    items.forEach((el, i) => setPx(el.style, 'left', minX + step * i));
+  });
+  distributeVBtn.onclick = () => applyStyle(() => {
+    const items = getSelectedElements(editFrame.contentDocument).slice().sort((a, b) => getPx(a.style, 'top') - getPx(b.style, 'top'));
+    if (items.length < 3) return;
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
+    const minY = getPx(items[0].style, 'top');
+    const maxY = getPx(items[items.length - 1].style, 'top');
+    const step = (maxY - minY) / (items.length - 1);
+    items.forEach((el, i) => setPx(el.style, 'top', minY + step * i));
+  });
+
+  groupSelectionBtn.onclick = () => applyStyle(() => {
+    const doc = editFrame.contentDocument;
+    const items = getSelectedElements(doc);
+    if (items.length < 2) return;
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
+    const left = Math.min(...items.map((el) => getPx(el.style, 'left')));
+    const top = Math.min(...items.map((el) => getPx(el.style, 'top')));
+    const right = Math.max(...items.map((el) => getPx(el.style, 'left') + (getPx(el.style, 'width') || Math.round(el.getBoundingClientRect().width))));
+    const bottom = Math.max(...items.map((el) => getPx(el.style, 'top') + (getPx(el.style, 'height') || Math.round(el.getBoundingClientRect().height))));
+    const group = doc.createElement('div');
+    group.className = 'lhe-group';
+    group.style.position = 'absolute';
+    setPx(group.style, 'left', left);
+    setPx(group.style, 'top', top);
+    setPx(group.style, 'width', right - left);
+    setPx(group.style, 'height', bottom - top);
+    const parent = items[0].parentElement;
+    if (!parent) return;
+    parent.appendChild(group);
+    items.forEach((el) => {
+      setPx(el.style, 'left', getPx(el.style, 'left') - left);
+      setPx(el.style, 'top', getPx(el.style, 'top') - top);
+      group.appendChild(el);
+    });
+    selectedIds.clear();
+    selectedEl = group;
+    if (!group.getAttribute('data-lhe-id')) group.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
+    selectionId = group.getAttribute('data-lhe-id') || '';
+    selectedIds.add(selectionId);
+  });
+
+  ungroupSelectionBtn.onclick = () => applyStyle(() => {
+    if (!selectedEl || selectedEl.tagName !== 'DIV' || !selectedEl.classList.contains('lhe-group')) return;
+    const group = selectedEl;
+    const parent = group.parentElement;
+    if (!parent) return;
+    const gx = getPx(group.style, 'left');
+    const gy = getPx(group.style, 'top');
+    const children = Array.from(group.children);
+    children.forEach((child) => {
+      if (!(child instanceof HTMLElement)) return;
+      if (!isMovableByPosition(child)) child.style.position = 'absolute';
+      setPx(child.style, 'left', gx + getPx(child.style, 'left'));
+      setPx(child.style, 'top', gy + getPx(child.style, 'top'));
+      parent.appendChild(child);
+    });
+    group.remove();
+    clearSelectionState();
+  });
+
+
   snapToggle.onchange = () => { snapEnabled = snapToggle.checked; setStatus(snapEnabled ? 'Snap to 10px grid enabled.' : 'Snap disabled.'); };
   [insX, insY, insW, insH].forEach((input) => input.onchange = () => applyStyle(() => {
     if (!selectedEl) return;
@@ -819,11 +1080,36 @@ if (hasDom) {
     if (Number.isFinite(h) && h > 0) setPx(selectedEl.style, 'height', h);
   }));
 
+
+  masterPreserveTextToggle.onchange = () => { masterPreserveText = masterPreserveTextToggle.checked; };
+
+  setMasterBtn.onclick = () => {
+    commitFrameToModel();
+    const doc = editFrame.contentDocument;
+    const active = getActiveSlideElement(doc);
+    if (!active) { setStatus('Could not capture master from current slide.'); return; }
+    masterSlideTemplateHtml = active.innerHTML;
+    refreshButtons();
+    setStatus(masterPreserveText ? 'Master template captured. Apply preserves existing slide text.' : 'Master template captured from current slide.');
+  };
+  applyMasterBtn.onclick = () => {
+    if (!masterSlideTemplateHtml) { setStatus('Set a master template first.'); return; }
+    pushHistory(history, model);
+    commitFrameToModel();
+    const doc = editFrame.contentDocument;
+    if (!doc) return;
+    collectSlides(doc).forEach((slide) => { applyMasterTemplateToSlide(slide, masterSlideTemplateHtml, masterPreserveText); });
+    commitFrameToModel();
+    render();
+    markDirty();
+    setStatus(masterPreserveText ? 'Master applied to all slides (text preserved where possible).' : 'Master template applied to all slides.');
+  };
+
   addSlideBtn.onclick = () => {
     pushHistory(history, model);
     commitFrameToModel();
     model = addSlideToModel(model);
-    selectedEl = null; selectionId = '';
+    clearSelectionState();
     render();
     markDirty();
   };
@@ -832,7 +1118,7 @@ if (hasDom) {
     pushHistory(history, model);
     commitFrameToModel();
     model = deleteSlideFromModel(model);
-    selectedEl = null; selectionId = '';
+    clearSelectionState();
     render();
     setStatus('Slide deleted. Press Ctrl+Z to undo.');
     markDirty();
@@ -841,7 +1127,7 @@ if (hasDom) {
     pushHistory(history, model);
     commitFrameToModel();
     model = duplicateSlideInModel(model);
-    selectedEl = null; selectionId = '';
+    clearSelectionState();
     render();
     markDirty();
   };
@@ -849,7 +1135,7 @@ if (hasDom) {
   redoBtn.onclick = () => { model = redo(history, model); render(); markDirty(); };
   saveBtn.onclick = () => {
     commitFrameToModel();
-    const text = JSON.stringify(createProjectPayload(model), null, 2);
+    const text = JSON.stringify(createProjectPayload({ ...model, masterSlideTemplateHtml, masterPreserveText }), null, 2);
     const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url; a.download = 'project.lheproj-v2.json'; a.click();
@@ -867,6 +1153,10 @@ if (hasDom) {
     const restored = restoreProjectPayload(payload);
     if (!restored) { setStatus('Project file format not recognized. Select a .lheproj-v2.json file saved by this editor.'); return; }
     model = restored;
+    masterSlideTemplateHtml = String(restored.masterSlideTemplateHtml || '');
+    masterPreserveText = restored.masterPreserveText !== false;
+    masterPreserveTextToggle.checked = masterPreserveText;
+    clearSelectionState();
     render();
     markClean();
     setStatus(`Opened project: ${f.name}`);
