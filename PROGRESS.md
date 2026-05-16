@@ -1257,3 +1257,15 @@ Validation run: npm run test:v2; npm run test:e2e
 Result: Passed.
 Known limitations: Browser-path behavior remains equivalent to existing marquee implementation; no separate rubber-band behavior is introduced.
 Next recommended task: Once branch merge is complete, remove alias path only if all downstream references are standardized.
+
+### 2026-05-16 (repo-wide conflict marker regression guard)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: Validation hardening (merge safety)
+Summary: Added a repository-level merge-safety guard in `scripts/test-e2e.mjs` that fails when unresolved git conflict markers are present in tracked files.
+Files changed: scripts/test-e2e.mjs, PROGRESS.md
+Validation run: npm run test:e2e; npm run test:v2
+Result: Passed.
+Known limitations: Guard checks tracked files via `git grep`; untracked files are intentionally out of scope.
+Next recommended task: Keep this guard in CI to fail fast on unresolved merge artifacts.

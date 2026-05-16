@@ -1,4 +1,14 @@
 import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+
+
+// Merge-safety guard: fail if unresolved conflict markers exist in tracked files
+try {
+  execSync("git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- .", { stdio: 'pipe' });
+  throw new Error('unresolved git conflict markers detected in tracked files');
+} catch (err) {
+  if (err?.status !== 1) throw err;
+}
 
 const html = readFileSync('apps/desktop/index.html', 'utf8');
 const shellCode = readFileSync('apps/desktop/src/app-shell.mjs', 'utf8');
