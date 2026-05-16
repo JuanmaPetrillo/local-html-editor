@@ -263,7 +263,7 @@ if (hasDom) {
     const cls = /export|opened|saved|replaced|pasted|copied|enabled|disabled|snap/.test(lo) ? 'ok'
       : /cannot|blocked|not recognized|could not|only|unsupported|invalid|failed/.test(lo) ? 'error'
       : /stripped|converted|scripts removed|snap/.test(lo) ? 'warn'
-      : '';
+      : 'info';
     status.className = cls;
   };
 
@@ -311,11 +311,11 @@ if (hasDom) {
     if (model.mode === 'preview') {
       liveFrame.srcdoc = buildLivePreviewHtml(model.sourceHtml, model.originalHtml);
       liveFrame.onload = () => { liveFrame.focus(); };
-      modeEl.textContent = 'Interactive preview. Use this to test buttons/navigation. Switch to Edit to modify.';
+      modeEl.textContent = 'Preview mode: may run self-contained scripts. Use this to test original behavior; switch to Edit to make safe changes.';
       return;
     }
     editFrame.srcdoc = model.sourceHtml;
-    modeEl.textContent = 'Edit mode. Click to select, double-click to edit text, drag to move. Ctrl+click to follow links.';
+    modeEl.textContent = 'Edit mode: scripts are disabled for safety. Click to select, double-click text to edit, then use Inspector to format.';
     editFrame.onload = () => {
       const doc = editFrame.contentDocument;
       if (!doc) return;
@@ -534,7 +534,7 @@ if (hasDom) {
   }
 
   function convertToAbsolute(el) {
-    setStatus('Element converted for free positioning. Press Ctrl+Z to undo if layout changes unexpectedly.');
+    setStatus('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.');
     const r = el.getBoundingClientRect();
     const op = el.offsetParent;
     const pr = op ? op.getBoundingClientRect() : editOverlay.getBoundingClientRect();

@@ -107,7 +107,7 @@ Run this checklist with at least one synthetic fixture deck (e.g. `tests/fixture
 8. **Ctrl+Click** a link — follows the link without selecting a new element.
 9. **Drag** an absolute-positioned element — moves smoothly, selection box tracks.
 10. **Drag a resize handle** (corner or edge) — element resizes, selection box tracks.
-11. **Click a normal-flow element then drag** — element is converted to absolute positioning automatically; status bar shows conversion notice. Press Ctrl+Z to undo if surrounding layout shifts unexpectedly.
+11. **Click a normal-flow element then drag** — element is converted to absolute positioning automatically; status bar warns: "This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo."
 12. **Inspector X/Y/W/H fields** — update live on positioned element.
 13. **Undo** after drag/resize — position/size reverts.
 14. **Switch to Preview** — full presentation renders, buttons and scripts work.
