@@ -835,3 +835,15 @@ Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:
 Result: Full validation gate passed.
 Known limitations: UX polish is visual-only; core editor architecture and current known functional limits (ZIP preflight-only, script stripping on export) remain unchanged. Status bar severity styling (info/success/warning/error classes) is CSS-ready but not yet wired to JS setStatus() calls.
 Next recommended task: Optional JS-level status severity pass: classify setStatus() calls into severity levels and set a CSS class on #status accordingly.
+
+### 2026-05-16 (V2 UX finalization — in-app guidance and progressive disclosure)
+
+Date: 2026-05-16
+Branch/PR: codex/v2-ux-finalization
+Milestone: Phase 11 — V2 premium UI/UX polish (finalization)
+Summary: Focused UX clarity pass without architecture/security/dependency changes. Added a visible first-run “How to use” guide with explicit flow (Open HTML → Preview original behavior → Edit safely → double-click text + inspector formatting → Export safe copy). Clarified Preview/Edit/Export messaging in status guidance and mode text: Preview may run self-contained scripts; Edit disables scripts for safety; Export creates a safe edited copy with scripts/button logic removed. Strengthened normal-flow conversion warning copy in both inspector warning note and runtime status message. Improved inspector progressive disclosure by adding an “Advanced” visual separator while keeping all existing control IDs and JS hooks unchanged. Improved status visibility by wiring default informational state class (`info`) so info/success/warn/error are visually distinct.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, docs/MANUAL_PILOT_GUIDE.md, PROGRESS.md
+Validation run: npm ci; npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build; npm run test:v2; npm run package:pilot
+Result: Full validation gate passed.
+Known limitations: First-run guide is always visible only until slides populate (existing behavior); no modal/one-time persistence was added. Export continues to strip all scripts by design, which may disable interactive behaviors in exported files.
+Next recommended task: Optional first-time confirmation dialog for normal-flow conversion if future UX testing shows warning-only copy is insufficient.

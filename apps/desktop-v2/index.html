@@ -590,6 +590,16 @@ a { color: inherit; }
   background: var(--s-panel);
 }
 
+.ins-section-label {
+  margin: 10px 2px 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--b-mid);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t-muted);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
 .ins-card-hd {
   display: flex;
   align-items: center;
@@ -762,6 +772,7 @@ a { color: inherit; }
   transition: background .2s, color .2s;
 }
 
+#status.info { background: #0f172a; color: #e2e8f0; }
 #status.ok   { background: var(--stat-ok-bg);   color: var(--stat-ok-text); }
 #status.warn { background: var(--stat-warn-bg);  color: var(--stat-warn-text); }
 #status.error{ background: var(--stat-err-bg);   color: var(--stat-err-text); }
@@ -952,22 +963,31 @@ a { color: inherit; }
       <div id="slides" class="slide-list"></div>
 
       <div class="welcome-card">
-        <div class="welcome-card-title">Get started</div>
+        <div class="welcome-card-title">How to use</div>
         <div class="welcome-steps">
           <div class="welcome-step">
             <div class="welcome-step-n">1</div>
-            <span>Open an HTML presentation above</span>
+            <span>Open HTML to load your presentation.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">2</div>
-            <span>Preview tests interactions &middot; Edit to modify safely</span>
+            <span>Use Preview to test the original presentation behavior.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">3</div>
-            <span>Export a safe edited copy (scripts are removed)</span>
+            <span>Switch to Edit for safe changes (scripts are disabled).</span>
+          </div>
+          <div class="welcome-step">
+            <div class="welcome-step-n">4</div>
+            <span>Double-click text to edit, then use Inspector to format.</span>
+          </div>
+          <div class="welcome-step">
+            <div class="welcome-step-n">5</div>
+            <span>Export HTML to create a safe edited copy (scripts/button logic removed).</span>
           </div>
         </div>
       </div>
+
 
     </div>
   </aside>
@@ -1022,7 +1042,7 @@ a { color: inherit; }
             <span class="ins-type-badge" id="ins-type">none</span>
           </div>
           <div class="ins-note ins-flow-note">
-            Moving normal-flow elements can shift nearby layout. Use Ctrl+Z to undo.
+            This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.
           </div>
         </div>
       </div>
@@ -1085,6 +1105,8 @@ a { color: inherit; }
         </div>
       </div>
 
+      <div class="ins-section-label">Advanced</div>
+
       <!-- Appearance -->
       <div class="ins-card">
         <div class="ins-card-hd">Appearance</div>
@@ -1140,7 +1162,7 @@ a { color: inherit; }
 
       <!-- Export warning -->
       <div class="ins-note">
-        Export removes all scripts from the output — safe for local distribution.
+        Export creates a safe edited copy and removes scripts and button logic from the output.
       </div>
 
       <!-- Keyboard Shortcuts — always visible -->
@@ -1172,7 +1194,7 @@ a { color: inherit; }
 <div class="statusbar">
   <div id="status">Ready &mdash; open an HTML presentation to begin editing.</div>
   <div class="status-footer">
-    <span id="mode-label">Open an HTML presentation to begin. &nbsp;1)&nbsp;Open HTML &nbsp;&nbsp;2)&nbsp;Preview = test interactions &middot; Edit = safe editing &nbsp;&nbsp;3)&nbsp;Export safe copy (scripts removed)</span>
+    <span id="mode-label">Open HTML to begin. Preview may run self-contained scripts; Edit disables scripts for safety; Export creates a safe edited copy and removes scripts/button logic.</span>
     <span id="selected-state">Selected: none</span>
   </div>
 </div>

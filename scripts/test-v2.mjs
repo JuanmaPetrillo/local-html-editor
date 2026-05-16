@@ -260,6 +260,6 @@ if (!appSrc.includes('Project file format not recognized')) throw new Error('v2:
 if (!appSrc.includes('setTimeout(() => URL.revokeObjectURL')) throw new Error('v2: URL.revokeObjectURL must be deferred via setTimeout');
 
 // Regression: convertToAbsolute warning message
-if (!appSrc.includes('Press Ctrl+Z to undo if layout changes unexpectedly')) throw new Error('v2: convertToAbsolute missing layout-change warning');
+if (!appSrc.includes('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.')) throw new Error('v2: convertToAbsolute missing layout-change warning');
 
 console.log('v2 full-editor checks passed');
