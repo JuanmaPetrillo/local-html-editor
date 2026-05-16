@@ -227,6 +227,9 @@ if (hasDom) {
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
+  const inspectorScroll = q('.inspector-scroll');
+  const slideCounter = q('#slide-counter');
+  const brandMark = q('.brand-mark');
 
   const HANDLE_DIRS = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
   const HANDLE_CURSORS = { nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', w: 'ew-resize', e: 'ew-resize', sw: 'nesw-resize', s: 'ns-resize', se: 'nwse-resize' };
@@ -239,8 +242,13 @@ if (hasDom) {
     handles[dir] = h;
   }
 
+  const TAG_NAMES = { H1: 'Heading 1', H2: 'Heading 2', H3: 'Heading 3', P: 'Paragraph', DIV: 'Box', SPAN: 'Text span', IMG: 'Image', BUTTON: 'Button', LI: 'List item', A: 'Link', LABEL: 'Label', SECTION: 'Section', MAIN: 'Box', ARTICLE: 'Box' };
+
   let model = mapHtmlToModel('');
   const history = createHistory();
+  let isDirty = false;
+  const markDirty = () => { if (isDirty) return; isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; };
+  const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; };
   let selectedEl = null;
   let activeEditingEl = null;
   let selectionId = '';
@@ -276,10 +284,18 @@ if (hasDom) {
   }
 
   function describeSelected(el) {
-    if (!el) { selectedState.textContent = 'Selected: none'; return; }
-    const editableText = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
-    const movable = isMovableByPosition(el);
-    selectedState.textContent = `Selected: ${el.tagName.toLowerCase()} | text:${editableText ? 'dbl-click to edit' : 'no'} | ${movable ? 'drag/resize freely' : 'drag to freely position'} | Ctrl+C to copy`;
+    if (!el) {
+      selectedState.textContent = 'No element selected';
+      inspectorScroll.classList.add('ins-empty');
+      inspectorScroll.classList.remove('ins-flow-warning-visible');
+      return;
+    }
+    inspectorScroll.classList.remove('ins-empty');
+    const typeName = TAG_NAMES[el.tagName] || el.tagName.toLowerCase();
+    const editable = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
+    selectedState.textContent = editable
+      ? `${typeName} selected · Double-click to edit`
+      : `${typeName} selected`;
   }
 
   function updateSlideVisibility(doc) {
@@ -327,7 +343,7 @@ if (hasDom) {
     const cs = getComputedStyle(el);
     const r = el.getBoundingClientRect();
     const cr = editOverlay.getBoundingClientRect();
-    insType.textContent = el.tagName.toLowerCase();
+    insType.textContent = TAG_NAMES[el.tagName] || el.tagName.toLowerCase();
     insText.value = el.tagName === 'IMG' ? '' : (el.textContent || '');
     insAlt.value = ['IMG', 'BUTTON'].includes(el.tagName) ? (el.getAttribute('alt') || '') : '';
     insReplaceImgBtn.style.display = el.tagName === 'IMG' ? '' : 'none';
@@ -346,6 +362,7 @@ if (hasDom) {
     const inlineFontFamily = el.style.fontFamily || '';
     insFontFamily.value = Array.from(insFontFamily.options).some((o) => o.value === inlineFontFamily) ? inlineFontFamily : '';
     insAlign.value = el.style.textAlign || cs.textAlign || 'left';
+    inspectorScroll.classList.toggle('ins-flow-warning-visible', !isMovableByPosition(el));
   }
 
   function rgbToHex(rgb) {
@@ -362,10 +379,10 @@ if (hasDom) {
     if (!active) return;
     Array.from(active.querySelectorAll('h1,h2,h3,p,button,div,span,img,li,a,label')).slice(0, 120).forEach((el) => {
       const b = document.createElement('button');
-      const tag = el.tagName.toLowerCase();
-      const preview = tag === 'img'
-        ? `img: ${(el.getAttribute('alt') || '').slice(0, 22) || '(image)'}`
-        : `${tag}: ${(el.textContent || '').trim().slice(0, 28) || '(empty)'}`;
+      const humanTag = TAG_NAMES[el.tagName] || el.tagName.toLowerCase();
+      const preview = el.tagName === 'IMG'
+        ? `${humanTag}: ${(el.getAttribute('alt') || '').slice(0, 22) || '(image)'}`
+        : `${humanTag}: ${(el.textContent || '').trim().slice(0, 28) || '(empty)'}`;
       b.textContent = preview;
       b.title = preview;
       b.onclick = () => selectElement(el);
@@ -408,7 +425,7 @@ if (hasDom) {
     delete activeEditingEl.dataset.lheOriginalText;
     activeEditingEl = null;
     editOverlay.style.pointerEvents = 'all';
-    if (commit) pushHistory(history, model);
+    if (commit) { pushHistory(history, model); markDirty(); }
     commitFrameToModel();
     render();
   }
@@ -512,6 +529,7 @@ if (hasDom) {
       commitFrameToModel();
       resizeState = null;
       render();
+      markDirty();
     };
   }
 
@@ -604,6 +622,7 @@ if (hasDom) {
         commitFrameToModel();
         overlayDragState = null;
         render();
+        markDirty();
       }
     };
 
@@ -621,6 +640,8 @@ if (hasDom) {
 
   function render() {
     slidesList.textContent = '';
+    const slideIdx = model.slides.findIndex((s) => s.id === model.selectedSlideId);
+    slideCounter.textContent = model.slides.length > 1 ? `${slideIdx + 1} / ${model.slides.length}` : '';
     model.slides.forEach((s) => {
       const b = document.createElement('button');
       b.textContent = s.label || s.name;
@@ -644,17 +665,20 @@ if (hasDom) {
     fn();
     commitFrameToModel();
     render();
+    markDirty();
   }
 
   fileInput.onchange = async () => {
     const f = fileInput.files?.[0];
     if (!f) return;
+    if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) { fileInput.value = ''; return; }
     model = mapHtmlToModel(await f.text());
     history.undo = [];
     history.redo = [];
     selectedEl = null;
     selectionId = '';
     render();
+    markClean();
     setStatus(`Opened HTML: ${f.name}`);
   };
   previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
@@ -663,9 +687,11 @@ if (hasDom) {
   let nudgeTimer = null;
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input,textarea,select')) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveBtn.click(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') { e.preventDefault(); exportBtn.click(); return; }
     if ((e.ctrlKey || e.metaKey) && !activeEditingEl) {
-      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); return; }
-      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); return; }
+      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); markDirty(); return; }
+      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); markDirty(); return; }
     }
     if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.key === 'Escape' && selectedEl) {
@@ -676,6 +702,7 @@ if (hasDom) {
     if (e.key === 'Delete' && selectedEl) {
       e.preventDefault();
       applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
+      setStatus('Element deleted. Press Ctrl+Z to undo.');
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedEl) {
@@ -720,7 +747,7 @@ if (hasDom) {
       updateSelectionBox(selectedEl);
       loadInspector(selectedEl);
       clearTimeout(nudgeTimer);
-      nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); }, 300);
+      nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); markDirty(); }, 300);
     }
   });
   addTextBtn.onclick = () => {
@@ -728,6 +755,7 @@ if (hasDom) {
     commitFrameToModel();
     model = addTextBlockToSlide(model, 'New text');
     render();
+    markDirty();
   };
   addImageBtn.onclick = () => {
     const i = document.createElement('input');
@@ -766,7 +794,7 @@ if (hasDom) {
     i.click();
   };
 
-  delBtn.onclick = () => applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; });
+  delBtn.onclick = () => { applyStyle(() => { if (selectedEl) selectedEl.remove(); selectedEl = null; selectionId = ''; }); setStatus('Element deleted. Press Ctrl+Z to undo.'); };
   insText.onchange = () => applyStyle(() => { if (selectedEl && selectedEl.tagName !== 'IMG') selectedEl.textContent = insText.value; });
   insAlt.onchange = () => applyStyle(() => { if (selectedEl?.tagName === 'IMG' || selectedEl?.tagName === 'BUTTON') selectedEl.setAttribute('alt', insAlt.value); });
   insColor.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.color = insColor.value; });
@@ -797,6 +825,7 @@ if (hasDom) {
     model = addSlideToModel(model);
     selectedEl = null; selectionId = '';
     render();
+    markDirty();
   };
   delSlideBtn.onclick = () => {
     if (model.slides.length <= 1) { setStatus('Cannot delete the only slide.'); return; }
@@ -805,6 +834,8 @@ if (hasDom) {
     model = deleteSlideFromModel(model);
     selectedEl = null; selectionId = '';
     render();
+    setStatus('Slide deleted. Press Ctrl+Z to undo.');
+    markDirty();
   };
   dupSlideBtn.onclick = () => {
     pushHistory(history, model);
@@ -812,9 +843,10 @@ if (hasDom) {
     model = duplicateSlideInModel(model);
     selectedEl = null; selectionId = '';
     render();
+    markDirty();
   };
-  undoBtn.onclick = () => { model = undo(history, model); render(); };
-  redoBtn.onclick = () => { model = redo(history, model); render(); };
+  undoBtn.onclick = () => { model = undo(history, model); render(); markDirty(); };
+  redoBtn.onclick = () => { model = redo(history, model); render(); markDirty(); };
   saveBtn.onclick = () => {
     commitFrameToModel();
     const text = JSON.stringify(createProjectPayload(model), null, 2);
@@ -822,17 +854,22 @@ if (hasDom) {
     const a = document.createElement('a');
     a.href = url; a.download = 'project.lheproj-v2.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+    markClean();
+    setStatus('Project saved.');
   };
   openProjectBtn.onclick = () => openProjectInput.click();
   openProjectInput.onchange = async () => {
     const f = openProjectInput.files?.[0];
     if (!f) return;
+    if (isDirty && !confirm('You have unsaved changes. Open a project file and discard them?')) { openProjectInput.value = ''; return; }
     let payload;
-    try { payload = JSON.parse(await f.text()); } catch { setStatus('Project file could not be read: invalid JSON.'); return; }
+    try { payload = JSON.parse(await f.text()); } catch { setStatus('Project file could not be opened — invalid JSON. Select a .lheproj-v2.json file saved by this editor.'); return; }
     const restored = restoreProjectPayload(payload);
-    if (!restored) { setStatus('Project file format not recognized.'); return; }
+    if (!restored) { setStatus('Project file format not recognized. Select a .lheproj-v2.json file saved by this editor.'); return; }
     model = restored;
     render();
+    markClean();
+    setStatus(`Opened project: ${f.name}`);
   };
   exportBtn.onclick = () => {
     commitFrameToModel();
@@ -840,7 +877,7 @@ if (hasDom) {
     const a = document.createElement('a');
     a.href = url; a.download = 'edited-v2.html'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    setStatus('Exported safe edited HTML (scripts removed).');
+    setStatus('Export complete — scripts removed for safety. Buttons and dynamic content may not work in the exported file.');
   };
 
   render();
