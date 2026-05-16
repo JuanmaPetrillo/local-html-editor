@@ -135,7 +135,21 @@ a { color: inherit; }
   letter-spacing: -0.5px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
   flex-shrink: 0;
+  position: relative;
 }
+
+/* Unsaved-changes dot */
+.brand-mark.has-unsaved::after {
+  content: '';
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 8px; height: 8px;
+  background: var(--c-orange);
+  border-radius: 50%;
+  border: 2px solid var(--c-navy);
+  animation: pulse-dot .9s ease infinite alternate;
+}
+@keyframes pulse-dot { from { opacity: .65; } to { opacity: 1; } }
 
 .brand-name {
   font-size: 13.5px;
@@ -891,11 +905,11 @@ a { color: inherit; }
       Open HTML
       <input id="file" type="file" accept=".html,.htm">
     </label>
-    <button id="export" class="btn btn-accent" title="Export sanitized HTML copy (scripts removed)">Export HTML</button>
+    <button id="export" class="btn btn-accent" title="Export a standalone HTML file for sharing — scripts are removed (Ctrl+E)">Export HTML</button>
   </div>
 
   <div class="tbar-group">
-    <button id="save-project" class="btn btn-primary" title="Save project as .lheproj-v2.json">Save Project</button>
+    <button id="save-project" class="btn btn-primary" title="Save editor session — reopen in this editor later (Ctrl+S)">Save Project</button>
     <button id="open-project" class="btn" title="Open a saved project file">Open Project</button>
     <input id="open-project-file" type="file" accept=".json" hidden>
   </div>
@@ -1136,6 +1150,7 @@ a { color: inherit; }
           <div class="ins-shortcuts">
             <div class="ins-shortcut-row"><kbd>Ctrl+Z / Ctrl+Y</kbd><span>Undo / Redo</span></div>
             <div class="ins-shortcut-row"><kbd>Ctrl+S</kbd><span>Save Project</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+E</kbd><span>Export HTML</span></div>
             <div class="ins-shortcut-row"><kbd>Ctrl+C / Ctrl+V</kbd><span>Copy / Paste</span></div>
             <div class="ins-shortcut-row"><kbd>Delete</kbd><span>Remove selected</span></div>
             <div class="ins-shortcut-row"><kbd>Esc</kbd><span>Deselect</span></div>
@@ -1144,6 +1159,7 @@ a { color: inherit; }
             <div class="ins-shortcut-row"><kbd>Double-click</kbd><span>Edit text inline</span></div>
             <div class="ins-shortcut-row"><kbd>Ctrl+click</kbd><span>Follow link</span></div>
           </div>
+          <div class="ins-hint" style="margin-top:6px;font-style:normal;"><strong>Save Project</strong> stores your editor session to reopen here. <strong>Export HTML</strong> creates a standalone file for sharing (scripts are removed).</div>
         </div>
       </div>
 

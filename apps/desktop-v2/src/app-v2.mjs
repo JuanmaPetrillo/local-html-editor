@@ -229,6 +229,7 @@ if (hasDom) {
   const selectionBox = q('#selection-box');
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
+  const brandMark = q('.brand-mark');
 
   const HANDLE_DIRS = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
   const HANDLE_CURSORS = { nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', w: 'ew-resize', e: 'ew-resize', sw: 'nesw-resize', s: 'ns-resize', se: 'nwse-resize' };
@@ -245,6 +246,9 @@ if (hasDom) {
 
   let model = mapHtmlToModel('');
   const history = createHistory();
+  let isDirty = false;
+  const markDirty = () => { if (isDirty) return; isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; };
+  const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; };
   let selectedEl = null;
   let activeEditingEl = null;
   let selectionId = '';
@@ -375,10 +379,10 @@ if (hasDom) {
     if (!active) return;
     Array.from(active.querySelectorAll('h1,h2,h3,p,button,div,span,img,li,a,label')).slice(0, 120).forEach((el) => {
       const b = document.createElement('button');
-      const tag = el.tagName.toLowerCase();
-      const preview = tag === 'img'
-        ? `img: ${(el.getAttribute('alt') || '').slice(0, 22) || '(image)'}`
-        : `${tag}: ${(el.textContent || '').trim().slice(0, 28) || '(empty)'}`;
+      const humanTag = TAG_NAMES[el.tagName] || el.tagName.toLowerCase();
+      const preview = el.tagName === 'IMG'
+        ? `${humanTag}: ${(el.getAttribute('alt') || '').slice(0, 22) || '(image)'}`
+        : `${humanTag}: ${(el.textContent || '').trim().slice(0, 28) || '(empty)'}`;
       b.textContent = preview;
       b.title = preview;
       b.onclick = () => selectElement(el);
@@ -421,7 +425,7 @@ if (hasDom) {
     delete activeEditingEl.dataset.lheOriginalText;
     activeEditingEl = null;
     editOverlay.style.pointerEvents = 'all';
-    if (commit) pushHistory(history, model);
+    if (commit) { pushHistory(history, model); markDirty(); }
     commitFrameToModel();
     render();
   }
@@ -525,6 +529,7 @@ if (hasDom) {
       commitFrameToModel();
       resizeState = null;
       render();
+      markDirty();
     };
   }
 
@@ -617,6 +622,7 @@ if (hasDom) {
         commitFrameToModel();
         overlayDragState = null;
         render();
+        markDirty();
       }
     };
 
@@ -659,17 +665,20 @@ if (hasDom) {
     fn();
     commitFrameToModel();
     render();
+    markDirty();
   }
 
   fileInput.onchange = async () => {
     const f = fileInput.files?.[0];
     if (!f) return;
+    if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) { fileInput.value = ''; return; }
     model = mapHtmlToModel(await f.text());
     history.undo = [];
     history.redo = [];
     selectedEl = null;
     selectionId = '';
     render();
+    markClean();
     setStatus(`Opened HTML: ${f.name}`);
   };
   previewBtn.onclick = () => { model.mode = 'preview'; selectedEl = null; selectionId = ''; render(); };
@@ -679,9 +688,10 @@ if (hasDom) {
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input,textarea,select')) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveBtn.click(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') { e.preventDefault(); exportBtn.click(); return; }
     if ((e.ctrlKey || e.metaKey) && !activeEditingEl) {
-      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); return; }
-      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); return; }
+      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); markDirty(); return; }
+      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); markDirty(); return; }
     }
     if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.key === 'Escape' && selectedEl) {
@@ -737,7 +747,7 @@ if (hasDom) {
       updateSelectionBox(selectedEl);
       loadInspector(selectedEl);
       clearTimeout(nudgeTimer);
-      nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); }, 300);
+      nudgeTimer = setTimeout(() => { pushHistory(history, model); commitFrameToModel(); render(); markDirty(); }, 300);
     }
   });
   addTextBtn.onclick = () => {
@@ -745,6 +755,7 @@ if (hasDom) {
     commitFrameToModel();
     model = addTextBlockToSlide(model, 'New text');
     render();
+    markDirty();
   };
   addImageBtn.onclick = () => {
     const i = document.createElement('input');
@@ -814,6 +825,7 @@ if (hasDom) {
     model = addSlideToModel(model);
     selectedEl = null; selectionId = '';
     render();
+    markDirty();
   };
   delSlideBtn.onclick = () => {
     if (model.slides.length <= 1) { setStatus('Cannot delete the only slide.'); return; }
@@ -823,6 +835,7 @@ if (hasDom) {
     selectedEl = null; selectionId = '';
     render();
     setStatus('Slide deleted. Press Ctrl+Z to undo.');
+    markDirty();
   };
   dupSlideBtn.onclick = () => {
     pushHistory(history, model);
@@ -830,9 +843,10 @@ if (hasDom) {
     model = duplicateSlideInModel(model);
     selectedEl = null; selectionId = '';
     render();
+    markDirty();
   };
-  undoBtn.onclick = () => { model = undo(history, model); render(); };
-  redoBtn.onclick = () => { model = redo(history, model); render(); };
+  undoBtn.onclick = () => { model = undo(history, model); render(); markDirty(); };
+  redoBtn.onclick = () => { model = redo(history, model); render(); markDirty(); };
   saveBtn.onclick = () => {
     commitFrameToModel();
     const text = JSON.stringify(createProjectPayload(model), null, 2);
@@ -840,18 +854,21 @@ if (hasDom) {
     const a = document.createElement('a');
     a.href = url; a.download = 'project.lheproj-v2.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+    markClean();
     setStatus('Project saved.');
   };
   openProjectBtn.onclick = () => openProjectInput.click();
   openProjectInput.onchange = async () => {
     const f = openProjectInput.files?.[0];
     if (!f) return;
+    if (isDirty && !confirm('You have unsaved changes. Open a project file and discard them?')) { openProjectInput.value = ''; return; }
     let payload;
     try { payload = JSON.parse(await f.text()); } catch { setStatus('Project file could not be opened — invalid JSON. Select a .lheproj-v2.json file saved by this editor.'); return; }
     const restored = restoreProjectPayload(payload);
     if (!restored) { setStatus('Project file format not recognized. Select a .lheproj-v2.json file saved by this editor.'); return; }
     model = restored;
     render();
+    markClean();
     setStatus(`Opened project: ${f.name}`);
   };
   exportBtn.onclick = () => {
