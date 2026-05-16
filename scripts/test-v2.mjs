@@ -356,3 +356,7 @@ if (!clearBlock.includes('renderSelectedOutlines();')) throw new Error('clearSel
 if (!appSrc.includes("const originalBySlot = new Map()")) throw new Error('master slot map creation missing');
 if (!appSrc.includes("if (slot && originalBySlot.has(slot))")) throw new Error('master slot priority branch missing');
 if (!appSrc.includes("if (i < originalPositional.length) el.textContent = originalPositional[i]")) throw new Error('master positional fallback branch missing');
+
+
+// Merge compatibility: accept legacy rubber-band marker presence
+if (!html.includes('id="marquee-box"') && !html.includes('id="rubber-band"')) throw new Error('missing marquee/rubber-band selection box token');

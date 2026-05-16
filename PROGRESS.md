@@ -1245,3 +1245,15 @@ Validation run: npm run test:v2; npm run test:e2e
 Result: Passed.
 Known limitations: Guard is source-level and does not yet execute browser-pointer path assertions for outline teardown.
 Next recommended task: Add browser E2E case validating outline teardown after clear-selection triggers.
+
+### 2026-05-16 (marquee/rubber-band merge-conflict compatibility)
+
+Date: 2026-05-16
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Resolved merge-token divergence between `#marquee-box` and `#rubber-band` by keeping marquee behavior intact while adding compatibility aliases in HTML/CSS and a selector fallback in JS.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Browser-path behavior remains equivalent to existing marquee implementation; no separate rubber-band behavior is introduced.
+Next recommended task: Once branch merge is complete, remove alias path only if all downstream references are standardized.

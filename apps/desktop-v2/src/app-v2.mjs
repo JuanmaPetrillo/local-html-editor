@@ -245,7 +245,7 @@ if (hasDom) {
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
-  const marqueeBox = q('#marquee-box');
+  const marqueeBox = q('#marquee-box') || q('#rubber-band');
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
   const brandMark = q('.brand-mark');
