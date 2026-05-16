@@ -6,7 +6,7 @@ import {
 } from '../apps/desktop-v2/src/app-v2.mjs';
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
-for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="ins-font-family"', 'id="ins-align"', 'id="bring-front"', 'id="send-back"', 'id="snap-toggle"', 'id="ins-italic"', 'id="ins-underline"', 'id="ins-opacity"']) {
+for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="ins-font-family"', 'id="ins-align"', 'id="bring-front"', 'id="send-back"', 'id="snap-toggle"', 'id="ins-italic"', 'id="ins-underline"', 'id="ins-opacity"', 'id="slide-counter"', 'Keyboard Shortcuts']) {
   if (!html.includes(token)) throw new Error(`missing UI token: ${token}`);
 }
 const editStageIdx = html.indexOf('id="edit-stage"');

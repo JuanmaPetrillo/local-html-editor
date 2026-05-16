@@ -806,6 +806,44 @@ a { color: inherit; }
 .stage-hd-preview { display: none; }
 
 /* ============================================================
+   INSPECTOR EMPTY STATE
+   ============================================================ */
+.inspector-scroll.ins-empty .ins-card { display: none; }
+.inspector-scroll.ins-empty > .ins-note { display: none; }
+/* always-visible cards shown even when nothing is selected */
+.inspector-scroll.ins-empty .ins-card.ins-always-visible { display: block; }
+.ins-empty-placeholder { display: none; padding: var(--sp-5) var(--sp-4); flex-direction: column; align-items: center; gap: var(--sp-2); text-align: center; }
+.inspector-scroll.ins-empty .ins-empty-placeholder { display: flex; }
+.ins-empty-title { font-size: 12.5px; font-weight: 600; color: var(--t-secondary); }
+.ins-empty-hint  { font-size: 11px; color: var(--t-muted); line-height: 1.5; }
+
+/* ============================================================
+   CONDITIONAL LAYOUT-SHIFT NOTE
+   ============================================================ */
+.ins-flow-note { display: none; }
+.inspector-scroll.ins-flow-warning-visible .ins-flow-note { display: block; }
+
+/* ============================================================
+   SLIDE COUNTER
+   ============================================================ */
+.slide-counter { font-size: 10.5px; font-weight: 600; color: var(--t-muted); letter-spacing: 0.2px; }
+
+/* ============================================================
+   KEYBOARD SHORTCUT TABLE
+   ============================================================ */
+.ins-shortcuts { display: flex; flex-direction: column; gap: 3px; }
+.ins-shortcut-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.ins-shortcut-row kbd {
+  display: inline-block;
+  font: inherit;
+  font-size: 10px; font-weight: 600;
+  background: var(--s-panel-alt); border: 1px solid var(--b-mid);
+  border-radius: 3px; padding: 1px 5px; color: var(--t-secondary);
+  min-width: 86px; flex-shrink: 0; text-align: left;
+}
+.ins-shortcut-row span { color: var(--t-muted); }
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1480px) {
@@ -892,7 +930,7 @@ a { color: inherit; }
     <div class="panel-body">
 
       <div class="slide-actions">
-        <button id="add-slide" class="btn" title="Add a new slide after the current one">Add</button>
+        <button id="add-slide" class="btn" title="Add a new slide after the current one">Add Slide</button>
         <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
         <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
       </div>
@@ -908,11 +946,11 @@ a { color: inherit; }
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">2</div>
-            <span>Switch between Preview and Edit</span>
+            <span>Preview tests interactions &middot; Edit to modify safely</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">3</div>
-            <span>Export your edited HTML copy</span>
+            <span>Export a safe edited copy (scripts are removed)</span>
           </div>
         </div>
       </div>
@@ -925,6 +963,7 @@ a { color: inherit; }
     <div class="stage-hd">
       <h2 class="stage-hd-label">Editing Stage</h2>
       <h2 class="stage-hd-preview">Live Preview</h2>
+      <span id="slide-counter" class="slide-counter"></span>
     </div>
     <div class="stage-wrap">
       <iframe id="live-preview-frame"
@@ -952,7 +991,13 @@ a { color: inherit; }
     <div class="panel-hd">
       <h2>Inspector</h2>
     </div>
-    <div class="inspector-scroll">
+    <div class="inspector-scroll ins-empty">
+
+      <!-- Empty state placeholder -->
+      <div class="ins-empty-placeholder">
+        <div class="ins-empty-title">Nothing selected</div>
+        <div class="ins-empty-hint">Click any element on the canvas to inspect and edit its properties.</div>
+      </div>
 
       <!-- Selection -->
       <div class="ins-card">
@@ -962,7 +1007,7 @@ a { color: inherit; }
             <span style="font-size:11px;color:var(--t-muted);">Element:</span>
             <span class="ins-type-badge" id="ins-type">none</span>
           </div>
-          <div class="ins-note">
+          <div class="ins-note ins-flow-note">
             Moving normal-flow elements can shift nearby layout. Use Ctrl+Z to undo.
           </div>
         </div>
@@ -1070,9 +1115,9 @@ a { color: inherit; }
         </div>
       </div>
 
-      <!-- Layers -->
+      <!-- Elements (was: Layers) -->
       <div class="ins-card">
-        <div class="ins-card-hd">Layers</div>
+        <div class="ins-card-hd">Elements</div>
         <div class="ins-card-body">
           <div id="layers" class="layers-list"></div>
           <div class="ins-hint">Editable elements in the active slide. Click to select.</div>
@@ -1084,6 +1129,24 @@ a { color: inherit; }
         Export removes all scripts from the output — safe for local distribution.
       </div>
 
+      <!-- Keyboard Shortcuts — always visible -->
+      <div class="ins-card ins-always-visible">
+        <div class="ins-card-hd">Keyboard Shortcuts</div>
+        <div class="ins-card-body">
+          <div class="ins-shortcuts">
+            <div class="ins-shortcut-row"><kbd>Ctrl+Z / Ctrl+Y</kbd><span>Undo / Redo</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+S</kbd><span>Save Project</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+C / Ctrl+V</kbd><span>Copy / Paste</span></div>
+            <div class="ins-shortcut-row"><kbd>Delete</kbd><span>Remove selected</span></div>
+            <div class="ins-shortcut-row"><kbd>Esc</kbd><span>Deselect</span></div>
+            <div class="ins-shortcut-row"><kbd>Arrow keys</kbd><span>Nudge 1 px</span></div>
+            <div class="ins-shortcut-row"><kbd>Shift+Arrow</kbd><span>Nudge 10 px</span></div>
+            <div class="ins-shortcut-row"><kbd>Double-click</kbd><span>Edit text inline</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+click</kbd><span>Follow link</span></div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /inspector-scroll -->
   </aside>
 
@@ -1093,7 +1156,7 @@ a { color: inherit; }
 <div class="statusbar">
   <div id="status">Ready &mdash; open an HTML presentation to begin editing.</div>
   <div class="status-footer">
-    <span id="mode-label">Open an HTML presentation to begin. &nbsp;1)&nbsp;Open HTML &nbsp;&nbsp;2)&nbsp;Preview or Edit &nbsp;&nbsp;3)&nbsp;Export edited copy.</span>
+    <span id="mode-label">Open an HTML presentation to begin. &nbsp;1)&nbsp;Open HTML &nbsp;&nbsp;2)&nbsp;Preview = test interactions &middot; Edit = safe editing &nbsp;&nbsp;3)&nbsp;Export safe copy (scripts removed)</span>
     <span id="selected-state">Selected: none</span>
   </div>
 </div>
