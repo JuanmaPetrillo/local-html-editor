@@ -507,18 +507,17 @@ a { color: inherit; }
 .stage-wrap {
   flex: 1;
   display: flex;
-  align-items: safe center;   /* center when fits, flex-start when overflowing */
+  align-items: flex-start;
   justify-content: center;
   padding: var(--sp-5);
   background: var(--s-stage-bg);
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
 /* The slide canvas */
 .stage {
   width: 960px;
-  min-width: 960px;
   height: 540px;
   border-radius: var(--r);
   background: #fff;
@@ -527,6 +526,7 @@ a { color: inherit; }
   overflow: visible;
   flex-shrink: 0;
   border: 1px solid #a8bed4;
+  transform-origin: top center;
 }
 
 .canvas-frame {
@@ -558,6 +558,16 @@ a { color: inherit; }
   box-sizing: border-box;
   border-radius: 3px;
   background: rgba(0,102,161,.025);
+}
+
+#rubber-band {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px dashed #2563eb;
+  background: rgba(37,99,235,.07);
+  display: none;
+  box-sizing: border-box;
+  border-radius: 2px;
 }
 
 #selection-box {
@@ -872,14 +882,11 @@ a { color: inherit; }
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1480px) {
-  .workspace { grid-template-columns: 216px minmax(600px, 1fr) 288px; }
-  .stage { transform-origin: top center; transform: scale(.91); margin-bottom: -44px; }
+  .workspace { grid-template-columns: 216px minmax(0, 1fr) 288px; }
 }
 
-@media (max-width: 1280px) {
-  .workspace { grid-template-columns: 200px 1fr; }
-  .right-panel { grid-column: 1 / -1; max-height: 260px; }
-  .stage { transform: none; min-width: 700px; height: 394px; margin-bottom: 0; }
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: 190px minmax(0, 1fr) 260px; }
 }
 </style>
 </head>
@@ -1016,6 +1023,7 @@ a { color: inherit; }
         <div id="edit-overlay" aria-hidden="true"></div>
         <div id="hover-box"     aria-hidden="true"></div>
         <div id="selection-box" aria-hidden="true"></div>
+        <div id="rubber-band"   aria-hidden="true"></div>
       </div>
     </div>
   </main>
