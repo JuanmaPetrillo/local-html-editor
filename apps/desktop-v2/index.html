@@ -511,14 +511,13 @@ a { color: inherit; }
   justify-content: flex-start;
   padding: var(--sp-5);
   background: var(--s-stage-bg);
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
 /* The slide canvas */
 .stage {
   width: 960px;
-  min-width: 960px;
   height: 540px;
   border-radius: var(--r);
   background: #fff;
@@ -527,6 +526,7 @@ a { color: inherit; }
   overflow: visible;
   flex-shrink: 0;
   border: 1px solid #a8bed4;
+  transform-origin: top center;
 }
 
 .canvas-frame {
@@ -558,6 +558,16 @@ a { color: inherit; }
   box-sizing: border-box;
   border-radius: 3px;
   background: rgba(0,102,161,.025);
+}
+
+#rubber-band {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px dashed #2563eb;
+  background: rgba(37,99,235,.07);
+  display: none;
+  box-sizing: border-box;
+  border-radius: 2px;
 }
 
 #selection-box {

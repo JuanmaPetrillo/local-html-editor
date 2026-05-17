@@ -282,6 +282,7 @@ if (hasDom) {
   const markDirty = () => { if (isDirty) return; isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; };
   const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; };
   let selectedEl = null;
+  let selectedEls = [];
   let activeEditingEl = null;
   let selectionId = '';
   let selectedIds = new Set();
@@ -551,6 +552,7 @@ if (hasDom) {
     selectionBox.style.top = r.top + 'px';
     selectionBox.style.width = r.width + 'px';
     selectionBox.style.height = r.height + 'px';
+    selectionBox.style.border = '2px solid var(--c-blue)';
     selectionBox.style.display = 'block';
     updateResizeHandles(el);
   }
@@ -560,6 +562,22 @@ if (hasDom) {
     marqueeBox.style.display = 'none';
     selectedOutlineLayer.textContent = '';
     hoverBox.style.display = 'none';
+    hideResizeHandles();
+  }
+
+  function showMultiSelectionBox(els) {
+    if (!els.length) { clearSelectionBox(); return; }
+    const rects = els.map(el => el.getBoundingClientRect());
+    const left = Math.min(...rects.map(r => r.left));
+    const top = Math.min(...rects.map(r => r.top));
+    const right = Math.max(...rects.map(r => r.right));
+    const bottom = Math.max(...rects.map(r => r.bottom));
+    selectionBox.style.left = left + 'px';
+    selectionBox.style.top = top + 'px';
+    selectionBox.style.width = (right - left) + 'px';
+    selectionBox.style.height = (bottom - top) + 'px';
+    selectionBox.style.border = '2px dashed var(--c-blue)';
+    selectionBox.style.display = 'block';
     hideResizeHandles();
   }
 
@@ -652,6 +670,18 @@ if (hasDom) {
     editOverlay.style.pointerEvents = 'all';
 
     editOverlay.onpointermove = (e) => {
+      if (rubberBandState) {
+        const r = editOverlay.getBoundingClientRect();
+        const ix = (e.clientX - r.left) / stageScale;
+        const iy = (e.clientY - r.top) / stageScale;
+        const x = Math.min(ix, rubberBandState.startX);
+        const y = Math.min(iy, rubberBandState.startY);
+        rubberBandEl.style.left = x + 'px';
+        rubberBandEl.style.top = y + 'px';
+        rubberBandEl.style.width = Math.abs(ix - rubberBandState.startX) + 'px';
+        rubberBandEl.style.height = Math.abs(iy - rubberBandState.startY) + 'px';
+        return;
+      }
       if (!activeEditingEl && !overlayDragState) {
         const iframeEl = getIframeElementAt(e.clientX, e.clientY);
         if (iframeEl !== hoveredEl) {
@@ -698,6 +728,7 @@ if (hasDom) {
     };
 
     editOverlay.onclick = (e) => {
+      if (rubberBandState) return;
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (e.ctrlKey || e.metaKey) {
         if (iframeEl) iframeEl.click();
@@ -712,6 +743,7 @@ if (hasDom) {
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (!iframeEl) return;
       selectElement(iframeEl);
+      selectedEls = [iframeEl];
       enterTextEditMode(iframeEl);
     };
 
@@ -760,6 +792,39 @@ if (hasDom) {
         overlayDragState = null;
         render();
         markDirty();
+      }
+      if (rubberBandState) {
+        rubberBandEl.style.display = 'none';
+        const r = editOverlay.getBoundingClientRect();
+        const ix = (e.clientX - r.left) / stageScale;
+        const iy = (e.clientY - r.top) / stageScale;
+        const rbL = Math.min(ix, rubberBandState.startX);
+        const rbT = Math.min(iy, rubberBandState.startY);
+        const rbR = Math.max(ix, rubberBandState.startX);
+        const rbB = Math.max(iy, rubberBandState.startY);
+        rubberBandState = null;
+        if (rbR - rbL > 5 && rbB - rbT > 5) {
+          const activeSlide = collectSlides(doc).find((s, i) =>
+            (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId
+          ) || doc.body;
+          const candidates = Array.from(activeSlide.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,span,img,button,a,li,label'));
+          const hits = candidates.filter(el => {
+            if (el === activeSlide) return false;
+            const er = el.getBoundingClientRect();
+            return er.width > 0 && er.height > 0 &&
+              er.left < rbR && er.right > rbL &&
+              er.top < rbB && er.bottom > rbT;
+          });
+          if (hits.length === 1) {
+            selectElement(hits[0]); selectedEls = hits;
+          } else if (hits.length > 1) {
+            selectedEls = hits;
+            selectElement(hits[0]);
+            showMultiSelectionBox(hits);
+            setStatus(`${hits.length} elements selected — drag to move all, Delete to remove all.`);
+            refreshButtons();
+          }
+        }
       }
     };
 
@@ -869,7 +934,7 @@ if (hasDom) {
       clearSelectionState();
       return;
     }
-    if (e.key === 'Delete' && selectedEl) {
+    if (e.key === 'Delete' && (selectedEl || selectedEls.length)) {
       e.preventDefault();
       applyStyle(() => { getSelectedElements(editFrame.contentDocument).forEach((el) => el.remove()); clearSelectionState(); });
       setStatus('Element deleted. Press Ctrl+Z to undo.');
@@ -1179,6 +1244,22 @@ if (hasDom) {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     setStatus('Export complete — scripts removed for safety. Buttons and dynamic content may not work in the exported file.');
   };
+
+  function updateStageScale() {
+    const pad = 40;
+    const availW = stageWrap.clientWidth - pad;
+    const availH = stageWrap.clientHeight - pad;
+    if (availW <= 0 || availH <= 0) return;
+    const s = Math.min(availW / 960, availH / 540, 1);
+    stageScale = s;
+    editStage.style.transform = s < 1 ? `scale(${s.toFixed(4)})` : '';
+    editStage.style.marginBottom = s < 1 ? `${-(540 * (1 - s))}px` : '';
+    liveFrame.style.transform = editStage.style.transform;
+    liveFrame.style.marginBottom = editStage.style.marginBottom;
+  }
+
+  new ResizeObserver(updateStageScale).observe(stageWrap);
+  updateStageScale();
 
   render();
 }
