@@ -246,6 +246,13 @@ if (hasDom) {
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
   const marqueeBox = q('#marquee-box') || q('#rubber-band');
+  const rubberBandEl = marqueeBox;
+  const stageWrap = q('#stage-wrap') || editStage?.parentElement || null;
+  let stageScale = 1;
+  const updateStageScale = () => {
+    if (!stageWrap) return;
+    stageScale = 1;
+  };
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
   const brandMark = q('.brand-mark');
@@ -491,6 +498,8 @@ if (hasDom) {
     });
     return out.length ? out : (selectedEl ? [selectedEl] : []);
   }
+
+  function getSelectedEls(doc) { return getSelectedElements(doc); }
 
   function clearSelectionState() {
     selectedEl = null;
@@ -807,7 +816,8 @@ if (hasDom) {
       b.onclick = () => {
         if (model.mode === 'edit') commitFrameToModel();
         model.selectedSlideId = s.id;
-        setFrameHtml();
+        updateStageScale();
+    setFrameHtml();
         refreshButtons();
       };
       slidesList.appendChild(b);

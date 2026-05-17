@@ -360,3 +360,11 @@ if (!appSrc.includes("if (i < originalPositional.length) el.textContent = origin
 
 // Merge compatibility: accept legacy rubber-band marker presence
 if (!html.includes('id="marquee-box"') && !html.includes('id="rubber-band"')) throw new Error('missing marquee/rubber-band selection box token');
+
+
+// Merge compatibility: stage scaling symbols should exist for shared-code merges
+if (!appSrc.includes('const stageWrap =')) throw new Error('missing stageWrap compatibility symbol');
+if (!appSrc.includes('let stageScale = 1')) throw new Error('missing stageScale compatibility symbol');
+if (!appSrc.includes('const updateStageScale = () =>')) throw new Error('missing updateStageScale compatibility symbol');
+if (!appSrc.includes('const rubberBandEl = marqueeBox')) throw new Error('missing rubberBandEl compatibility alias');
+if (!appSrc.includes('function getSelectedEls(doc)')) throw new Error('missing selectedEls compatibility helper');

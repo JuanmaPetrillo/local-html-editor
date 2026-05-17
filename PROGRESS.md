@@ -1269,3 +1269,15 @@ Validation run: npm run test:e2e; npm run test:v2
 Result: Passed.
 Known limitations: Guard checks tracked files via `git grep`; untracked files are intentionally out of scope.
 Next recommended task: Keep this guard in CI to fail fast on unresolved merge artifacts.
+
+### 2026-05-17 (cross-branch naming compatibility hardening)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Added compatibility aliases/symbols to reduce merge friction between branch variants: `rubberBandEl` alias for marquee element, `stageWrap`/`stageScale`/`updateStageScale` compatibility symbols, and `getSelectedEls(...)` helper alias for selection-array naming.
+Files changed: apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Compatibility symbols are no-op/stub where appropriate and are intended for merge safety, not new behavior.
+Next recommended task: After base-branch convergence, prune compatibility aliases once one naming convention is canonical.
