@@ -1305,3 +1305,15 @@ Validation run: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm
 Result: Passed.
 Known limitations: This change provides assessment + plan only; implementation refactors and new regression tests remain future tasks.
 Next recommended task: Execute PR 1 from the audit roadmap by extracting pure edit-command helpers with focused unit tests.
+
+### 2026-05-17 (PR1 start: extracted pure edit-command helpers)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: Phase 8 preparation (PR 1 from audit roadmap)
+Summary: Started PR1 refactor by extracting pure edit-command helpers (`editHeadingTextInModel`, `addTextBlockToSlide`, `deleteFirstTagInSlide`, plus slide-id regex/text replacement utilities) into `apps/desktop-v2/src/edit-commands.mjs`. `app-v2.mjs` now delegates to these helpers via thin wrappers with identical behavior contracts. Added focused regression checks in `scripts/test-v2.mjs` for the extracted helper module.
+Files changed: apps/desktop-v2/src/edit-commands.mjs, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: node --check apps/desktop-v2/src/app-v2.mjs; node --check apps/desktop-v2/src/edit-commands.mjs; npm run test:v2; npm run lint; npm run test:e2e; npm run build
+Result: Passed.
+Known limitations: Browser/manual interaction verification was not executed in this environment; focused tests validate model-command behavior only.
+Next recommended task: Continue PR1 by extracting additional deterministic edit operations (without DOM side effects) and expanding focused tests before touching overlay/selection code.

@@ -1,3 +1,10 @@
+import {
+  editHeadingTextInModel as editHeadingTextInModelCommand,
+  addTextBlockToSlide as addTextBlockToSlideCommand,
+  deleteFirstTagInSlide as deleteFirstTagInSlideCommand,
+  getSlideRegexById
+} from './edit-commands.mjs';
+
 const hasDom = typeof document !== 'undefined';
 
 export function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
@@ -63,47 +70,11 @@ function collectSlides(doc) {
   return [doc.body];
 }
 
-function replaceFirstTextInTag(html, tagName, replacementText) {
-  const re = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\/${tagName}>`, 'i');
-  return String(html).replace(re, (_m, attrs) => `<${tagName}${attrs}>${escapeHtml(replacementText)}</${tagName}>`);
-}
+export function editHeadingTextInModel(modelInput, newText) { return editHeadingTextInModelCommand(modelInput, newText, { mapHtmlToModel, escapeHtml }); }
 
-function getSlideRegexById(slideId) {
-  const safeId = slideId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(
-    '<(section|div)\\b(?=[^>]*\\bclass\\s*=\\s*["\'][^"\']*slide[^"\']*["\'])(?=[^>]*\\bdata-slide-id\\s*=\\s*["\']' + safeId + '["\'])[^>]*>[\\s\\S]*?<\\/\\1>',
-    'i'
-  );
-}
+export function addTextBlockToSlide(modelInput, text) { return addTextBlockToSlideCommand(modelInput, text, { mapHtmlToModel, escapeHtml }); }
 
-export function editHeadingTextInModel(modelInput, newText) {
-  const model = { ...modelInput };
-  const next = replaceFirstTextInTag(model.sourceHtml, 'h1', newText);
-  model.sourceHtml = next === model.sourceHtml ? String(model.sourceHtml).replace(/>([^<>]{1,200})</, '>' + escapeHtml(newText) + '<') : next;
-  return mapHtmlToModel(model.sourceHtml);
-}
-
-export function addTextBlockToSlide(modelInput, text) {
-  const model = { ...modelInput };
-  const slideId = model.selectedSlideId || model.slides[0]?.id;
-  if (!slideId) return model;
-  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
-  if (!target) return model;
-  const updated = target.replace(/<\/(section|div)>\s*$/i, `<div class="lhe-added-text" style="position:absolute;left:80px;top:80px;width:280px;min-height:30px;">${escapeHtml(text)}</div></$1>`);
-  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
-  return mapHtmlToModel(model.sourceHtml);
-}
-
-export function deleteFirstTagInSlide(modelInput, tagName) {
-  const model = { ...modelInput };
-  const slideId = model.selectedSlideId || model.slides[0]?.id;
-  if (!slideId) return model;
-  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
-  if (!target) return model;
-  const updated = target.replace(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\/${tagName}>`, 'i'), '');
-  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
-  return mapHtmlToModel(model.sourceHtml);
-}
+export function deleteFirstTagInSlide(modelInput, tagName) { return deleteFirstTagInSlideCommand(modelInput, tagName, { mapHtmlToModel }); }
 
 export function addSlideToModel(modelInput) {
   const model = { ...modelInput };
