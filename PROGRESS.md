@@ -1293,3 +1293,15 @@ Validation run: rg -n "^(<<<<<<<|=======|>>>>>>>)" apps/desktop-v2/index.html ap
 Result: Passed.
 Known limitations: Browser/manual interaction verification was not executed in this environment.
 Next recommended task: run browser-level verification for marquee drag-select and stage scaling behavior after merge.
+
+### 2026-05-17 (repo-wide audit baseline and refactor plan)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: Phase 8 preparation (audit and hardening planning)
+Summary: Added a full-repository audit baseline with prioritized, small-PR refactor roadmap focused on maintainability, security-regression coverage, and expansion readiness. No runtime behavior was changed.
+Files changed: docs/AUDIT_AND_REFACTOR_PLAN_2026-05-17.md, PROGRESS.md
+Validation run: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: This change provides assessment + plan only; implementation refactors and new regression tests remain future tasks.
+Next recommended task: Execute PR 1 from the audit roadmap by extracting pure edit-command helpers with focused unit tests.
