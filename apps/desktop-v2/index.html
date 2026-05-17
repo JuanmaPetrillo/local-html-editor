@@ -337,7 +337,7 @@ a { color: inherit; }
    ============================================================ */
 .workspace {
   display: grid;
-  grid-template-columns: 230px minmax(640px, 1fr) 308px;
+  grid-template-columns: 210px minmax(0, 1fr) 280px;
   gap: 8px;
   padding: 8px;
   overflow: hidden;
@@ -508,7 +508,7 @@ a { color: inherit; }
   flex: 1;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   padding: var(--sp-5);
   background: var(--s-stage-bg);
   overflow: hidden;
@@ -578,6 +578,16 @@ a { color: inherit; }
   box-sizing: border-box;
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(0,102,161,.18);
+}
+
+#marquee-box {
+  position: absolute;
+  pointer-events: none;
+  border: 1px dashed #2563eb;
+  background: rgba(37,99,235,.12);
+  display: none;
+  box-sizing: border-box;
+  z-index: 3;
 }
 
 /* ============================================================
@@ -882,11 +892,13 @@ a { color: inherit; }
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1480px) {
-  .workspace { grid-template-columns: 216px minmax(0, 1fr) 288px; }
+  .workspace { grid-template-columns: 190px minmax(0, 1fr) 260px; }
 }
 
-@media (max-width: 1100px) {
-  .workspace { grid-template-columns: 190px minmax(0, 1fr) 260px; }
+@media (max-width: 1280px) {
+  .workspace { grid-template-columns: 180px minmax(0, 1fr); }
+  .right-panel { grid-column: 1 / -1; max-height: 260px; }
+  .stage { min-width: 960px; height: 540px; }
 }
 </style>
 </head>
@@ -965,6 +977,12 @@ a { color: inherit; }
         <button id="add-slide" class="btn" title="Add a new slide after the current one">Add Slide</button>
         <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
         <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
+        <button id="set-master" class="btn" disabled title="Capture selected slide as master template">Set Master</button>
+        <button id="apply-master" class="btn" disabled title="Apply master template layout to all slides">Apply Master</button>
+        <label class="snap-toggle-label" title="Preserve each slide's text when applying master template">
+          <input type="checkbox" id="master-preserve-text" checked>
+          Preserve text
+        </label>
       </div>
 
       <div id="slides" class="slide-list"></div>
@@ -1023,7 +1041,7 @@ a { color: inherit; }
         <div id="edit-overlay" aria-hidden="true"></div>
         <div id="hover-box"     aria-hidden="true"></div>
         <div id="selection-box" aria-hidden="true"></div>
-        <div id="rubber-band"   aria-hidden="true"></div>
+        <div id="marquee-box" aria-hidden="true"></div>
       </div>
     </div>
   </main>
@@ -1102,6 +1120,10 @@ a { color: inherit; }
             </select>
           </div>
           <div class="ins-field">
+            <span class="ins-field-label">Master slot</span>
+            <input id="ins-master-slot" type="text" placeholder="e.g. title">
+          </div>
+          <div class="ins-field">
             <span class="ins-field-label">Alignment</span>
             <select id="ins-align">
               <option value="left">Left</option>
@@ -1142,6 +1164,11 @@ a { color: inherit; }
             <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
             <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
           </div>
+          <div class="ins-field">
+            <span class="ins-field-label">Rotate (deg)</span>
+            <input id="ins-rotate" type="number" min="-360" max="360" value="0">
+          </div>
+
         </div>
       </div>
 
@@ -1165,6 +1192,21 @@ a { color: inherit; }
         <div class="ins-card-body">
           <div id="layers" class="layers-list"></div>
           <div class="ins-hint">Editable elements in the active slide. Click to select.</div>
+        </div>
+      </div>
+
+
+      <div class="ins-card">
+        <div class="ins-card-hd">Arrange</div>
+        <div class="ins-card-body">
+          <div class="ins-grid-2">
+            <button id="align-left" class="btn">Align Left</button>
+            <button id="align-top" class="btn">Align Top</button>
+            <button id="distribute-h" class="btn">Distribute H</button>
+            <button id="distribute-v" class="btn">Distribute V</button>
+            <button id="group-selection" class="btn">Group</button>
+            <button id="ungroup-selection" class="btn">Ungroup</button>
+          </div>
         </div>
       </div>
 
