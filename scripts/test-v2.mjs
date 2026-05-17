@@ -362,7 +362,7 @@ if (!appSrc.includes("if (i < originalPositional.length) el.textContent = origin
 if (!html.includes('id="marquee-box"')) throw new Error('missing marquee-box token');
 if (html.includes('id="rubber-band"')) throw new Error('rubber-band alias should not remain');
 if (!appSrc.includes('let stageScale = 1')) throw new Error('stageScale declaration missing');
-if (!appSrc.includes('const updateStageScale = () =>')) throw new Error('updateStageScale missing');
+if (!appSrc.includes('function updateStageScale(') && !appSrc.includes('const updateStageScale')) throw new Error('updateStageScale missing');
 if (!appSrc.includes('toStageDelta(')) throw new Error('stageScale coordinate helper missing');
 if (!appSrc.includes('toStageDelta(e.clientX - overlayDragState.startX)')) throw new Error('drag delta must account for stageScale');
 if (!appSrc.includes('toStageDelta(e.clientY - overlayDragState.startY)')) throw new Error('drag delta must account for stageScale');

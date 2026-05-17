@@ -249,11 +249,6 @@ if (hasDom) {
   const marqueeBox = q('#marquee-box');
   const stageWrap = editStage?.parentElement || null;
   let stageScale = 1;
-  const updateStageScale = () => {
-    const scaled = editStage?.getBoundingClientRect?.().width || 0;
-    const css = editStage?.offsetWidth || 0;
-    stageScale = scaled > 0 && css > 0 ? (scaled / css) : 1;
-  };
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
   const brandMark = q('.brand-mark');
