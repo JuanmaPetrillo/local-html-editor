@@ -155,6 +155,7 @@ export function duplicateSlideInModel(modelInput) {
 function getPx(style, key) { const v = style.getPropertyValue(key) || ''; const n = Number.parseFloat(v); return Number.isFinite(n) ? n : 0; }
 function setPx(style, key, value) { style.setProperty(key, `${Math.round(value)}px`); }
 function getPointerDistance(start, end) { return Math.hypot(end.x - start.x, end.y - start.y); }
+function toStageDelta(delta) { return delta / (stageScale || 1); }
 function isMovableByPosition(el) {
   const pos = (el.style.position || '').toLowerCase();
   return pos === 'absolute' || pos === 'fixed';
@@ -245,13 +246,13 @@ if (hasDom) {
   const editOverlay = q('#edit-overlay');
   const hoverBox = q('#hover-box');
   const selectionBox = q('#selection-box');
-  const marqueeBox = q('#marquee-box') || q('#rubber-band');
-  const rubberBandEl = marqueeBox;
-  const stageWrap = q('#stage-wrap') || editStage?.parentElement || null;
+  const marqueeBox = q('#marquee-box');
+  const stageWrap = editStage?.parentElement || null;
   let stageScale = 1;
   const updateStageScale = () => {
-    if (!stageWrap) return;
-    stageScale = 1;
+    const scaled = editStage?.getBoundingClientRect?.().width || 0;
+    const css = editStage?.offsetWidth || 0;
+    stageScale = scaled > 0 && css > 0 ? (scaled / css) : 1;
   };
   const inspectorScroll = q('.inspector-scroll');
   const slideCounter = q('#slide-counter');
@@ -499,7 +500,6 @@ if (hasDom) {
     return out.length ? out : (selectedEl ? [selectedEl] : []);
   }
 
-  function getSelectedEls(doc) { return getSelectedElements(doc); }
 
   function clearSelectionState() {
     selectedEl = null;
@@ -539,7 +539,7 @@ if (hasDom) {
     const doc = editFrame.contentDocument;
     if (!doc) return null;
     const r = editOverlay.getBoundingClientRect();
-    const el = doc.elementFromPoint(clientX - r.left, clientY - r.top);
+    const el = doc.elementFromPoint(toStageDelta(clientX - r.left), toStageDelta(clientY - r.top));
     if (!el || el === doc.body || el === doc.documentElement) return null;
     return el;
   }
@@ -600,8 +600,8 @@ if (hasDom) {
     };
     handles[dir].onpointermove = (e) => {
       if (!resizeState || resizeState.dir !== dir) return;
-      const dx = e.clientX - resizeState.startX;
-      const dy = e.clientY - resizeState.startY;
+      const dx = toStageDelta(e.clientX - resizeState.startX);
+      const dy = toStageDelta(e.clientY - resizeState.startY);
       const el = resizeState.el;
       let newW = resizeState.origW;
       let newH = resizeState.origH;
@@ -688,8 +688,8 @@ if (hasDom) {
       }
       if (overlayDragState) {
         overlayDragState.items.forEach((item) => {
-          setPx(item.el.style, 'left', snapCoord(item.left + (e.clientX - overlayDragState.startX)));
-          setPx(item.el.style, 'top', snapCoord(item.top + (e.clientY - overlayDragState.startY)));
+          setPx(item.el.style, 'left', snapCoord(item.left + toStageDelta(e.clientX - overlayDragState.startX)));
+          setPx(item.el.style, 'top', snapCoord(item.top + toStageDelta(e.clientY - overlayDragState.startY)));
         });
         updateSelectionBox(selectedEl);
         loadInspector(selectedEl);

@@ -1281,3 +1281,15 @@ Validation run: npm run test:v2; npm run test:e2e
 Result: Passed.
 Known limitations: Compatibility symbols are no-op/stub where appropriate and are intended for merge safety, not new behavior.
 Next recommended task: After base-branch convergence, prune compatibility aliases once one naming convention is canonical.
+
+### 2026-05-17 (clean merge model pass: remove alias paths, real stageScale usage)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: V2 edit-mode stabilization follow-up
+Summary: Removed compatibility alias paths and converged to one editor model: single marquee element (`#marquee-box`), no `rubber-band` alias, no `getSelectedEls` alias. Kept `selectedIds` as source of truth and implemented non-noop stage scaling calculation (`updateStageScale`) with pointer coordinate and drag/resize delta conversion via `toStageDelta(...)`.
+Files changed: apps/desktop-v2/index.html, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: rg -n "^(<<<<<<<|=======|>>>>>>>)" apps/desktop-v2/index.html apps/desktop-v2/src/app-v2.mjs || true; node --check apps/desktop-v2/src/app-v2.mjs; npm run test:v2; npm run test:e2e
+Result: Passed.
+Known limitations: Browser/manual interaction verification was not executed in this environment.
+Next recommended task: run browser-level verification for marquee drag-select and stage scaling behavior after merge.

@@ -358,13 +358,12 @@ if (!appSrc.includes("if (slot && originalBySlot.has(slot))")) throw new Error('
 if (!appSrc.includes("if (i < originalPositional.length) el.textContent = originalPositional[i]")) throw new Error('master positional fallback branch missing');
 
 
-// Merge compatibility: accept legacy rubber-band marker presence
-if (!html.includes('id="marquee-box"') && !html.includes('id="rubber-band"')) throw new Error('missing marquee/rubber-band selection box token');
-
-
-// Merge compatibility: stage scaling symbols should exist for shared-code merges
-if (!appSrc.includes('const stageWrap =')) throw new Error('missing stageWrap compatibility symbol');
-if (!appSrc.includes('let stageScale = 1')) throw new Error('missing stageScale compatibility symbol');
-if (!appSrc.includes('const updateStageScale = () =>')) throw new Error('missing updateStageScale compatibility symbol');
-if (!appSrc.includes('const rubberBandEl = marqueeBox')) throw new Error('missing rubberBandEl compatibility alias');
-if (!appSrc.includes('function getSelectedEls(doc)')) throw new Error('missing selectedEls compatibility helper');
+// Regression: single marquee implementation + stageScale usage
+if (!html.includes('id="marquee-box"')) throw new Error('missing marquee-box token');
+if (html.includes('id="rubber-band"')) throw new Error('rubber-band alias should not remain');
+if (!appSrc.includes('let stageScale = 1')) throw new Error('stageScale declaration missing');
+if (!appSrc.includes('const updateStageScale = () =>')) throw new Error('updateStageScale missing');
+if (!appSrc.includes('toStageDelta(')) throw new Error('stageScale coordinate helper missing');
+if (!appSrc.includes('toStageDelta(e.clientX - overlayDragState.startX)')) throw new Error('drag delta must account for stageScale');
+if (!appSrc.includes('toStageDelta(e.clientY - overlayDragState.startY)')) throw new Error('drag delta must account for stageScale');
+if (!appSrc.includes('doc.elementFromPoint(toStageDelta(clientX - r.left), toStageDelta(clientY - r.top))')) throw new Error('pointer coordinate conversion must account for stageScale');
