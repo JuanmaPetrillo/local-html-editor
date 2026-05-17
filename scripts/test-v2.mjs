@@ -7,7 +7,10 @@ import {
 import {
   editHeadingTextInModel as editHeadingTextInModelCommand,
   addTextBlockToSlide as addTextBlockToSlideCommand,
-  deleteFirstTagInSlide as deleteFirstTagInSlideCommand
+  deleteFirstTagInSlide as deleteFirstTagInSlideCommand,
+  addSlideToModel as addSlideToModelCommand,
+  deleteSlideFromModel as deleteSlideFromModelCommand,
+  duplicateSlideInModel as duplicateSlideInModelCommand
 } from '../apps/desktop-v2/src/edit-commands.mjs';
 
 
@@ -26,6 +29,26 @@ import {
 
   const deleted = deleteFirstTagInSlideCommand(baseModel, 'button', { mapHtmlToModel: deps.mapHtmlToModel });
   if (/<button/i.test(deleted.sourceHtml)) throw new Error('edit command helper delete tag failed');
+}
+
+
+// PR1 refactor guard: extracted slide command helpers keep behavior
+{
+  const sourceHtml = '<!doctype html><html><body><section class="slide" data-slide-id="a" data-label="A"><h1>A</h1></section><section class="slide" data-slide-id="b" data-label="B"><h1>B</h1></section></body></html>';
+  const map = (html) => mapHtmlToModel(html);
+  const baseModel = map(sourceHtml);
+  baseModel.selectedSlideId = 'a';
+
+  const added = addSlideToModelCommand(baseModel, { mapHtmlToModel: map });
+  if (added.slides.length !== 3) throw new Error('slide command helper add failed');
+
+  const duplicated = duplicateSlideInModelCommand(baseModel, { mapHtmlToModel: map });
+  if (duplicated.slides.length !== 3) throw new Error('slide command helper duplicate failed');
+
+  const deleteModel = map(sourceHtml);
+  deleteModel.selectedSlideId = 'b';
+  const deleted = deleteSlideFromModelCommand(deleteModel, { mapHtmlToModel: map });
+  if (deleted.slides.length !== 1) throw new Error('slide command helper delete failed');
 }
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');

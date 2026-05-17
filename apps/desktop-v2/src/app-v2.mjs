@@ -2,6 +2,9 @@ import {
   editHeadingTextInModel as editHeadingTextInModelCommand,
   addTextBlockToSlide as addTextBlockToSlideCommand,
   deleteFirstTagInSlide as deleteFirstTagInSlideCommand,
+  addSlideToModel as addSlideToModelCommand,
+  deleteSlideFromModel as deleteSlideFromModelCommand,
+  duplicateSlideInModel as duplicateSlideInModelCommand,
   getSlideRegexById
 } from './edit-commands.mjs';
 
@@ -76,52 +79,11 @@ export function addTextBlockToSlide(modelInput, text) { return addTextBlockToSli
 
 export function deleteFirstTagInSlide(modelInput, tagName) { return deleteFirstTagInSlideCommand(modelInput, tagName, { mapHtmlToModel }); }
 
-export function addSlideToModel(modelInput) {
-  const model = { ...modelInput };
-  const newId = `lhe-slide-${Date.now()}`;
-  const newSlide = `<section class="slide" data-slide-id="${newId}" data-label="New Slide" style="position:relative;width:100%;min-height:100%;"><p style="position:absolute;left:80px;top:80px;font-size:24px;">New slide</p></section>`;
-  const re = model.selectedSlideId ? getSlideRegexById(model.selectedSlideId) : null;
-  const match = re ? String(model.sourceHtml).match(re) : null;
-  const newSourceHtml = match
-    ? String(model.sourceHtml).replace(re, `${match[0]}\n${newSlide}`)
-    : (/(<\/body>)/i.test(String(model.sourceHtml)) ? String(model.sourceHtml).replace(/<\/body>/i, `${newSlide}</body>`) : String(model.sourceHtml) + newSlide);
-  const result = mapHtmlToModel(newSourceHtml);
-  result.selectedSlideId = newId;
-  return result;
-}
+export function addSlideToModel(modelInput) { return addSlideToModelCommand(modelInput, { mapHtmlToModel }); }
 
-export function deleteSlideFromModel(modelInput) {
-  const model = { ...modelInput };
-  if (model.slides.length <= 1) return model;
-  const idx = model.slides.findIndex((s) => s.id === model.selectedSlideId);
-  if (idx === -1) return model;
-  const newSelectedId = model.slides[idx > 0 ? idx - 1 : 1].id;
-  const re = getSlideRegexById(model.selectedSlideId);
-  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, ''));
-  result.selectedSlideId = newSelectedId;
-  return result;
-}
+export function deleteSlideFromModel(modelInput) { return deleteSlideFromModelCommand(modelInput, { mapHtmlToModel }); }
 
-export function duplicateSlideInModel(modelInput) {
-  const model = { ...modelInput };
-  const re = getSlideRegexById(model.selectedSlideId);
-  const match = String(model.sourceHtml).match(re);
-  if (!match) return model;
-  const newId = `lhe-slide-${Date.now()}`;
-  let dupe = match[0].replace(/data-slide-id\s*=\s*"[^"]*"/i, `data-slide-id="${newId}"`);
-  dupe = dupe.replace(/data-slide-id\s*=\s*'[^']*'/i, `data-slide-id='${newId}'`);
-  const hasLabel = /data-label\s*=\s*["']/i.test(dupe);
-  if (hasLabel) {
-    dupe = dupe.replace(/data-label\s*=\s*"([^"]*)"/i, (_m, l) => `data-label="${l} (Copy)"`);
-    dupe = dupe.replace(/data-label\s*=\s*'([^']*)'/i, (_m, l) => `data-label='${l} (Copy)'`);
-  } else {
-    const existingLabel = model.slides.find((s) => s.id === model.selectedSlideId)?.label || 'Slide';
-    dupe = dupe.replace(/(<(section|div)\b[^>]*class\s*=\s*["'][^"']*slide[^"']*["'][^>]*data-slide-id\s*=\s*["'][^"']*["'])([^>]*>)/i, `$1 data-label="${existingLabel} (Copy)"$3`);
-  }
-  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, `${match[0]}\n${dupe}`));
-  result.selectedSlideId = newId;
-  return result;
-}
+export function duplicateSlideInModel(modelInput) { return duplicateSlideInModelCommand(modelInput, { mapHtmlToModel }); }
 
 function getPx(style, key) { const v = style.getPropertyValue(key) || ''; const n = Number.parseFloat(v); return Number.isFinite(n) ? n : 0; }
 function setPx(style, key, value) { style.setProperty(key, `${Math.round(value)}px`); }
