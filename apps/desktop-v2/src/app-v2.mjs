@@ -696,15 +696,18 @@ if (hasDom) {
         }
       }
       if (marqueeState) {
-        const x = Math.min(marqueeState.startX, e.clientX);
-        const y = Math.min(marqueeState.startY, e.clientY);
-        const w = Math.abs(e.clientX - marqueeState.startX);
-        const h = Math.abs(e.clientY - marqueeState.startY);
+        const _or = editOverlay.getBoundingClientRect();
+        const cx = toStageDelta(e.clientX - _or.left);
+        const cy = toStageDelta(e.clientY - _or.top);
+        const x = Math.min(marqueeState.startX, cx);
+        const y = Math.min(marqueeState.startY, cy);
+        const w = Math.abs(cx - marqueeState.startX);
+        const h = Math.abs(cy - marqueeState.startY);
         marqueeBox.style.left = x + 'px'; marqueeBox.style.top = y + 'px'; marqueeBox.style.width = w + 'px'; marqueeBox.style.height = h + 'px'; marqueeBox.style.display = 'block';
       }
       if (overlayPointerDown && !overlayDragState && !activeEditingEl && !marqueeState) {
         if (getPointerDistance(overlayPointerDown, { x: e.clientX, y: e.clientY }) >= 4) {
-          if (!selectedEl) { marqueeState = { startX: overlayPointerDown.x, startY: overlayPointerDown.y }; return; }
+          if (!selectedEl) { const _or2 = editOverlay.getBoundingClientRect(); marqueeState = { startX: toStageDelta(overlayPointerDown.x - _or2.left), startY: toStageDelta(overlayPointerDown.y - _or2.top) }; return; }
           if (!isMovableByPosition(selectedEl)) convertToAbsolute(selectedEl);
           const dragElements = getSelectedElements(doc);
           dragElements.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
@@ -752,17 +755,22 @@ if (hasDom) {
         return;
       }
       overlayPointerDown = { x: e.clientX, y: e.clientY };
-      marqueeState = { startX: e.clientX, startY: e.clientY };
+      const _or0 = editOverlay.getBoundingClientRect();
+      marqueeState = { startX: toStageDelta(e.clientX - _or0.left), startY: toStageDelta(e.clientY - _or0.top) };
     };
 
     editOverlay.onpointerup = () => {
       if (marqueeState) {
         const mr = marqueeBox.getBoundingClientRect();
         const hits = [];
-        doc.querySelectorAll('[data-lhe-id]').forEach((el) => {
+        (doc.body ? Array.from(doc.body.querySelectorAll('*')) : []).forEach((el) => {
           const r = el.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) return;
           const intersect = !(r.right < mr.left || r.left > mr.right || r.bottom < mr.top || r.top > mr.bottom);
-          if (intersect) hits.push(el);
+          if (intersect) {
+            if (!el.getAttribute('data-lhe-id')) el.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
+            hits.push(el);
+          }
         });
         selectedIds.clear();
         hits.forEach((el) => selectedIds.add(el.getAttribute('data-lhe-id')));
@@ -1060,14 +1068,16 @@ if (hasDom) {
   alignLeftBtn.onclick = () => applyStyle(() => {
     const items = getSelectedElements(editFrame.contentDocument);
     if (items.length < 2) return;
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
     const left = Math.min(...items.map((el) => getPx(el.style, 'left')));
-    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); setPx(el.style, 'left', left); });
+    items.forEach((el) => setPx(el.style, 'left', left));
   });
   alignTopBtn.onclick = () => applyStyle(() => {
     const items = getSelectedElements(editFrame.contentDocument);
     if (items.length < 2) return;
+    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); });
     const top = Math.min(...items.map((el) => getPx(el.style, 'top')));
-    items.forEach((el) => { if (!isMovableByPosition(el)) convertToAbsolute(el); setPx(el.style, 'top', top); });
+    items.forEach((el) => setPx(el.style, 'top', top));
   });
   distributeHBtn.onclick = () => applyStyle(() => {
     const items = getSelectedElements(editFrame.contentDocument).slice().sort((a, b) => getPx(a.style, 'left') - getPx(b.style, 'left'));
