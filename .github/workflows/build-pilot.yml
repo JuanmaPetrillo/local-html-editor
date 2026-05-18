@@ -30,14 +30,14 @@ jobs:
       - name: E2E tests
         run: npm run test:e2e
 
-      - name: Browser E2E scaffold check
-        run: npm run test:e2e:browser
-
       - name: Security tests
         run: npm run test:security
 
       - name: Build
         run: npm run build
+
+      - name: Browser E2E scaffold check
+        run: npm run test:e2e:browser
 
       - name: Package pilot
         run: npm run package:pilot
