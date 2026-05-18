@@ -331,9 +331,11 @@ if (!previewBlock.includes('clearSelectionState()')) throw new Error('preview mo
 if (!editBlock.includes('clearSelectionState()')) throw new Error('edit mode switch must clear selection state');
 
 // Regression: open file/project flows should clear full selection state
-const fileOpenBlock = appSrc.slice(appSrc.indexOf('fileInput.onchange'), appSrc.indexOf('previewBtn.onclick'));
+const openHtmlFnBlock = appSrc.includes('async function openHtmlFile')
+  ? appSrc.slice(appSrc.indexOf('async function openHtmlFile'), appSrc.indexOf('fileInput.onchange'))
+  : appSrc.slice(appSrc.indexOf('fileInput.onchange'), appSrc.indexOf('previewBtn.onclick'));
 const projectOpenBlock = appSrc.slice(appSrc.indexOf('openProjectInput.onchange'), appSrc.indexOf('exportBtn.onclick'));
-if (!fileOpenBlock.includes('clearSelectionState()')) throw new Error('file open flow must clear selection state');
+if (!openHtmlFnBlock.includes('clearSelectionState()')) throw new Error('file open flow must clear selection state');
 if (!projectOpenBlock.includes('clearSelectionState()')) throw new Error('project open flow must clear selection state');
 
 // Regression: delete paths should clear full selection state helper

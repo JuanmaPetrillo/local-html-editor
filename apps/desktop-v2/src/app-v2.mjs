@@ -255,7 +255,7 @@ if (hasDom) {
 
   const HANDLE_DIRS = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
   const HANDLE_CURSORS = { nw: 'nwse-resize', n: 'ns-resize', ne: 'nesw-resize', w: 'ew-resize', e: 'ew-resize', sw: 'nesw-resize', s: 'ns-resize', se: 'nwse-resize' };
-  const HANDLE_PX = 8;
+  const HANDLE_PX = 10;
   const handles = {};
 
   const selectedOutlineLayer = document.createElement('div');
@@ -274,10 +274,17 @@ if (hasDom) {
   let model = mapHtmlToModel('');
   const history = createHistory();
   let isDirty = false;
-  const markDirty = () => { if (isDirty) return; isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; };
-  const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; };
+  const DRAFT_KEY = 'lhe-draft-v2';
+  let draftSaveTimer = null;
+  function scheduleDraftSave() {
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(() => {
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(createProjectPayload({ ...model, masterSlideTemplateHtml, masterPreserveText }))); } catch {}
+    }, 3000);
+  }
+  const markDirty = () => { if (!isDirty) { isDirty = true; brandMark?.classList.add('has-unsaved'); document.title = '● HTML Presentation Editor — Tenaris'; } scheduleDraftSave(); };
+  const markClean = () => { isDirty = false; brandMark?.classList.remove('has-unsaved'); document.title = 'HTML Presentation Editor — Tenaris'; localStorage.removeItem(DRAFT_KEY); };
   let selectedEl = null;
-  let selectedEls = [];
   let activeEditingEl = null;
   let selectionId = '';
   let selectedIds = new Set();
@@ -665,18 +672,6 @@ if (hasDom) {
     editOverlay.style.pointerEvents = 'all';
 
     editOverlay.onpointermove = (e) => {
-      if (rubberBandState) {
-        const r = editOverlay.getBoundingClientRect();
-        const ix = (e.clientX - r.left) / stageScale;
-        const iy = (e.clientY - r.top) / stageScale;
-        const x = Math.min(ix, rubberBandState.startX);
-        const y = Math.min(iy, rubberBandState.startY);
-        rubberBandEl.style.left = x + 'px';
-        rubberBandEl.style.top = y + 'px';
-        rubberBandEl.style.width = Math.abs(ix - rubberBandState.startX) + 'px';
-        rubberBandEl.style.height = Math.abs(iy - rubberBandState.startY) + 'px';
-        return;
-      }
       if (!activeEditingEl && !overlayDragState) {
         const iframeEl = getIframeElementAt(e.clientX, e.clientY);
         if (iframeEl !== hoveredEl) {
@@ -726,7 +721,6 @@ if (hasDom) {
     };
 
     editOverlay.onclick = (e) => {
-      if (rubberBandState) return;
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (e.ctrlKey || e.metaKey) {
         if (iframeEl) iframeEl.click();
@@ -741,7 +735,6 @@ if (hasDom) {
       const iframeEl = getIframeElementAt(e.clientX, e.clientY);
       if (!iframeEl) return;
       selectElement(iframeEl);
-      selectedEls = [iframeEl];
       enterTextEditMode(iframeEl);
     };
 
@@ -757,6 +750,7 @@ if (hasDom) {
       overlayPointerDown = { x: e.clientX, y: e.clientY };
       const _or0 = editOverlay.getBoundingClientRect();
       marqueeState = { startX: toStageDelta(e.clientX - _or0.left), startY: toStageDelta(e.clientY - _or0.top) };
+      editOverlay.setPointerCapture(e.pointerId);
     };
 
     editOverlay.onpointerup = () => {
@@ -795,39 +789,6 @@ if (hasDom) {
         overlayDragState = null;
         render();
         markDirty();
-      }
-      if (rubberBandState) {
-        rubberBandEl.style.display = 'none';
-        const r = editOverlay.getBoundingClientRect();
-        const ix = (e.clientX - r.left) / stageScale;
-        const iy = (e.clientY - r.top) / stageScale;
-        const rbL = Math.min(ix, rubberBandState.startX);
-        const rbT = Math.min(iy, rubberBandState.startY);
-        const rbR = Math.max(ix, rubberBandState.startX);
-        const rbB = Math.max(iy, rubberBandState.startY);
-        rubberBandState = null;
-        if (rbR - rbL > 5 && rbB - rbT > 5) {
-          const activeSlide = collectSlides(doc).find((s, i) =>
-            (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId
-          ) || doc.body;
-          const candidates = Array.from(activeSlide.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,span,img,button,a,li,label'));
-          const hits = candidates.filter(el => {
-            if (el === activeSlide) return false;
-            const er = el.getBoundingClientRect();
-            return er.width > 0 && er.height > 0 &&
-              er.left < rbR && er.right > rbL &&
-              er.top < rbB && er.bottom > rbT;
-          });
-          if (hits.length === 1) {
-            selectElement(hits[0]); selectedEls = hits;
-          } else if (hits.length > 1) {
-            selectedEls = hits;
-            selectElement(hits[0]);
-            showMultiSelectionBox(hits);
-            setStatus(`${hits.length} elements selected — drag to move all, Delete to remove all.`);
-            refreshButtons();
-          }
-        }
       }
     };
 
@@ -904,10 +865,9 @@ if (hasDom) {
     markDirty();
   }
 
-  fileInput.onchange = async () => {
-    const f = fileInput.files?.[0];
+  async function openHtmlFile(f) {
     if (!f) return;
-    if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) { fileInput.value = ''; return; }
+    if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) return;
     model = mapHtmlToModel(await f.text());
     masterSlideTemplateHtml = '';
     masterPreserveText = true;
@@ -915,12 +875,48 @@ if (hasDom) {
     history.undo = [];
     history.redo = [];
     clearSelectionState();
+    document.body.classList.remove('no-file');
     render();
     markClean();
-    setStatus(`Opened HTML: ${f.name}`);
-  };
+    setStatus(`Opened: ${f.name}`);
+  }
+
+  fileInput.onchange = async () => { await openHtmlFile(fileInput.files?.[0]); fileInput.value = ''; };
   previewBtn.onclick = () => { model.mode = 'preview'; clearSelectionState(); render(); };
   editBtn.onclick = () => { model.mode = 'edit'; clearSelectionState(); render(); };
+
+  document.body.addEventListener('dragover', (e) => {
+    const hasFile = Array.from(e.dataTransfer?.items || []).some((it) => it.kind === 'file');
+    if (hasFile) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; document.body.classList.add('drag-over'); }
+  });
+  document.body.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget || !document.body.contains(e.relatedTarget)) document.body.classList.remove('drag-over');
+  });
+  document.body.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    document.body.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer?.files || []);
+    const htmlFile = files.find((f) => /\.html?$/i.test(f.name));
+    const imgFile = files.find((f) => /\.(png|jpe?g|gif|webp|avif)$/i.test(f.name));
+    if (htmlFile) {
+      await openHtmlFile(htmlFile);
+    } else if (imgFile && model.mode === 'edit') {
+      const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(imgFile); });
+      if (!/^data:image\/(png|jpeg|jpg|gif|webp|avif)/i.test(data)) { setStatus('Unsupported image format. Use PNG, JPEG, GIF, WebP, or AVIF.'); return; }
+      const doc = editFrame.contentDocument;
+      if (!doc) { setStatus('Switch to Edit mode to add an image.'); return; }
+      applyStyle(() => {
+        const active = collectSlides(doc).find((s, idx) => (s.getAttribute('data-slide-id') || `s${idx + 1}`) === model.selectedSlideId) || doc.body;
+        const img = doc.createElement('img');
+        img.src = data;
+        img.style.cssText = 'position:absolute;left:80px;top:120px;width:240px;height:140px;';
+        active.appendChild(img);
+      });
+      setStatus(`Image "${imgFile.name}" added to slide.`);
+    } else {
+      setStatus('Drop an HTML file to open it, or drop an image to add it to the current slide.');
+    }
+  });
 
   let nudgeTimer = null;
   document.addEventListener('keydown', (e) => {
@@ -928,8 +924,8 @@ if (hasDom) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveBtn.click(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key === 'e') { e.preventDefault(); exportBtn.click(); return; }
     if ((e.ctrlKey || e.metaKey) && !activeEditingEl) {
-      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); markDirty(); return; }
-      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); markDirty(); return; }
+      if (!e.shiftKey && e.key === 'z') { e.preventDefault(); model = undo(history, model); render(); markDirty(); setStatus('Undone.'); return; }
+      if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); markDirty(); setStatus('Redone.'); return; }
     }
     if (model.mode !== 'edit' || activeEditingEl) return;
     if (e.key === 'Escape' && selectedEl) {
@@ -937,7 +933,7 @@ if (hasDom) {
       clearSelectionState();
       return;
     }
-    if (e.key === 'Delete' && (selectedEl || selectedEls.length)) {
+    if (e.key === 'Delete' && (selectedEl || selectedIds.size)) {
       e.preventDefault();
       applyStyle(() => { getSelectedElements(editFrame.contentDocument).forEach((el) => el.remove()); clearSelectionState(); });
       setStatus('Element deleted. Press Ctrl+Z to undo.');
@@ -1211,8 +1207,8 @@ if (hasDom) {
     render();
     markDirty();
   };
-  undoBtn.onclick = () => { model = undo(history, model); render(); markDirty(); };
-  redoBtn.onclick = () => { model = redo(history, model); render(); markDirty(); };
+  undoBtn.onclick = () => { model = undo(history, model); render(); markDirty(); setStatus('Undone. Ctrl+Z to undo more, Ctrl+Y to redo.'); };
+  redoBtn.onclick = () => { model = redo(history, model); render(); markDirty(); setStatus('Redone.'); };
   saveBtn.onclick = () => {
     commitFrameToModel();
     const text = JSON.stringify(createProjectPayload({ ...model, masterSlideTemplateHtml, masterPreserveText }), null, 2);
@@ -1237,6 +1233,7 @@ if (hasDom) {
     masterPreserveText = restored.masterPreserveText !== false;
     masterPreserveTextToggle.checked = masterPreserveText;
     clearSelectionState();
+    document.body.classList.remove('no-file');
     render();
     markClean();
     setStatus(`Opened project: ${f.name}`);
@@ -1261,10 +1258,34 @@ if (hasDom) {
     editStage.style.marginBottom = s < 1 ? `${-(540 * (1 - s))}px` : '';
     liveFrame.style.transform = editStage.style.transform;
     liveFrame.style.marginBottom = editStage.style.marginBottom;
+    const zoomEl = q('#zoom-level');
+    if (zoomEl) zoomEl.textContent = s < 1 ? `${Math.round(s * 100)}%` : '';
+    if (selectedEl) updateSelectionBox(selectedEl);
   }
 
   new ResizeObserver(updateStageScale).observe(stageWrap);
   updateStageScale();
 
   render();
+
+  try {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      const payload = JSON.parse(savedDraft);
+      const restored = restoreProjectPayload(payload);
+      if (restored && restored.sourceHtml && restored.sourceHtml.trim().length > 20) {
+        model = restored;
+        masterSlideTemplateHtml = String(restored.masterSlideTemplateHtml || '');
+        masterPreserveText = restored.masterPreserveText !== false;
+        masterPreserveTextToggle.checked = masterPreserveText;
+        clearSelectionState();
+        document.body.classList.remove('no-file');
+        render();
+        isDirty = true;
+        brandMark?.classList.add('has-unsaved');
+        document.title = '● HTML Presentation Editor — Tenaris';
+        setStatus('Draft restored from last session. Press Ctrl+S to save as a project file.');
+      }
+    }
+  } catch {}
 }

@@ -513,6 +513,7 @@ a { color: inherit; }
   background: var(--s-stage-bg);
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 /* The slide canvas */
@@ -558,16 +559,6 @@ a { color: inherit; }
   box-sizing: border-box;
   border-radius: 3px;
   background: rgba(0,102,161,.025);
-}
-
-#rubber-band {
-  position: absolute;
-  pointer-events: none;
-  border: 1.5px dashed #2563eb;
-  background: rgba(37,99,235,.07);
-  display: none;
-  box-sizing: border-box;
-  border-radius: 2px;
 }
 
 #selection-box {
@@ -829,6 +820,81 @@ a { color: inherit; }
 }
 
 /* ============================================================
+   ZOOM LEVEL BADGE
+   ============================================================ */
+.zoom-level {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--t-muted);
+  background: var(--s-panel-alt);
+  border: 1px solid var(--b-soft);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+  min-width: 36px;
+  text-align: center;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+.zoom-level:empty { display: none; }
+
+/* ============================================================
+   DRAG-OVER STATE
+   ============================================================ */
+body.drag-over .stage-wrap {
+  background: var(--c-blue-ghost);
+}
+body.drag-over .stage-wrap::after {
+  content: 'Drop HTML file to open  ·  Drop image to add to slide';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-blue);
+  background: rgba(234,244,251,.92);
+  border: 3px dashed var(--c-blue);
+  border-radius: var(--r-lg);
+  z-index: 20;
+  pointer-events: none;
+  letter-spacing: 0.1px;
+}
+
+/* ============================================================
+   STAGE EMPTY STATE
+   ============================================================ */
+.stage-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  color: var(--t-muted);
+  text-align: center;
+  padding: var(--sp-5);
+}
+.stage-placeholder-icon {
+  font-size: 36px;
+  opacity: 0.35;
+  line-height: 1;
+}
+.stage-placeholder-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t-secondary);
+}
+.stage-placeholder-hint {
+  font-size: 12px;
+  color: var(--t-muted);
+  line-height: 1.5;
+}
+body:not(.no-file) .stage-placeholder { display: none; }
+
+/* ============================================================
    SCROLLBARS
    ============================================================ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -902,7 +968,7 @@ a { color: inherit; }
 }
 </style>
 </head>
-<body>
+<body class="no-file">
 <div class="app-shell">
 
 <!-- ====== TOP APP BAR ====== -->
@@ -974,41 +1040,39 @@ a { color: inherit; }
     <div class="panel-body">
 
       <div class="slide-actions">
-        <button id="add-slide" class="btn" title="Add a new slide after the current one">Add Slide</button>
+        <button id="add-slide" class="btn" title="Add a new blank slide after the current one">+ Add</button>
         <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
         <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
-        <button id="set-master" class="btn" disabled title="Capture selected slide as master template">Set Master</button>
-        <button id="apply-master" class="btn" disabled title="Apply master template layout to all slides">Apply Master</button>
-        <label class="snap-toggle-label" title="Preserve each slide's text when applying master template">
+      </div>
+      <div class="slide-actions" style="margin-top:4px;">
+        <button id="set-master" class="btn" disabled title="Save this slide's layout as a master template to reuse on other slides">Set Master</button>
+        <button id="apply-master" class="btn" disabled title="Apply the master template layout to all slides">Apply to All</button>
+        <label class="snap-toggle-label" title="When applying master, keep each slide's existing text">
           <input type="checkbox" id="master-preserve-text" checked>
-          Preserve text
+          Keep text
         </label>
       </div>
 
       <div id="slides" class="slide-list"></div>
 
       <div class="welcome-card">
-        <div class="welcome-card-title">How to use</div>
+        <div class="welcome-card-title">Getting started</div>
         <div class="welcome-steps">
           <div class="welcome-step">
             <div class="welcome-step-n">1</div>
-            <span>Open HTML to load your presentation.</span>
+            <span>Click <strong>Open HTML</strong> or drag an HTML file onto the window.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">2</div>
-            <span>Use Preview to test the original presentation behavior.</span>
+            <span>Click any element on the slide to select it, then use the Inspector on the right to change text, colors, and size.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">3</div>
-            <span>Switch to Edit for safe changes (scripts are disabled).</span>
+            <span>Double-click text to edit it directly on the slide.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">4</div>
-            <span>Double-click text to edit, then use Inspector to format.</span>
-          </div>
-          <div class="welcome-step">
-            <div class="welcome-step-n">5</div>
-            <span>Export HTML to create a safe edited copy (scripts/button logic removed).</span>
+            <span>Press <strong>Ctrl+S</strong> to save your session, or <strong>Export HTML</strong> to share a finished file.</span>
           </div>
         </div>
       </div>
@@ -1023,8 +1087,14 @@ a { color: inherit; }
       <h2 class="stage-hd-label">Editing Stage</h2>
       <h2 class="stage-hd-preview">Live Preview</h2>
       <span id="slide-counter" class="slide-counter"></span>
+      <span id="zoom-level" class="zoom-level"></span>
     </div>
     <div class="stage-wrap">
+      <div class="stage-placeholder" aria-hidden="true">
+        <div class="stage-placeholder-icon">&#128196;</div>
+        <div class="stage-placeholder-title">No file open</div>
+        <div class="stage-placeholder-hint">Click <strong>Open HTML</strong> in the toolbar<br>or drag an HTML file anywhere onto this window</div>
+      </div>
       <iframe id="live-preview-frame"
         class="stage canvas-frame"
         sandbox="allow-scripts"
@@ -1109,14 +1179,26 @@ a { color: inherit; }
           <div class="ins-field">
             <span class="ins-field-label">Font family</span>
             <select id="ins-font-family">
-              <option value="">Default</option>
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option>
-              <option value="Georgia, serif">Georgia</option>
-              <option value="Times New Roman, serif">Times New Roman</option>
-              <option value="Verdana, sans-serif">Verdana</option>
-              <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
-              <option value="Courier New, monospace">Courier New</option>
+              <option value="">— Default —</option>
+              <optgroup label="Sans-serif">
+                <option value="Segoe UI, system-ui, sans-serif">Segoe UI</option>
+                <option value="Calibri, Candara, sans-serif">Calibri</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+                <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+                <option value="Tahoma, sans-serif">Tahoma</option>
+              </optgroup>
+              <optgroup label="Serif">
+                <option value="Georgia, serif">Georgia</option>
+                <option value="Cambria, Georgia, serif">Cambria</option>
+                <option value="Times New Roman, serif">Times New Roman</option>
+                <option value="Book Antiqua, Palatino, serif">Book Antiqua</option>
+              </optgroup>
+              <optgroup label="Monospace">
+                <option value="Courier New, monospace">Courier New</option>
+                <option value="Consolas, monospace">Consolas</option>
+              </optgroup>
             </select>
           </div>
           <div class="ins-field">
