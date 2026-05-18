@@ -307,8 +307,12 @@ if (hasDom) {
   };
 
   function refreshButtons() {
-    undoBtn.disabled = !canUndo(history);
-    redoBtn.disabled = !canRedo(history);
+    const undoCount = history.undo.length;
+    const redoCount = history.redo.length;
+    undoBtn.disabled = undoCount === 0;
+    redoBtn.disabled = redoCount === 0;
+    undoBtn.title = undoCount > 0 ? `Undo (${undoCount} step${undoCount > 1 ? 's' : ''}) — Ctrl+Z` : 'Nothing to undo';
+    redoBtn.title = redoCount > 0 ? `Redo (${redoCount} step${redoCount > 1 ? 's' : ''}) — Ctrl+Y` : 'Nothing to redo';
     const editable = model.mode === 'edit';
     delBtn.disabled = !selectedEl || !editable;
     addTextBtn.disabled = !editable;
@@ -339,10 +343,14 @@ if (hasDom) {
       return;
     }
     inspectorScroll.classList.remove('ins-empty');
+    if (selectedIds.size > 1) {
+      selectedState.textContent = `${selectedIds.size} elements selected · Drag to move all`;
+      return;
+    }
     const typeName = TAG_NAMES[el.tagName] || el.tagName.toLowerCase();
     const editable = ['H1', 'H2', 'H3', 'P', 'SPAN', 'BUTTON', 'DIV'].includes(el.tagName);
     selectedState.textContent = editable
-      ? `${typeName} selected · Double-click to edit`
+      ? `${typeName} selected · Double-click to edit text`
       : `${typeName} selected`;
   }
 
@@ -991,6 +999,24 @@ if (hasDom) {
       if (e.key === 'y' || (e.shiftKey && e.key === 'z')) { e.preventDefault(); model = redo(history, model); render(); markDirty(); setStatus('Redone.'); return; }
     }
     if (model.mode !== 'edit' || activeEditingEl) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      e.preventDefault();
+      const doc = editFrame.contentDocument;
+      if (!doc) return;
+      const active = getActiveSlideElement(doc) || doc.body;
+      const els = Array.from(active.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,span,img,button,a,li,label')).filter((el) => el !== active);
+      if (!els.length) return;
+      selectedIds.clear();
+      els.forEach((el) => {
+        if (!el.getAttribute('data-lhe-id')) el.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
+        selectedIds.add(el.getAttribute('data-lhe-id'));
+      });
+      selectedEl = els[0]; selectionId = els[0].getAttribute('data-lhe-id') || '';
+      applySelectionMarker(); updateSelectionBox(selectedEl); loadInspector(selectedEl);
+      renderSelectedOutlines(); refreshButtons();
+      setStatus(`${els.length} elements selected. Drag to move all, Delete to remove.`);
+      return;
+    }
     if (e.key === 'Escape' && selectedEl) {
       e.preventDefault();
       clearSelectionState();
