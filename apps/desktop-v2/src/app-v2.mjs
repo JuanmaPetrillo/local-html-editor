@@ -296,6 +296,7 @@ if (hasDom) {
   let masterPreserveText = model.masterPreserveText !== false;
   const snapCoord = (v) => snapEnabled ? Math.round(v / 10) * 10 : Math.round(v);
 
+  let statusClearTimer = null;
   const setStatus = (t) => {
     status.textContent = t;
     const lo = t.toLowerCase();
@@ -304,6 +305,10 @@ if (hasDom) {
       : /stripped|converted|scripts removed|snap/.test(lo) ? 'warn'
       : 'info';
     status.className = cls;
+    clearTimeout(statusClearTimer);
+    if (cls === 'ok') {
+      statusClearTimer = setTimeout(() => { status.className = 'info'; status.textContent = 'Ready.'; }, 4000);
+    }
   };
 
   function refreshButtons() {
@@ -483,7 +488,7 @@ if (hasDom) {
       return;
     }
     selectedEl = el;
-    updateSelectionBox(el);
+    if (selectedIds.size > 1) { showMultiSelectionBox(getSelectedElements(doc)); } else { updateSelectionBox(el); }
     loadInspector(selectedEl);
     describeSelected(selectedEl);
     renderSelectedOutlines();
@@ -764,12 +769,15 @@ if (hasDom) {
 
     editOverlay.onpointerup = () => {
       if (marqueeState) {
-        const mr = marqueeBox.getBoundingClientRect();
+        const mLeft = parseFloat(marqueeBox.style.left) || 0;
+        const mTop = parseFloat(marqueeBox.style.top) || 0;
+        const mRight = mLeft + (parseFloat(marqueeBox.style.width) || 0);
+        const mBottom = mTop + (parseFloat(marqueeBox.style.height) || 0);
         const hits = [];
         (doc.body ? Array.from(doc.body.querySelectorAll('*')) : []).forEach((el) => {
           const r = el.getBoundingClientRect();
           if (r.width === 0 && r.height === 0) return;
-          const intersect = !(r.right < mr.left || r.left > mr.right || r.bottom < mr.top || r.top > mr.bottom);
+          const intersect = !(r.right < mLeft || r.left > mRight || r.bottom < mTop || r.top > mBottom);
           if (intersect) {
             if (!el.getAttribute('data-lhe-id')) el.setAttribute('data-lhe-id', `lhe-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`);
             hits.push(el);
@@ -921,6 +929,7 @@ if (hasDom) {
       slidesList.appendChild(b);
     });
     scheduleThumbRefresh();
+    requestAnimationFrame(() => slidesList.querySelector('.active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
     setFrameHtml();
     refreshButtons();
     describeSelected(selectedEl);
@@ -953,6 +962,22 @@ if (hasDom) {
   }
 
   fileInput.onchange = async () => { await openHtmlFile(fileInput.files?.[0]); fileInput.value = ''; };
+  q('#new-btn')?.addEventListener('click', () => {
+    if (isDirty && !confirm('You have unsaved changes. Start a new blank presentation?')) return;
+    const blankHtml = '<!doctype html><html><head><meta charset="UTF-8"><style>html,body{margin:0;padding:0;}.slide{position:relative;width:100%;min-height:100%;background:#fff;}</style></head><body><section class="slide" data-slide-id="lhe-slide-1" data-label="Slide 1" style="position:relative;background:#ffffff;"><p style="position:absolute;left:80px;top:80px;font-size:36px;font-weight:700;color:#0a1628;">Title</p><p style="position:absolute;left:80px;top:170px;font-size:20px;color:#334d65;">Add your content here</p></section></body></html>';
+    model = mapHtmlToModel(blankHtml);
+    sourceFileName = '';
+    masterSlideTemplateHtml = '';
+    masterPreserveText = true;
+    masterPreserveTextToggle.checked = true;
+    history.undo = [];
+    history.redo = [];
+    clearSelectionState();
+    document.body.classList.remove('no-file');
+    render();
+    markClean();
+    setStatus('New blank presentation created. Add elements from the toolbar.');
+  });
   previewBtn.onclick = () => { model.mode = 'preview'; clearSelectionState(); render(); };
   editBtn.onclick = () => { model.mode = 'edit'; clearSelectionState(); render(); };
 
@@ -1031,6 +1056,33 @@ if (hasDom) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedEl) {
       clipboard = selectedEl.outerHTML;
       setStatus('Copied. Ctrl+V to paste.');
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd' && selectedEl) {
+      e.preventDefault();
+      const docD = editFrame.contentDocument;
+      if (!docD) return;
+      const tempD = docD.createElement('div');
+      tempD.innerHTML = stripUnsafeHtml(selectedEl.outerHTML);
+      const cloneD = tempD.firstElementChild;
+      if (!cloneD) return;
+      cloneD.removeAttribute('data-lhe-id');
+      if (isMovableByPosition(cloneD)) {
+        setPx(cloneD.style, 'left', snapCoord(getPx(cloneD.style, 'left') + 20));
+        setPx(cloneD.style, 'top', snapCoord(getPx(cloneD.style, 'top') + 20));
+      } else {
+        cloneD.style.position = 'absolute';
+        setPx(cloneD.style, 'left', 100); setPx(cloneD.style, 'top', 100);
+        if (!getPx(cloneD.style, 'width')) setPx(cloneD.style, 'width', 200);
+        if (!getPx(cloneD.style, 'height')) setPx(cloneD.style, 'height', 40);
+      }
+      const activeD = collectSlides(docD).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || docD.body;
+      activeD.appendChild(cloneD);
+      selectElement(cloneD);
+      pushHistory(history, model);
+      commitFrameToModel();
+      render();
+      setStatus('Duplicated. Ctrl+Z to undo.');
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboard) {
