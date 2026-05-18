@@ -964,6 +964,67 @@ body:not(.no-file) .stage-placeholder { display: none; }
 .ins-empty-hint  { font-size: 11px; color: var(--t-muted); line-height: 1.5; }
 
 /* ============================================================
+   INSPECTOR CONTEXTUAL / COLLAPSIBLE
+   ============================================================ */
+.ins-hidden { display: none !important; }
+
+.ins-card-hd { cursor: pointer; user-select: none; }
+.ins-card-hd::after {
+  content: '▾';
+  margin-left: auto;
+  font-size: 9px;
+  opacity: 0.4;
+  color: var(--t-muted);
+  flex-shrink: 0;
+}
+.ins-card.ins-collapsed .ins-card-hd::after { content: '▸'; }
+.ins-card.ins-collapsed .ins-card-body { display: none; }
+
+/* ============================================================
+   OPACITY RANGE SLIDER
+   ============================================================ */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--b-mid);
+  border-radius: var(--r-pill);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--c-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--c-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+
+/* ============================================================
+   SLIDE LABEL INLINE RENAME
+   ============================================================ */
+.slide-label-text[contenteditable="true"] {
+  outline: 1.5px solid var(--b-focus);
+  border-radius: 3px;
+  background: #fff;
+  padding: 0 3px;
+  cursor: text;
+  white-space: nowrap;
+}
+
+/* ============================================================
    CONDITIONAL LAYOUT-SHIFT NOTE
    ============================================================ */
 .ins-flow-note { display: none; }
@@ -1205,7 +1266,7 @@ body:not(.no-file) .stage-placeholder { display: none; }
       </div>
 
       <!-- Text -->
-      <div class="ins-card">
+      <div class="ins-card" id="card-text-font">
         <div class="ins-card-hd">Text &amp; Font</div>
         <div class="ins-card-body">
           <div class="ins-field">
@@ -1272,8 +1333,8 @@ body:not(.no-file) .stage-placeholder { display: none; }
               <input id="ins-font" type="number" min="8" max="200" value="16">
             </div>
             <div class="ins-field">
-              <span class="ins-field-label">Opacity (%)</span>
-              <input id="ins-opacity" type="number" min="0" max="100" value="100">
+              <span class="ins-field-label">Opacity — <span id="ins-opacity-val">100</span>%</span>
+              <input id="ins-opacity" type="range" min="0" max="100" value="100">
             </div>
           </div>
           <div class="ins-field">
@@ -1286,7 +1347,7 @@ body:not(.no-file) .stage-placeholder { display: none; }
       <div class="ins-section-label">Advanced</div>
 
       <!-- Image -->
-      <div class="ins-card">
+      <div class="ins-card" id="card-image">
         <div class="ins-card-hd">Image</div>
         <div class="ins-card-body">
           <div class="ins-field">

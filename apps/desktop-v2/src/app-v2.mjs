@@ -427,13 +427,19 @@ if (hasDom) {
     insBold.checked = (cs.fontWeight === 'bold' || Number.parseInt(cs.fontWeight, 10) >= 600);
     insItalic.checked = cs.fontStyle === 'italic';
     insUnderline.checked = (cs.textDecoration || '').includes('underline');
-    insOpacity.value = String(Math.round((parseFloat(cs.opacity || '1')) * 100));
+    const opacityPct = String(Math.round((parseFloat(cs.opacity || '1')) * 100));
+    insOpacity.value = opacityPct;
+    const opacityDisplay = q('#ins-opacity-val');
+    if (opacityDisplay) opacityDisplay.textContent = opacityPct;
     const rot = (el.style.transform || '').match(/rotate\(([-0-9.]+)deg\)/i);
     insRotate.value = rot ? String(Math.round(Number(rot[1]) || 0)) : '0';
     const inlineFontFamily = el.style.fontFamily || '';
     insFontFamily.value = Array.from(insFontFamily.options).some((o) => o.value === inlineFontFamily) ? inlineFontFamily : '';
     insAlign.value = el.style.textAlign || cs.textAlign || 'left';
     inspectorScroll.classList.toggle('ins-flow-warning-visible', !isMovableByPosition(el));
+    const isImg = el.tagName === 'IMG';
+    q('#card-text-font')?.classList.toggle('ins-hidden', isImg);
+    q('#card-image')?.classList.toggle('ins-hidden', !isImg);
   }
 
   function rgbToHex(rgb) {
@@ -915,7 +921,39 @@ if (hasDom) {
       const labelEl = document.createElement('span');
       labelEl.className = 'slide-label-text';
       labelEl.textContent = s.label || s.name;
-      labelEl.title = s.label || s.name;
+      labelEl.title = 'Double-click to rename';
+      labelEl.addEventListener('dblclick', (ev) => {
+        ev.stopPropagation();
+        const origLabel = s.label || s.name;
+        labelEl.contentEditable = 'true';
+        labelEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(labelEl);
+        window.getSelection()?.removeAllRanges();
+        window.getSelection()?.addRange(range);
+        function commitRename() {
+          const newName = (labelEl.textContent || '').trim() || origLabel;
+          labelEl.contentEditable = 'false';
+          labelEl.removeEventListener('blur', commitRename);
+          labelEl.removeEventListener('keydown', handleKey);
+          if (newName === origLabel) return;
+          const iframeDoc = editFrame.contentDocument;
+          if (iframeDoc) {
+            const slideEl = collectSlides(iframeDoc).find((sl, idx) => (sl.getAttribute('data-slide-id') || `s${idx + 1}`) === s.id);
+            if (slideEl) slideEl.setAttribute('data-label', newName);
+          }
+          pushHistory(history, model);
+          commitFrameToModel();
+          markDirty();
+          render();
+        }
+        function handleKey(e) {
+          if (e.key === 'Enter') { e.preventDefault(); labelEl.blur(); }
+          if (e.key === 'Escape') { e.preventDefault(); labelEl.textContent = origLabel; labelEl.contentEditable = 'false'; labelEl.removeEventListener('blur', commitRename); labelEl.removeEventListener('keydown', handleKey); }
+        }
+        labelEl.addEventListener('blur', commitRename);
+        labelEl.addEventListener('keydown', handleKey);
+      });
       b.appendChild(thumbWrap);
       b.appendChild(numBadge);
       b.appendChild(labelEl);
@@ -1191,6 +1229,7 @@ if (hasDom) {
   insItalic.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.fontStyle = insItalic.checked ? 'italic' : 'normal'; });
   insUnderline.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.textDecoration = insUnderline.checked ? 'underline' : 'none'; });
   insOpacity.onchange = () => applyStyle(() => { if (selectedEl) selectedEl.style.opacity = String(Math.max(0, Math.min(100, Number(insOpacity.value || 100))) / 100); });
+  insOpacity.addEventListener('input', () => { const d = q('#ins-opacity-val'); if (d) d.textContent = insOpacity.value; if (selectedEl) selectedEl.style.opacity = String(Number(insOpacity.value) / 100); });
   insRotate.onchange = () => applyStyle(() => {
     const deg = Math.max(-360, Math.min(360, Number(insRotate.value || 0)));
     getSelectedElements(editFrame.contentDocument).forEach((el) => {
@@ -1407,6 +1446,10 @@ if (hasDom) {
 
   new ResizeObserver(updateStageScale).observe(stageWrap);
   updateStageScale();
+
+  document.querySelectorAll('.ins-card-hd').forEach((hd) => {
+    hd.addEventListener('click', () => hd.closest('.ins-card')?.classList.toggle('ins-collapsed'));
+  });
 
   render();
 
