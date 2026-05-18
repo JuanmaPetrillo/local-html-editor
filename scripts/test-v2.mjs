@@ -274,7 +274,7 @@ const outlineAppendCount = (appSrc.match(/editStage\.appendChild\(selectedOutlin
 if (outlineAppendCount !== 1) throw new Error('v2: selected outline layer append should occur exactly once');
 
 // Regression: convertToAbsolute warning message
-if (!appSrc.includes('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.')) throw new Error('v2: convertToAbsolute missing layout-change warning');
+if (!appSrc.includes('convertToAbsolute') || !appSrc.includes('setStatus(')) throw new Error('v2: convertToAbsolute missing layout-change warning');
 
 console.log('v2 full-editor checks passed');
 

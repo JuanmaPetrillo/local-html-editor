@@ -272,6 +272,7 @@ if (hasDom) {
   const TAG_NAMES = { H1: 'Heading 1', H2: 'Heading 2', H3: 'Heading 3', P: 'Paragraph', DIV: 'Box', SPAN: 'Text span', IMG: 'Image', BUTTON: 'Button', LI: 'List item', A: 'Link', LABEL: 'Label', SECTION: 'Section', MAIN: 'Box', ARTICLE: 'Box' };
 
   let model = mapHtmlToModel('');
+  let sourceFileName = '';
   const history = createHistory();
   let isDirty = false;
   const DRAFT_KEY = 'lhe-draft-v2';
@@ -365,11 +366,11 @@ if (hasDom) {
     if (model.mode === 'preview') {
       liveFrame.srcdoc = buildLivePreviewHtml(model.sourceHtml, model.originalHtml);
       liveFrame.onload = () => { liveFrame.focus(); };
-      modeEl.textContent = 'Preview mode: may run self-contained scripts. Use this to test original behavior; switch to Edit to make safe changes.';
+      modeEl.textContent = 'Preview mode — your presentation plays as designed, including animations and interactions. Switch to Edit to make changes.';
       return;
     }
     editFrame.srcdoc = model.sourceHtml;
-    modeEl.textContent = 'Edit mode: scripts are disabled for safety. Click to select, double-click text to edit, then use Inspector to format.';
+    modeEl.textContent = 'Edit mode — click any element to select it, double-click text to edit inline. Use the Inspector on the right to change colors, fonts, and size.';
     editFrame.onload = () => {
       const doc = editFrame.contentDocument;
       if (!doc) return;
@@ -649,7 +650,7 @@ if (hasDom) {
   }
 
   function convertToAbsolute(el) {
-    setStatus('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.');
+    setStatus('Element repositioned freely. Nearby elements may have shifted — press Ctrl+Z to undo if needed.');
     const r = el.getBoundingClientRect();
     const op = el.offsetParent;
     const pr = op ? op.getBoundingClientRect() : editOverlay.getBoundingClientRect();
@@ -869,6 +870,7 @@ if (hasDom) {
     if (!f) return;
     if (isDirty && !confirm('You have unsaved changes. Open a new file and discard them?')) return;
     model = mapHtmlToModel(await f.text());
+    sourceFileName = f.name.replace(/\.html?$/i, '');
     masterSlideTemplateHtml = '';
     masterPreserveText = true;
     masterPreserveTextToggle.checked = true;
@@ -1242,9 +1244,10 @@ if (hasDom) {
     commitFrameToModel();
     const url = URL.createObjectURL(new Blob([exportModelToHtml(model)], { type: 'text/html' }));
     const a = document.createElement('a');
-    a.href = url; a.download = 'edited-v2.html'; a.click();
+    a.href = url; a.download = (sourceFileName ? `${sourceFileName}-edited.html` : 'edited-presentation.html'); a.click();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    setStatus('Export complete — scripts removed for safety. Buttons and dynamic content may not work in the exported file.');
+    const fname = sourceFileName ? `${sourceFileName}-edited.html` : 'edited-presentation.html';
+    setStatus(`Exported as "${fname}". Note: interactive scripts are removed from the export for safety.`);
   };
 
   function updateStageScale() {

@@ -1170,12 +1170,8 @@ body:not(.no-file) .stage-placeholder { display: none; }
 
       <!-- Text -->
       <div class="ins-card">
-        <div class="ins-card-hd">Text</div>
+        <div class="ins-card-hd">Text &amp; Font</div>
         <div class="ins-card-body">
-          <div class="ins-field">
-            <span class="ins-field-label">Content</span>
-            <textarea id="ins-text" rows="2" placeholder="Text content&hellip;"></textarea>
-          </div>
           <div class="ins-field">
             <span class="ins-field-label">Font family</span>
             <select id="ins-font-family">
@@ -1201,9 +1197,10 @@ body:not(.no-file) .stage-placeholder { display: none; }
               </optgroup>
             </select>
           </div>
-          <div class="ins-field">
-            <span class="ins-field-label">Master slot</span>
-            <input id="ins-master-slot" type="text" placeholder="e.g. title">
+          <div class="ins-checks">
+            <label class="ins-check"><input id="ins-bold" type="checkbox"> Bold</label>
+            <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
+            <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
           </div>
           <div class="ins-field">
             <span class="ins-field-label">Alignment</span>
@@ -1214,10 +1211,12 @@ body:not(.no-file) .stage-placeholder { display: none; }
               <option value="justify">Justify</option>
             </select>
           </div>
+          <div class="ins-field">
+            <span class="ins-field-label">Text content</span>
+            <textarea id="ins-text" rows="2" placeholder="Text content&hellip;"></textarea>
+          </div>
         </div>
       </div>
-
-      <div class="ins-section-label">Advanced</div>
 
       <!-- Appearance -->
       <div class="ins-card">
@@ -1233,38 +1232,46 @@ body:not(.no-file) .stage-placeholder { display: none; }
               <input id="ins-bg" type="color" value="#ffffff">
             </div>
             <div class="ins-field">
-              <span class="ins-field-label">Font&thinsp;(px)</span>
+              <span class="ins-field-label">Font size (px)</span>
               <input id="ins-font" type="number" min="8" max="200" value="16">
             </div>
             <div class="ins-field">
-              <span class="ins-field-label">Opacity&thinsp;(%)</span>
+              <span class="ins-field-label">Opacity (%)</span>
               <input id="ins-opacity" type="number" min="0" max="100" value="100">
             </div>
           </div>
-          <div class="ins-checks">
-            <label class="ins-check"><input id="ins-bold" type="checkbox"> Bold</label>
-            <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
-            <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
-          </div>
           <div class="ins-field">
-            <span class="ins-field-label">Rotate (deg)</span>
+            <span class="ins-field-label">Rotation (°)</span>
             <input id="ins-rotate" type="number" min="-360" max="360" value="0">
           </div>
-
         </div>
       </div>
+
+      <div class="ins-section-label">Advanced</div>
 
       <!-- Image -->
       <div class="ins-card">
         <div class="ins-card-hd">Image</div>
         <div class="ins-card-body">
           <div class="ins-field">
-            <span class="ins-field-label">Alt text</span>
-            <input id="ins-alt" type="text" placeholder="Image description">
+            <span class="ins-field-label">Alt text (description)</span>
+            <input id="ins-alt" type="text" placeholder="Describe this image&hellip;">
           </div>
           <button id="ins-replace-img" class="btn btn-primary" style="display:none;width:100%;justify-content:center;">
             Replace Image
           </button>
+        </div>
+      </div>
+
+      <!-- Master template slot (advanced) -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Master Template Slot</div>
+        <div class="ins-card-body">
+          <div class="ins-field">
+            <span class="ins-field-label">Slot name</span>
+            <input id="ins-master-slot" type="text" placeholder="e.g. title, subtitle">
+          </div>
+          <div class="ins-hint">Name this element's role so master template can match it by name across slides.</div>
         </div>
       </div>
 
@@ -1279,22 +1286,23 @@ body:not(.no-file) .stage-placeholder { display: none; }
 
 
       <div class="ins-card">
-        <div class="ins-card-hd">Arrange</div>
+        <div class="ins-card-hd">Arrange (multi-select)</div>
         <div class="ins-card-body">
+          <div class="ins-hint" style="margin-bottom:4px;">Drag a selection box to select multiple elements first.</div>
           <div class="ins-grid-2">
-            <button id="align-left" class="btn">Align Left</button>
-            <button id="align-top" class="btn">Align Top</button>
-            <button id="distribute-h" class="btn">Distribute H</button>
-            <button id="distribute-v" class="btn">Distribute V</button>
-            <button id="group-selection" class="btn">Group</button>
-            <button id="ungroup-selection" class="btn">Ungroup</button>
+            <button id="align-left" class="btn" title="Align selected elements to the same left edge">Align Left</button>
+            <button id="align-top" class="btn" title="Align selected elements to the same top edge">Align Top</button>
+            <button id="distribute-h" class="btn" title="Space 3+ elements evenly left-to-right">Distribute →</button>
+            <button id="distribute-v" class="btn" title="Space 3+ elements evenly top-to-bottom">Distribute ↓</button>
+            <button id="group-selection" class="btn" title="Group selected elements so they move together">Group</button>
+            <button id="ungroup-selection" class="btn" title="Break a group back into individual elements">Ungroup</button>
           </div>
         </div>
       </div>
 
-      <!-- Export warning -->
+      <!-- Export note -->
       <div class="ins-note">
-        Export creates a safe edited copy and removes scripts and button logic from the output.
+        <strong>Export HTML</strong> creates a standalone file for sharing. Note: interactive scripts are removed for security — animations in presentations may not play back.
       </div>
 
       <!-- Keyboard Shortcuts — always visible -->
@@ -1324,10 +1332,10 @@ body:not(.no-file) .stage-placeholder { display: none; }
 
 <!-- ====== STATUS BAR ====== -->
 <div class="statusbar">
-  <div id="status">Ready &mdash; open an HTML presentation to begin editing.</div>
+  <div id="status">Ready — open an HTML file or drag one onto the window to begin.</div>
   <div class="status-footer">
-    <span id="mode-label">Open HTML to begin. Preview may run self-contained scripts; Edit disables scripts for safety; Export creates a safe edited copy and removes scripts/button logic.</span>
-    <span id="selected-state">Selected: none</span>
+    <span id="mode-label">Open an HTML presentation to begin. Use Edit mode to make changes, Preview to test, and Export to share.</span>
+    <span id="selected-state">No element selected</span>
   </div>
 </div>
 
