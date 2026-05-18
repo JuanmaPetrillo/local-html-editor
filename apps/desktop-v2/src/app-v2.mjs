@@ -835,23 +835,84 @@ if (hasDom) {
     return collectSlides(doc).find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === model.selectedSlideId) || null;
   }
 
+  const thumbFrames = new Map();
+  let thumbRefreshTimer = null;
+
+  function buildSlideThumbHtml(slideId) {
+    try {
+      const parsed = new DOMParser().parseFromString(stripUnsafeHtml(model.sourceHtml), 'text/html');
+      const slides = collectSlides(parsed);
+      const slide = slides.find((s, i) => (s.getAttribute('data-slide-id') || `s${i + 1}`) === slideId);
+      if (!slide) return '';
+      const styles = Array.from(parsed.querySelectorAll('style')).map((st) => st.outerHTML).join('');
+      return `<!doctype html><html><head><meta charset="UTF-8">${styles}<style>*{box-sizing:border-box;}html,body{margin:0;padding:0;overflow:hidden;width:960px;height:540px;}</style></head><body>${slide.outerHTML}</body></html>`;
+    } catch { return ''; }
+  }
+
+  function refreshThumbnails() {
+    if (!model.slides.length) return;
+    model.slides.forEach((s, i) => {
+      const btn = slidesList.children[i];
+      if (!btn) return;
+      const wrap = btn.querySelector('.slide-thumb-wrap');
+      if (!wrap) return;
+      let frame = thumbFrames.get(s.id);
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.setAttribute('sandbox', 'allow-same-origin');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.tabIndex = -1;
+        frame.style.cssText = 'width:960px;height:540px;border:0;pointer-events:none;transform:scale(0.09375);transform-origin:top left;display:block;';
+        thumbFrames.set(s.id, frame);
+      }
+      if (!wrap.contains(frame)) wrap.appendChild(frame);
+      const html = buildSlideThumbHtml(s.id);
+      if (html && frame.getAttribute('data-lhe-hash') !== String(html.length)) {
+        frame.srcdoc = html;
+        frame.setAttribute('data-lhe-hash', String(html.length));
+      }
+    });
+    thumbFrames.forEach((frame, id) => {
+      if (!model.slides.some((s) => s.id === id)) { frame.remove(); thumbFrames.delete(id); }
+    });
+  }
+
+  function scheduleThumbRefresh() {
+    clearTimeout(thumbRefreshTimer);
+    thumbRefreshTimer = setTimeout(refreshThumbnails, 250);
+  }
+
+
+
   function render() {
     slidesList.textContent = '';
     const slideIdx = model.slides.findIndex((s) => s.id === model.selectedSlideId);
     slideCounter.textContent = model.slides.length > 1 ? `${slideIdx + 1} / ${model.slides.length}` : '';
-    model.slides.forEach((s) => {
+    model.slides.forEach((s, i) => {
       const b = document.createElement('button');
-      b.textContent = s.label || s.name;
       b.className = s.id === model.selectedSlideId ? 'active' : '';
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'slide-thumb-wrap';
+      const numBadge = document.createElement('span');
+      numBadge.className = 'slide-num';
+      numBadge.textContent = String(i + 1);
+      const labelEl = document.createElement('span');
+      labelEl.className = 'slide-label-text';
+      labelEl.textContent = s.label || s.name;
+      labelEl.title = s.label || s.name;
+      b.appendChild(thumbWrap);
+      b.appendChild(numBadge);
+      b.appendChild(labelEl);
       b.onclick = () => {
         if (model.mode === 'edit') commitFrameToModel();
         model.selectedSlideId = s.id;
         updateStageScale();
-    setFrameHtml();
+        setFrameHtml();
         refreshButtons();
       };
       slidesList.appendChild(b);
     });
+    scheduleThumbRefresh();
     setFrameHtml();
     refreshButtons();
     describeSelected(selectedEl);
