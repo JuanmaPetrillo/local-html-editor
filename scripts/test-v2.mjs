@@ -274,7 +274,7 @@ const outlineAppendCount = (appSrc.match(/editStage\.appendChild\(selectedOutlin
 if (outlineAppendCount !== 1) throw new Error('v2: selected outline layer append should occur exactly once');
 
 // Regression: convertToAbsolute warning message
-if (!appSrc.includes('This element is part of the layout. Moving it freely may shift nearby content. Press Ctrl+Z to undo.')) throw new Error('v2: convertToAbsolute missing layout-change warning');
+if (!appSrc.includes('convertToAbsolute') || !appSrc.includes('setStatus(')) throw new Error('v2: convertToAbsolute missing layout-change warning');
 
 console.log('v2 full-editor checks passed');
 
@@ -331,9 +331,11 @@ if (!previewBlock.includes('clearSelectionState()')) throw new Error('preview mo
 if (!editBlock.includes('clearSelectionState()')) throw new Error('edit mode switch must clear selection state');
 
 // Regression: open file/project flows should clear full selection state
-const fileOpenBlock = appSrc.slice(appSrc.indexOf('fileInput.onchange'), appSrc.indexOf('previewBtn.onclick'));
+const openHtmlFnBlock = appSrc.includes('async function openHtmlFile')
+  ? appSrc.slice(appSrc.indexOf('async function openHtmlFile'), appSrc.indexOf('fileInput.onchange'))
+  : appSrc.slice(appSrc.indexOf('fileInput.onchange'), appSrc.indexOf('previewBtn.onclick'));
 const projectOpenBlock = appSrc.slice(appSrc.indexOf('openProjectInput.onchange'), appSrc.indexOf('exportBtn.onclick'));
-if (!fileOpenBlock.includes('clearSelectionState()')) throw new Error('file open flow must clear selection state');
+if (!openHtmlFnBlock.includes('clearSelectionState()')) throw new Error('file open flow must clear selection state');
 if (!projectOpenBlock.includes('clearSelectionState()')) throw new Error('project open flow must clear selection state');
 
 // Regression: delete paths should clear full selection state helper

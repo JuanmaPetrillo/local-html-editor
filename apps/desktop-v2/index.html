@@ -406,20 +406,18 @@ a { color: inherit; }
 }
 
 #slides.slide-list button {
-  display: block;
-  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   width: 100%;
-  padding: 8px 10px;
-  font-size: 12.5px;
-  font-weight: 500;
+  padding: 7px 8px;
   color: var(--t-secondary);
   background: var(--s-panel-alt);
   border: 1px solid var(--b-soft);
   border-radius: var(--r-sm);
   transition: background .1s, border-color .1s, color .1s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: left;
 }
 
 #slides.slide-list button:hover:not(.active) {
@@ -432,8 +430,45 @@ a { color: inherit; }
   background: var(--c-blue-pale);
   border-color: var(--c-blue);
   color: #083a6a;
-  font-weight: 600;
   box-shadow: 0 0 0 2px rgba(0,102,161,.1);
+}
+
+.slide-thumb-wrap {
+  width: 90px;
+  height: 51px;
+  overflow: hidden;
+  border: 1px solid var(--b-mid);
+  border-radius: 3px;
+  background: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+#slides.slide-list button.active .slide-thumb-wrap {
+  border-color: var(--c-blue);
+  box-shadow: 0 0 0 2px rgba(0,102,161,.15);
+}
+
+.slide-num {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--t-muted);
+  letter-spacing: 0.3px;
+}
+
+.slide-label-text {
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 170px;
+}
+
+#slides.slide-list button.active .slide-label-text {
+  font-weight: 600;
+  color: #083a6a;
 }
 
 /* Empty / welcome state */
@@ -513,6 +548,7 @@ a { color: inherit; }
   background: var(--s-stage-bg);
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 /* The slide canvas */
@@ -558,16 +594,6 @@ a { color: inherit; }
   box-sizing: border-box;
   border-radius: 3px;
   background: rgba(0,102,161,.025);
-}
-
-#rubber-band {
-  position: absolute;
-  pointer-events: none;
-  border: 1.5px dashed #2563eb;
-  background: rgba(37,99,235,.07);
-  display: none;
-  box-sizing: border-box;
-  border-radius: 2px;
 }
 
 #selection-box {
@@ -829,6 +855,81 @@ a { color: inherit; }
 }
 
 /* ============================================================
+   ZOOM LEVEL BADGE
+   ============================================================ */
+.zoom-level {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--t-muted);
+  background: var(--s-panel-alt);
+  border: 1px solid var(--b-soft);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+  min-width: 36px;
+  text-align: center;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+.zoom-level:empty { display: none; }
+
+/* ============================================================
+   DRAG-OVER STATE
+   ============================================================ */
+body.drag-over .stage-wrap {
+  background: var(--c-blue-ghost);
+}
+body.drag-over .stage-wrap::after {
+  content: 'Drop HTML file to open  ·  Drop image to add to slide';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-blue);
+  background: rgba(234,244,251,.92);
+  border: 3px dashed var(--c-blue);
+  border-radius: var(--r-lg);
+  z-index: 20;
+  pointer-events: none;
+  letter-spacing: 0.1px;
+}
+
+/* ============================================================
+   STAGE EMPTY STATE
+   ============================================================ */
+.stage-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  color: var(--t-muted);
+  text-align: center;
+  padding: var(--sp-5);
+}
+.stage-placeholder-icon {
+  font-size: 36px;
+  opacity: 0.35;
+  line-height: 1;
+}
+.stage-placeholder-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t-secondary);
+}
+.stage-placeholder-hint {
+  font-size: 12px;
+  color: var(--t-muted);
+  line-height: 1.5;
+}
+body:not(.no-file) .stage-placeholder { display: none; }
+
+/* ============================================================
    SCROLLBARS
    ============================================================ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -861,6 +962,67 @@ a { color: inherit; }
 .inspector-scroll.ins-empty .ins-empty-placeholder { display: flex; }
 .ins-empty-title { font-size: 12.5px; font-weight: 600; color: var(--t-secondary); }
 .ins-empty-hint  { font-size: 11px; color: var(--t-muted); line-height: 1.5; }
+
+/* ============================================================
+   INSPECTOR CONTEXTUAL / COLLAPSIBLE
+   ============================================================ */
+.ins-hidden { display: none !important; }
+
+.ins-card-hd { cursor: pointer; user-select: none; }
+.ins-card-hd::after {
+  content: '▾';
+  margin-left: auto;
+  font-size: 9px;
+  opacity: 0.4;
+  color: var(--t-muted);
+  flex-shrink: 0;
+}
+.ins-card.ins-collapsed .ins-card-hd::after { content: '▸'; }
+.ins-card.ins-collapsed .ins-card-body { display: none; }
+
+/* ============================================================
+   OPACITY RANGE SLIDER
+   ============================================================ */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--b-mid);
+  border-radius: var(--r-pill);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--c-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--c-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+
+/* ============================================================
+   SLIDE LABEL INLINE RENAME
+   ============================================================ */
+.slide-label-text[contenteditable="true"] {
+  outline: 1.5px solid var(--b-focus);
+  border-radius: 3px;
+  background: #fff;
+  padding: 0 3px;
+  cursor: text;
+  white-space: nowrap;
+}
 
 /* ============================================================
    CONDITIONAL LAYOUT-SHIFT NOTE
@@ -902,7 +1064,7 @@ a { color: inherit; }
 }
 </style>
 </head>
-<body>
+<body class="no-file">
 <div class="app-shell">
 
 <!-- ====== TOP APP BAR ====== -->
@@ -931,6 +1093,7 @@ a { color: inherit; }
 <div class="toolbar" role="toolbar" aria-label="Editor tools">
 
   <div class="tbar-group">
+    <button id="new-btn" class="btn" title="Start a new blank presentation">New</button>
     <label class="btn-file" title="Open an HTML presentation file" aria-label="Open HTML file">
       Open HTML
       <input id="file" type="file" accept=".html,.htm">
@@ -974,41 +1137,39 @@ a { color: inherit; }
     <div class="panel-body">
 
       <div class="slide-actions">
-        <button id="add-slide" class="btn" title="Add a new slide after the current one">Add Slide</button>
+        <button id="add-slide" class="btn" title="Add a new blank slide after the current one">+ Add</button>
         <button id="dup-slide" class="btn" disabled title="Duplicate the current slide">Duplicate</button>
         <button id="del-slide" class="btn btn-danger" disabled title="Delete the current slide">Delete</button>
-        <button id="set-master" class="btn" disabled title="Capture selected slide as master template">Set Master</button>
-        <button id="apply-master" class="btn" disabled title="Apply master template layout to all slides">Apply Master</button>
-        <label class="snap-toggle-label" title="Preserve each slide's text when applying master template">
+      </div>
+      <div class="slide-actions" style="margin-top:4px;">
+        <button id="set-master" class="btn" disabled title="Save this slide's layout as a master template to reuse on other slides">Set Master</button>
+        <button id="apply-master" class="btn" disabled title="Apply the master template layout to all slides">Apply to All</button>
+        <label class="snap-toggle-label" title="When applying master, keep each slide's existing text">
           <input type="checkbox" id="master-preserve-text" checked>
-          Preserve text
+          Keep text
         </label>
       </div>
 
       <div id="slides" class="slide-list"></div>
 
       <div class="welcome-card">
-        <div class="welcome-card-title">How to use</div>
+        <div class="welcome-card-title">Getting started</div>
         <div class="welcome-steps">
           <div class="welcome-step">
             <div class="welcome-step-n">1</div>
-            <span>Open HTML to load your presentation.</span>
+            <span>Click <strong>Open HTML</strong> or drag an HTML file onto the window.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">2</div>
-            <span>Use Preview to test the original presentation behavior.</span>
+            <span>Click any element on the slide to select it, then use the Inspector on the right to change text, colors, and size.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">3</div>
-            <span>Switch to Edit for safe changes (scripts are disabled).</span>
+            <span>Double-click text to edit it directly on the slide.</span>
           </div>
           <div class="welcome-step">
             <div class="welcome-step-n">4</div>
-            <span>Double-click text to edit, then use Inspector to format.</span>
-          </div>
-          <div class="welcome-step">
-            <div class="welcome-step-n">5</div>
-            <span>Export HTML to create a safe edited copy (scripts/button logic removed).</span>
+            <span>Press <strong>Ctrl+S</strong> to save your session, or <strong>Export HTML</strong> to share a finished file.</span>
           </div>
         </div>
       </div>
@@ -1023,8 +1184,14 @@ a { color: inherit; }
       <h2 class="stage-hd-label">Editing Stage</h2>
       <h2 class="stage-hd-preview">Live Preview</h2>
       <span id="slide-counter" class="slide-counter"></span>
+      <span id="zoom-level" class="zoom-level"></span>
     </div>
     <div class="stage-wrap">
+      <div class="stage-placeholder" aria-hidden="true">
+        <div class="stage-placeholder-icon">&#128196;</div>
+        <div class="stage-placeholder-title">No file open</div>
+        <div class="stage-placeholder-hint">Click <strong>Open HTML</strong> in the toolbar<br>or drag an HTML file anywhere onto this window</div>
+      </div>
       <iframe id="live-preview-frame"
         class="stage canvas-frame"
         sandbox="allow-scripts"
@@ -1099,29 +1266,38 @@ a { color: inherit; }
       </div>
 
       <!-- Text -->
-      <div class="ins-card">
-        <div class="ins-card-hd">Text</div>
+      <div class="ins-card" id="card-text-font">
+        <div class="ins-card-hd">Text &amp; Font</div>
         <div class="ins-card-body">
-          <div class="ins-field">
-            <span class="ins-field-label">Content</span>
-            <textarea id="ins-text" rows="2" placeholder="Text content&hellip;"></textarea>
-          </div>
           <div class="ins-field">
             <span class="ins-field-label">Font family</span>
             <select id="ins-font-family">
-              <option value="">Default</option>
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option>
-              <option value="Georgia, serif">Georgia</option>
-              <option value="Times New Roman, serif">Times New Roman</option>
-              <option value="Verdana, sans-serif">Verdana</option>
-              <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
-              <option value="Courier New, monospace">Courier New</option>
+              <option value="">— Default —</option>
+              <optgroup label="Sans-serif">
+                <option value="Segoe UI, system-ui, sans-serif">Segoe UI</option>
+                <option value="Calibri, Candara, sans-serif">Calibri</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Helvetica Neue, Helvetica, sans-serif">Helvetica</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+                <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+                <option value="Tahoma, sans-serif">Tahoma</option>
+              </optgroup>
+              <optgroup label="Serif">
+                <option value="Georgia, serif">Georgia</option>
+                <option value="Cambria, Georgia, serif">Cambria</option>
+                <option value="Times New Roman, serif">Times New Roman</option>
+                <option value="Book Antiqua, Palatino, serif">Book Antiqua</option>
+              </optgroup>
+              <optgroup label="Monospace">
+                <option value="Courier New, monospace">Courier New</option>
+                <option value="Consolas, monospace">Consolas</option>
+              </optgroup>
             </select>
           </div>
-          <div class="ins-field">
-            <span class="ins-field-label">Master slot</span>
-            <input id="ins-master-slot" type="text" placeholder="e.g. title">
+          <div class="ins-checks">
+            <label class="ins-check"><input id="ins-bold" type="checkbox"> Bold</label>
+            <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
+            <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
           </div>
           <div class="ins-field">
             <span class="ins-field-label">Alignment</span>
@@ -1132,10 +1308,12 @@ a { color: inherit; }
               <option value="justify">Justify</option>
             </select>
           </div>
+          <div class="ins-field">
+            <span class="ins-field-label">Text content</span>
+            <textarea id="ins-text" rows="2" placeholder="Text content&hellip;"></textarea>
+          </div>
         </div>
       </div>
-
-      <div class="ins-section-label">Advanced</div>
 
       <!-- Appearance -->
       <div class="ins-card">
@@ -1151,38 +1329,46 @@ a { color: inherit; }
               <input id="ins-bg" type="color" value="#ffffff">
             </div>
             <div class="ins-field">
-              <span class="ins-field-label">Font&thinsp;(px)</span>
+              <span class="ins-field-label">Font size (px)</span>
               <input id="ins-font" type="number" min="8" max="200" value="16">
             </div>
             <div class="ins-field">
-              <span class="ins-field-label">Opacity&thinsp;(%)</span>
-              <input id="ins-opacity" type="number" min="0" max="100" value="100">
+              <span class="ins-field-label">Opacity — <span id="ins-opacity-val">100</span>%</span>
+              <input id="ins-opacity" type="range" min="0" max="100" value="100">
             </div>
           </div>
-          <div class="ins-checks">
-            <label class="ins-check"><input id="ins-bold" type="checkbox"> Bold</label>
-            <label class="ins-check"><input id="ins-italic" type="checkbox"> Italic</label>
-            <label class="ins-check"><input id="ins-underline" type="checkbox"> Underline</label>
-          </div>
           <div class="ins-field">
-            <span class="ins-field-label">Rotate (deg)</span>
+            <span class="ins-field-label">Rotation (°)</span>
             <input id="ins-rotate" type="number" min="-360" max="360" value="0">
           </div>
-
         </div>
       </div>
 
+      <div class="ins-section-label">Advanced</div>
+
       <!-- Image -->
-      <div class="ins-card">
+      <div class="ins-card" id="card-image">
         <div class="ins-card-hd">Image</div>
         <div class="ins-card-body">
           <div class="ins-field">
-            <span class="ins-field-label">Alt text</span>
-            <input id="ins-alt" type="text" placeholder="Image description">
+            <span class="ins-field-label">Alt text (description)</span>
+            <input id="ins-alt" type="text" placeholder="Describe this image&hellip;">
           </div>
           <button id="ins-replace-img" class="btn btn-primary" style="display:none;width:100%;justify-content:center;">
             Replace Image
           </button>
+        </div>
+      </div>
+
+      <!-- Master template slot (advanced) -->
+      <div class="ins-card">
+        <div class="ins-card-hd">Master Template Slot</div>
+        <div class="ins-card-body">
+          <div class="ins-field">
+            <span class="ins-field-label">Slot name</span>
+            <input id="ins-master-slot" type="text" placeholder="e.g. title, subtitle">
+          </div>
+          <div class="ins-hint">Name this element's role so master template can match it by name across slides.</div>
         </div>
       </div>
 
@@ -1197,22 +1383,23 @@ a { color: inherit; }
 
 
       <div class="ins-card">
-        <div class="ins-card-hd">Arrange</div>
+        <div class="ins-card-hd">Arrange (multi-select)</div>
         <div class="ins-card-body">
+          <div class="ins-hint" style="margin-bottom:4px;">Drag a selection box to select multiple elements first.</div>
           <div class="ins-grid-2">
-            <button id="align-left" class="btn">Align Left</button>
-            <button id="align-top" class="btn">Align Top</button>
-            <button id="distribute-h" class="btn">Distribute H</button>
-            <button id="distribute-v" class="btn">Distribute V</button>
-            <button id="group-selection" class="btn">Group</button>
-            <button id="ungroup-selection" class="btn">Ungroup</button>
+            <button id="align-left" class="btn" title="Align selected elements to the same left edge">Align Left</button>
+            <button id="align-top" class="btn" title="Align selected elements to the same top edge">Align Top</button>
+            <button id="distribute-h" class="btn" title="Space 3+ elements evenly left-to-right">Distribute →</button>
+            <button id="distribute-v" class="btn" title="Space 3+ elements evenly top-to-bottom">Distribute ↓</button>
+            <button id="group-selection" class="btn" title="Group selected elements so they move together">Group</button>
+            <button id="ungroup-selection" class="btn" title="Break a group back into individual elements">Ungroup</button>
           </div>
         </div>
       </div>
 
-      <!-- Export warning -->
+      <!-- Export note -->
       <div class="ins-note">
-        Export creates a safe edited copy and removes scripts and button logic from the output.
+        <strong>Export HTML</strong> creates a standalone file for sharing. Note: interactive scripts are removed for security — animations in presentations may not play back.
       </div>
 
       <!-- Keyboard Shortcuts — always visible -->
@@ -1223,13 +1410,15 @@ a { color: inherit; }
             <div class="ins-shortcut-row"><kbd>Ctrl+Z / Ctrl+Y</kbd><span>Undo / Redo</span></div>
             <div class="ins-shortcut-row"><kbd>Ctrl+S</kbd><span>Save Project</span></div>
             <div class="ins-shortcut-row"><kbd>Ctrl+E</kbd><span>Export HTML</span></div>
-            <div class="ins-shortcut-row"><kbd>Ctrl+C / Ctrl+V</kbd><span>Copy / Paste</span></div>
-            <div class="ins-shortcut-row"><kbd>Delete</kbd><span>Remove selected</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+C / Ctrl+V</kbd><span>Copy / Paste element</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+D</kbd><span>Duplicate selected</span></div>
+            <div class="ins-shortcut-row"><kbd>Ctrl+A</kbd><span>Select all elements</span></div>
+            <div class="ins-shortcut-row"><kbd>Delete</kbd><span>Delete selected</span></div>
             <div class="ins-shortcut-row"><kbd>Esc</kbd><span>Deselect</span></div>
             <div class="ins-shortcut-row"><kbd>Arrow keys</kbd><span>Nudge 1 px</span></div>
             <div class="ins-shortcut-row"><kbd>Shift+Arrow</kbd><span>Nudge 10 px</span></div>
             <div class="ins-shortcut-row"><kbd>Double-click</kbd><span>Edit text inline</span></div>
-            <div class="ins-shortcut-row"><kbd>Ctrl+click</kbd><span>Follow link</span></div>
+            <div class="ins-shortcut-row"><kbd>Drag (empty area)</kbd><span>Marquee select</span></div>
           </div>
           <div class="ins-hint" style="margin-top:6px;font-style:normal;"><strong>Save Project</strong> stores your editor session to reopen here. <strong>Export HTML</strong> creates a standalone file for sharing (scripts are removed).</div>
         </div>
@@ -1242,10 +1431,10 @@ a { color: inherit; }
 
 <!-- ====== STATUS BAR ====== -->
 <div class="statusbar">
-  <div id="status">Ready &mdash; open an HTML presentation to begin editing.</div>
+  <div id="status">Ready — open an HTML file or drag one onto the window to begin.</div>
   <div class="status-footer">
-    <span id="mode-label">Open HTML to begin. Preview may run self-contained scripts; Edit disables scripts for safety; Export creates a safe edited copy and removes scripts/button logic.</span>
-    <span id="selected-state">Selected: none</span>
+    <span id="mode-label">Open an HTML presentation to begin. Use Edit mode to make changes, Preview to test, and Export to share.</span>
+    <span id="selected-state">No element selected</span>
   </div>
 </div>
 
