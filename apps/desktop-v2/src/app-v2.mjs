@@ -1,3 +1,13 @@
+import {
+  editHeadingTextInModel as editHeadingTextInModelCommand,
+  addTextBlockToSlide as addTextBlockToSlideCommand,
+  deleteFirstTagInSlide as deleteFirstTagInSlideCommand,
+  addSlideToModel as addSlideToModelCommand,
+  deleteSlideFromModel as deleteSlideFromModelCommand,
+  duplicateSlideInModel as duplicateSlideInModelCommand,
+  getSlideRegexById
+} from './edit-commands.mjs';
+
 const hasDom = typeof document !== 'undefined';
 
 export function escapeHtml(s) { return String(s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
@@ -63,94 +73,17 @@ function collectSlides(doc) {
   return [doc.body];
 }
 
-function replaceFirstTextInTag(html, tagName, replacementText) {
-  const re = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)<\/${tagName}>`, 'i');
-  return String(html).replace(re, (_m, attrs) => `<${tagName}${attrs}>${escapeHtml(replacementText)}</${tagName}>`);
-}
+export function editHeadingTextInModel(modelInput, newText) { return editHeadingTextInModelCommand(modelInput, newText, { mapHtmlToModel, escapeHtml }); }
 
-function getSlideRegexById(slideId) {
-  const safeId = slideId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(
-    '<(section|div)\\b(?=[^>]*\\bclass\\s*=\\s*["\'][^"\']*slide[^"\']*["\'])(?=[^>]*\\bdata-slide-id\\s*=\\s*["\']' + safeId + '["\'])[^>]*>[\\s\\S]*?<\\/\\1>',
-    'i'
-  );
-}
+export function addTextBlockToSlide(modelInput, text) { return addTextBlockToSlideCommand(modelInput, text, { mapHtmlToModel, escapeHtml }); }
 
-export function editHeadingTextInModel(modelInput, newText) {
-  const model = { ...modelInput };
-  const next = replaceFirstTextInTag(model.sourceHtml, 'h1', newText);
-  model.sourceHtml = next === model.sourceHtml ? String(model.sourceHtml).replace(/>([^<>]{1,200})</, '>' + escapeHtml(newText) + '<') : next;
-  return mapHtmlToModel(model.sourceHtml);
-}
+export function deleteFirstTagInSlide(modelInput, tagName) { return deleteFirstTagInSlideCommand(modelInput, tagName, { mapHtmlToModel }); }
 
-export function addTextBlockToSlide(modelInput, text) {
-  const model = { ...modelInput };
-  const slideId = model.selectedSlideId || model.slides[0]?.id;
-  if (!slideId) return model;
-  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
-  if (!target) return model;
-  const updated = target.replace(/<\/(section|div)>\s*$/i, `<div class="lhe-added-text" style="position:absolute;left:80px;top:80px;width:280px;min-height:30px;">${escapeHtml(text)}</div></$1>`);
-  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
-  return mapHtmlToModel(model.sourceHtml);
-}
+export function addSlideToModel(modelInput) { return addSlideToModelCommand(modelInput, { mapHtmlToModel }); }
 
-export function deleteFirstTagInSlide(modelInput, tagName) {
-  const model = { ...modelInput };
-  const slideId = model.selectedSlideId || model.slides[0]?.id;
-  if (!slideId) return model;
-  const target = String(model.sourceHtml).match(getSlideRegexById(slideId))?.[0];
-  if (!target) return model;
-  const updated = target.replace(new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\/${tagName}>`, 'i'), '');
-  model.sourceHtml = String(model.sourceHtml).replace(getSlideRegexById(slideId), updated);
-  return mapHtmlToModel(model.sourceHtml);
-}
+export function deleteSlideFromModel(modelInput) { return deleteSlideFromModelCommand(modelInput, { mapHtmlToModel }); }
 
-export function addSlideToModel(modelInput) {
-  const model = { ...modelInput };
-  const newId = `lhe-slide-${Date.now()}`;
-  const newSlide = `<section class="slide" data-slide-id="${newId}" data-label="New Slide" style="position:relative;width:100%;min-height:100%;"><p style="position:absolute;left:80px;top:80px;font-size:24px;">New slide</p></section>`;
-  const re = model.selectedSlideId ? getSlideRegexById(model.selectedSlideId) : null;
-  const match = re ? String(model.sourceHtml).match(re) : null;
-  const newSourceHtml = match
-    ? String(model.sourceHtml).replace(re, `${match[0]}\n${newSlide}`)
-    : (/(<\/body>)/i.test(String(model.sourceHtml)) ? String(model.sourceHtml).replace(/<\/body>/i, `${newSlide}</body>`) : String(model.sourceHtml) + newSlide);
-  const result = mapHtmlToModel(newSourceHtml);
-  result.selectedSlideId = newId;
-  return result;
-}
-
-export function deleteSlideFromModel(modelInput) {
-  const model = { ...modelInput };
-  if (model.slides.length <= 1) return model;
-  const idx = model.slides.findIndex((s) => s.id === model.selectedSlideId);
-  if (idx === -1) return model;
-  const newSelectedId = model.slides[idx > 0 ? idx - 1 : 1].id;
-  const re = getSlideRegexById(model.selectedSlideId);
-  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, ''));
-  result.selectedSlideId = newSelectedId;
-  return result;
-}
-
-export function duplicateSlideInModel(modelInput) {
-  const model = { ...modelInput };
-  const re = getSlideRegexById(model.selectedSlideId);
-  const match = String(model.sourceHtml).match(re);
-  if (!match) return model;
-  const newId = `lhe-slide-${Date.now()}`;
-  let dupe = match[0].replace(/data-slide-id\s*=\s*"[^"]*"/i, `data-slide-id="${newId}"`);
-  dupe = dupe.replace(/data-slide-id\s*=\s*'[^']*'/i, `data-slide-id='${newId}'`);
-  const hasLabel = /data-label\s*=\s*["']/i.test(dupe);
-  if (hasLabel) {
-    dupe = dupe.replace(/data-label\s*=\s*"([^"]*)"/i, (_m, l) => `data-label="${l} (Copy)"`);
-    dupe = dupe.replace(/data-label\s*=\s*'([^']*)'/i, (_m, l) => `data-label='${l} (Copy)'`);
-  } else {
-    const existingLabel = model.slides.find((s) => s.id === model.selectedSlideId)?.label || 'Slide';
-    dupe = dupe.replace(/(<(section|div)\b[^>]*class\s*=\s*["'][^"']*slide[^"']*["'][^>]*data-slide-id\s*=\s*["'][^"']*["'])([^>]*>)/i, `$1 data-label="${existingLabel} (Copy)"$3`);
-  }
-  const result = mapHtmlToModel(String(model.sourceHtml).replace(re, `${match[0]}\n${dupe}`));
-  result.selectedSlideId = newId;
-  return result;
-}
+export function duplicateSlideInModel(modelInput) { return duplicateSlideInModelCommand(modelInput, { mapHtmlToModel }); }
 
 function getPx(style, key) { const v = style.getPropertyValue(key) || ''; const n = Number.parseFloat(v); return Number.isFinite(n) ? n : 0; }
 function setPx(style, key, value) { style.setProperty(key, `${Math.round(value)}px`); }

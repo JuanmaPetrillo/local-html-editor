@@ -2,8 +2,54 @@ import { readFileSync } from 'node:fs';
 import {
   mapHtmlToModel, exportModelToHtml, createProjectPayload, restoreProjectPayload,
   editHeadingTextInModel, addTextBlockToSlide, deleteFirstTagInSlide, createHistory, pushHistory, undo, redo,
-  stripUnsafeHtml, buildLivePreviewHtml, addSlideToModel, deleteSlideFromModel, duplicateSlideInModel
+  stripUnsafeHtml, buildLivePreviewHtml, addSlideToModel, deleteSlideFromModel, duplicateSlideInModel, escapeHtml
 } from '../apps/desktop-v2/src/app-v2.mjs';
+import {
+  editHeadingTextInModel as editHeadingTextInModelCommand,
+  addTextBlockToSlide as addTextBlockToSlideCommand,
+  deleteFirstTagInSlide as deleteFirstTagInSlideCommand,
+  addSlideToModel as addSlideToModelCommand,
+  deleteSlideFromModel as deleteSlideFromModelCommand,
+  duplicateSlideInModel as duplicateSlideInModelCommand
+} from '../apps/desktop-v2/src/edit-commands.mjs';
+
+
+// PR1 refactor guard: extracted pure edit-command helpers keep behavior
+{
+  const sourceHtml = '<!doctype html><html><body><section class="slide" data-slide-id="a" data-label="A"><h1>Title</h1><button>Click</button></section></body></html>';
+  const baseModel = { sourceHtml, selectedSlideId: 'a', slides: [{ id: 'a' }] };
+  const deps = { mapHtmlToModel: (html) => ({ sourceHtml: html, selectedSlideId: 'a', slides: [{ id: 'a' }] }), escapeHtml };
+
+  const edited = editHeadingTextInModelCommand(baseModel, 'Updated & <safe>', deps);
+  if (!edited.sourceHtml.includes('Updated &amp; &lt;safe&gt;')) throw new Error('edit command helper heading update failed');
+
+  const added = addTextBlockToSlideCommand(baseModel, 'Added <block>', deps);
+  if (!added.sourceHtml.includes('lhe-added-text')) throw new Error('edit command helper add text failed');
+  if (!added.sourceHtml.includes('Added &lt;block&gt;')) throw new Error('edit command helper add text escaping failed');
+
+  const deleted = deleteFirstTagInSlideCommand(baseModel, 'button', { mapHtmlToModel: deps.mapHtmlToModel });
+  if (/<button/i.test(deleted.sourceHtml)) throw new Error('edit command helper delete tag failed');
+}
+
+
+// PR1 refactor guard: extracted slide command helpers keep behavior
+{
+  const sourceHtml = '<!doctype html><html><body><section class="slide" data-slide-id="a" data-label="A"><h1>A</h1></section><section class="slide" data-slide-id="b" data-label="B"><h1>B</h1></section></body></html>';
+  const map = (html) => mapHtmlToModel(html);
+  const baseModel = map(sourceHtml);
+  baseModel.selectedSlideId = 'a';
+
+  const added = addSlideToModelCommand(baseModel, { mapHtmlToModel: map });
+  if (added.slides.length !== 3) throw new Error('slide command helper add failed');
+
+  const duplicated = duplicateSlideInModelCommand(baseModel, { mapHtmlToModel: map });
+  if (duplicated.slides.length !== 3) throw new Error('slide command helper duplicate failed');
+
+  const deleteModel = map(sourceHtml);
+  deleteModel.selectedSlideId = 'b';
+  const deleted = deleteSlideFromModelCommand(deleteModel, { mapHtmlToModel: map });
+  if (deleted.slides.length !== 1) throw new Error('slide command helper delete failed');
+}
 
 const html = readFileSync('apps/desktop-v2/index.html', 'utf8');
 for (const token of ['Open HTML', 'Preview', 'Edit', 'Add Text', 'Add Image', 'Delete', 'Undo', 'Redo', 'Save Project', 'Open Project', 'Export HTML', 'id="slides"', 'id="layers"', 'id="live-preview-frame"', 'id="edit-frame"', 'id="edit-stage"', 'id="edit-overlay"', 'id="selection-box"', 'id="hover-box"', 'id="ins-replace-img"', 'id="add-slide"', 'id="del-slide"', 'id="dup-slide"', 'id="set-master"', 'id="apply-master"', 'id="master-preserve-text"', 'id="ins-font-family"', 'id="ins-align"', 'id="ins-master-slot"', 'id="bring-front"', 'id="send-back"', 'id="snap-toggle"', 'id="ins-italic"', 'id="ins-underline"', 'id="ins-opacity"', 'id="ins-rotate"', 'id="slide-counter"', 'Keyboard Shortcuts']) {

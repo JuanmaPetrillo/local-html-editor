@@ -1293,3 +1293,39 @@ Validation run: rg -n "^(<<<<<<<|=======|>>>>>>>)" apps/desktop-v2/index.html ap
 Result: Passed.
 Known limitations: Browser/manual interaction verification was not executed in this environment.
 Next recommended task: run browser-level verification for marquee drag-select and stage scaling behavior after merge.
+
+### 2026-05-17 (repo-wide audit baseline and refactor plan)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: Phase 8 preparation (audit and hardening planning)
+Summary: Added a full-repository audit baseline with prioritized, small-PR refactor roadmap focused on maintainability, security-regression coverage, and expansion readiness. No runtime behavior was changed.
+Files changed: docs/AUDIT_AND_REFACTOR_PLAN_2026-05-17.md, PROGRESS.md
+Validation run: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run test:security; npm run build
+Result: Passed.
+Known limitations: This change provides assessment + plan only; implementation refactors and new regression tests remain future tasks.
+Next recommended task: Execute PR 1 from the audit roadmap by extracting pure edit-command helpers with focused unit tests.
+
+### 2026-05-17 (PR1 start: extracted pure edit-command helpers)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: Phase 8 preparation (PR 1 from audit roadmap)
+Summary: Started PR1 refactor by extracting pure edit-command helpers (`editHeadingTextInModel`, `addTextBlockToSlide`, `deleteFirstTagInSlide`, plus slide-id regex/text replacement utilities) into `apps/desktop-v2/src/edit-commands.mjs`. `app-v2.mjs` now delegates to these helpers via thin wrappers with identical behavior contracts. Added focused regression checks in `scripts/test-v2.mjs` for the extracted helper module.
+Files changed: apps/desktop-v2/src/edit-commands.mjs, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: node --check apps/desktop-v2/src/app-v2.mjs; node --check apps/desktop-v2/src/edit-commands.mjs; npm run test:v2; npm run lint; npm run test:e2e; npm run build
+Result: Passed.
+Known limitations: Browser/manual interaction verification was not executed in this environment; focused tests validate model-command behavior only.
+Next recommended task: Continue PR1 by extracting additional deterministic edit operations (without DOM side effects) and expanding focused tests before touching overlay/selection code.
+
+### 2026-05-17 (PR1 continue: extracted pure slide command helpers)
+
+Date: 2026-05-17
+Branch/PR: current branch / pending PR
+Milestone: Phase 8 preparation (PR 1 from audit roadmap)
+Summary: Continued PR1 by extracting deterministic slide commands (`addSlideToModel`, `deleteSlideFromModel`, `duplicateSlideInModel`) into `apps/desktop-v2/src/edit-commands.mjs` and delegating from `app-v2.mjs` via thin wrappers. Added focused regression checks in `scripts/test-v2.mjs` for extracted slide helper behavior.
+Files changed: apps/desktop-v2/src/edit-commands.mjs, apps/desktop-v2/src/app-v2.mjs, scripts/test-v2.mjs, PROGRESS.md
+Validation run: node --check apps/desktop-v2/src/edit-commands.mjs; node --check apps/desktop-v2/src/app-v2.mjs; npm run test:v2; npm run lint; npm run test:e2e; npm run build
+Result: Passed.
+Known limitations: Browser/manual interaction verification was not executed in this environment; checks are model/helper-level and script-level.
+Next recommended task: Finish PR1 by extracting one more deterministic edit slice (if any remain) and then stop before overlay/selection math extraction (PR2 scope).
